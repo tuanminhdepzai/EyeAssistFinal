@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Casio fx-580VN X Simulator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="calculator-wrapper">
+<div class="calculator" id="calculator">
+
+  <!-- ===== BRANDING ===== -->
+  <div class="brand-section">
+    <div class="logo-casio">CASIO</div>
+    <div class="model-name">fx-580VN X</div>
+    <div class="logo-classwiz">CLASSWIZ</div>
+  </div>
+
+  <!-- ===== LCD SCREEN ===== -->
+  <div class="screen-bezel">
+    <div class="screen" id="lcd">
+      <!-- Status indicators -->
+      <div class="screen-indicators">
+        <span class="indicator" id="ind-shift"><span class="indicator-icon">S</span></span>
+        <span class="indicator" id="ind-alpha"><span class="indicator-icon">A</span></span>
+        <span class="indicator" id="ind-m"><span class="indicator-icon">M</span></span>
+        <span class="indicator" id="ind-complex"><span class="indicator-icon">i</span></span>
+        <span class="indicator active" id="ind-angle">D</span>
+        <span class="indicator" id="ind-fix"></span>
+        <span class="indicator" id="ind-disp">Disp</span>
+        <span class="indicator" id="ind-arrow-up">▲</span>
+        <span class="indicator" id="ind-arrow-dn">▼</span>
+        <span class="indicator" id="ind-base" style="margin-left: auto;">d</span>
+      </div>
+
+      <!-- Main content -->
+      <div class="screen-content">
+        <div class="screen-input-wrapper">
+          <div class="screen-input-display" id="screen-input">
+            <span id="expr-before-cursor"></span><span id="cursor-el" class="cursor-blink"></span><span id="expr-after-cursor"></span>
+          </div>
+        </div>
+        <div class="screen-output" id="screen-output"></div>
+      </div>
+
+      <!-- Error overlay -->
+      <div class="error-screen" id="error-screen">
+        <div class="error-title" id="error-title">Math ERROR</div>
+        <div class="error-hint">Press AC or ◄► to edit</div>
+      </div>
+
+      <!-- Menu overlay -->
+      <div class="menu-screen" id="menu-screen">
+        <div class="menu-title-bar">Mode</div>
+        <div class="menu-grid" id="menu-grid"></div>
+        <div class="menu-status-bar" id="menu-status-bar"></div>
+      </div>
+
+      <!-- OPTN Menu overlay -->
+      <div class="optn-screen" id="optn-screen">
+        <div class="optn-title">CMPLX Option</div>
+        <div class="optn-list">
+          <div class="optn-item" data-optn="1">1: Argument</div>
+          <div class="optn-item" data-optn="2">2: Conjugate</div>
+          <div class="optn-item" data-optn="3">3: Real Part</div>
+          <div class="optn-item" data-optn="4">4: Imaginary Part</div>
+        </div>
+      </div>
+
+      <!-- Solve overlay -->
+      <div class="solve-screen" id="solve-screen">
+        <div id="solve-eq" style="word-break: break-all; min-height: 20px; font-size: 13px;"></div>
+        <div class="solve-row solve-border">
+          <span>X=</span>
+          <span id="solve-val" style="font-weight: bold; font-size: 16px;"></span>
+        </div>
+        <div class="solve-row">
+          <span>L - R=</span>
+          <span id="solve-diff"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== KEYPAD ===== -->
+  <div class="keypad">
+
+    <!-- Row 0: Shift, Alpha, [D-Pad], Menu, ON -->
+    <div class="top-controls">
+      <div class="round-btn-group">
+        <div class="btn-container">
+          <div class="btn-label-yellow">SHIFT</div>
+          <button class="btn-round" id="btn-SHIFT" data-key="SHIFT"></button>
+        </div>
+        <div class="btn-container">
+          <div class="btn-label-red">ALPHA</div>
+          <button class="btn-round" id="btn-ALPHA" data-key="ALPHA"></button>
+        </div>
+      </div>
+
+      <div class="dpad-container">
+        <div class="dpad">
+          <div class="dpad-inner">
+            <div class="dpad-center"></div>
+            <button class="dpad-btn dpad-up"    data-key="UP"></button>
+            <button class="dpad-btn dpad-down"  data-key="DOWN"></button>
+            <button class="dpad-btn dpad-left"  data-key="LEFT"></button>
+            <button class="dpad-btn dpad-right" data-key="RIGHT"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="round-btn-group">
+        <div class="btn-container">
+          <div class="btn-label-white">MENU<br><span style="color:#dcb343;font-size:7px">SET UP</span></div>
+          <button class="btn-round" data-key="MENU"></button>
+        </div>
+        <div class="btn-container">
+          <div class="btn-label-white">ON</div>
+          <button class="btn-round" data-key="ON"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 1: OPTN/CALC flanking + INTEGRAL/X_VAR flanking -->
+    <div class="func-row-dpad">
+      <div class="func-mini-group">
+        <div class="f-wrap">
+          <div class="lbl-top"><span class="lbl-y">SOLVE=</span></div>
+          <button class="f-btn f-btn-wide" data-key="OPTN">OPTN</button>
+        </div>
+        <div class="f-wrap">
+          <div class="lbl-top"><span class="lbl-y">SOLVE</span><span class="lbl-r">=</span></div>
+          <button class="f-btn f-btn-wide" data-key="CALC">CALC</button>
+        </div>
+      </div>
+      <div class="func-mini-group">
+        <div class="f-wrap">
+          <div class="lbl-top"><span class="lbl-y">d/dx</span><span class="lbl-r">Σ</span></div>
+          <button class="f-btn f-btn-wide" data-key="INTEGRAL">∫dx</button>
+        </div>
+        <div class="f-wrap">
+          <div class="lbl-top"><span class="lbl-y">Σ</span><span class="lbl-r">#</span></div>
+          <button class="f-btn f-btn-wide" data-key="X_VAR">𝑥</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 2: Function buttons 6-col -->
+    <div class="func-grid">
+      <!-- r2c1 -->
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">▪/▪</span><span class="lbl-r">÷R</span></div>
+        <button class="f-btn" data-key="FRAC">▪/▪</button>
+      </div>
+      <!-- r2c2 -->
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">³√</span><span class="lbl-r">■</span></div>
+        <button class="f-btn" data-key="SQRT">√</button>
+      </div>
+      <!-- r2c3 -->
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">x³</span><span class="lbl-r">DEC</span></div>
+        <button class="f-btn" data-key="SQUARE">x²</button>
+      </div>
+      <!-- r2c4 -->
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">x√</span><span class="lbl-r">HEX</span></div>
+        <button class="f-btn" data-key="POWER">x<sup>■</sup></button>
+      </div>
+      <!-- r2c5 -->
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">10<sup>■</sup></span><span class="lbl-r">BIN</span></div>
+        <button class="f-btn" data-key="LOG_BASE">log□</button>
+      </div>
+      <!-- r2c6 -->
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">e<sup>■</sup></span><span class="lbl-r">OCT</span></div>
+        <button class="f-btn" data-key="LN">ln</button>
+      </div>
+
+      <!-- Row 3: (-), °'", x⁻¹, sin, cos, tan -->
+      <!-- r3c1 -->
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">log</span><span class="lbl-r">A</span></div>
+        <button class="f-btn" data-key="NEGATION">(-)</button>
+      </div>
+      <!-- r3c2 -->
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">FACT</span><span class="lbl-r">B</span></div>
+        <button class="f-btn" data-key="DEGREE">°'"</button>
+      </div>
+      <!-- r3c3 -->
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">x!</span><span class="lbl-r">C</span></div>
+        <button class="f-btn" data-key="INVERSE">x⁻¹</button>
+      </div>
+      <!-- r3c4 -->
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">sin⁻¹</span><span class="lbl-r">D</span></div>
+        <button class="f-btn" data-key="SIN">sin</button>
+      </div>
+      <!-- r3c5 -->
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">cos⁻¹</span><span class="lbl-r">E</span></div>
+        <button class="f-btn" data-key="COS">cos</button>
+      </div>
+      <!-- r3c6 -->
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">tan⁻¹</span><span class="lbl-r">F</span></div>
+        <button class="f-btn" data-key="TAN">tan</button>
+      </div>
+
+      <!-- Row 4: STO, ENG, (, ), S⇔D, M+ -->
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">RECALL</span></div>
+        <button class="f-btn" data-key="STO">STO</button>
+      </div>
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">←</span><span class="lbl-r">i</span></div>
+        <button class="f-btn" data-key="ENG">ENG</button>
+      </div>
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">Abs</span><span class="lbl-r">x</span></div>
+        <button class="f-btn" data-key="LPAREN">(</button>
+      </div>
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">,</span><span class="lbl-r">y</span></div>
+        <button class="f-btn" data-key="RPAREN">)</button>
+      </div>
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">a b/c</span><span class="lbl-r">z</span></div>
+        <button class="f-btn" data-key="SD">S⇔D</button>
+      </div>
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">M-</span><span class="lbl-r">M</span></div>
+        <button class="f-btn" data-key="MPLUS">M+</button>
+      </div>
+    </div>
+
+    <!-- Numeric grid: 5 cols -->
+    <div class="num-grid">
+      <!-- Row 5: 7 8 9 DEL AC -->
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">CONST</span></div>
+        <button class="n-btn" data-key="7">7</button>
+      </div>
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">CONV</span></div>
+        <button class="n-btn" data-key="8">8</button>
+      </div>
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">RESET</span></div>
+        <button class="n-btn" data-key="9">9</button>
+      </div>
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">INS</span><span class="lbl-r">UNDO</span></div>
+        <button class="n-btn ac-blue" data-key="DEL">DEL</button>
+      </div>
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">OFF</span></div>
+        <button class="n-btn ac-blue" data-key="AC">AC</button>
+      </div>
+
+      <!-- Row 6: 4 5 6 × ÷ -->
+      <div class="f-wrap">
+        <div class="lbl-top"></div>
+        <button class="n-btn" data-key="4">4</button>
+      </div>
+      <div class="f-wrap">
+        <div class="lbl-top"></div>
+        <button class="n-btn" data-key="5">5</button>
+      </div>
+      <div class="f-wrap">
+        <div class="lbl-top"></div>
+        <button class="n-btn" data-key="6">6</button>
+      </div>
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">nPr</span><span class="lbl-r">GCD</span></div>
+        <button class="n-btn op-gray" data-key="MULTIPLY">×</button>
+      </div>
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">nCr</span><span class="lbl-r">LCM</span></div>
+        <button class="n-btn op-gray" data-key="DIVIDE">÷</button>
+      </div>
+
+      <!-- Row 7: 1 2 3 + − -->
+      <div class="f-wrap">
+        <div class="lbl-top"></div>
+        <button class="n-btn" data-key="1">1</button>
+      </div>
+      <div class="f-wrap">
+        <div class="lbl-top"></div>
+        <button class="n-btn" data-key="2">2</button>
+      </div>
+      <div class="f-wrap">
+        <div class="lbl-top"></div>
+        <button class="n-btn" data-key="3">3</button>
+      </div>
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">Pol</span><span class="lbl-r">Int</span></div>
+        <button class="n-btn op-gray" data-key="PLUS">+</button>
+      </div>
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">Rec</span><span class="lbl-r">Intg</span></div>
+        <button class="n-btn op-gray" data-key="MINUS">−</button>
+      </div>
+
+      <!-- Row 8: 0 . ×10ˣ Ans = -->
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">Rnd</span></div>
+        <button class="n-btn" data-key="0">0</button>
+      </div>
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">Ran#</span><span class="lbl-r">RanInt</span></div>
+        <button class="n-btn" data-key="DOT">•</button>
+      </div>
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">π</span><span class="lbl-r">e</span></div>
+        <button class="n-btn" style="font-size:13px" data-key="EXP">×10<sup style="font-size:10px">x</sup></button>
+      </div>
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">%</span><span class="lbl-r">PreAns</span></div>
+        <button class="n-btn" style="font-size:14px" data-key="ANS">Ans</button>
+      </div>
+      <div class="f-wrap">
+        <div class="lbl-top"><span class="lbl-y">≈</span></div>
+        <button class="n-btn op-gray" data-key="EQUALS">=</button>
+      </div>
+    </div>
+  </div><!-- end .keypad -->
+
+</div><!-- end .calculator -->
+</div><!-- end .calculator-wrapper -->
+
+<script src="script.js"></script>
+</body>
+</html>
