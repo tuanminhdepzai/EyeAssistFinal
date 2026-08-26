@@ -29,6 +29,10 @@ export class FusionEngine {
     this.voiceQueue = [];
     this.isProcessingVoice = false;
 
+    // Phase 2: cổng tin cậy — blink có confidence thấp hơn ngưỡng sẽ bị loại
+    // (được BlinkDetector/BlinkClassifier tính; nếu không có field thì bỏ qua)
+    this.minBlinkConfidence = 0.5;
+
     // Callbacks for different event types
     this.callbacks = {
       onClick: () => {},
@@ -66,6 +70,12 @@ export class FusionEngine {
   handleBlink(blinkData) {
     if (this.currentMode === 'calibration') return;
 
+    // Phase 2: confidence gating (nếu blink có confidence < ngưỡng → bỏ qua)
+    if (typeof blinkData.confidence === 'number' && blinkData.confidence < this.minBlinkConfidence) {
+      this.sessionStats.errors++;
+      return;
+    }
+
     this.lastBlinkEvent = blinkData;
     this.sessionStats.totalClicks++;
 
@@ -93,7 +103,9 @@ export class FusionEngine {
         y: this.lastGazePosition.y,
         target: this.lastGazeTarget,
         timestamp: blinkData.timestamp || Date.now(),
-        duration: blinkData.duration
+        duration: blinkData.duration,
+        confidence: blinkData.confidence,
+        features: blinkData.features
       });
     }
   }

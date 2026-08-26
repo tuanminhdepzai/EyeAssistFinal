@@ -3,12 +3,14 @@
  *
  * Bootstraps all subsystems:
  *   - MediaPipe Face Mesh + Webcam
- *   - Gaze Engine (EAR, blink detection, filtering)
+ *   - Gaze Engine (EAR, adaptive thresholds, BlinkBaseline, BlinkClassifier, filtering)
+ *   - Dwell-Blink Confirmation (BlinkProgressBar)
  *   - Fusion Engine (multi-modal input fusion)
- *   - Casio App
- *   - Physics App
- *   - Calibration flow
- *   - Analytics
+ *   - Casio App (fx-580VN X simulation)
+ *   - Hand Module 3D (Three.js simulation)
+ *   - Physics App (STEM problem generator & simulation)
+ *   - Calibration Flow (9-Point Grid & Lissajous Pursuit)
+ *   - Analytics & Audio Feedback
  */
 import { FusionEngine } from './fusion/FusionEngine.js';
 import { VoiceHandler } from './fusion/VoiceHandler.js';
@@ -24,8 +26,11 @@ import { GazeToScreen } from './engine/GazeToScreen.js';
 import { GazeFilter } from './engine/GazeFilter.js';
 import { AdaptiveLearner } from './engine/AdaptiveLearner.js';
 import { BlinkDetector } from './engine/BlinkDetector.js';
+import { BlinkClassifier } from './engine/BlinkClassifier.js';
 import { GestureMatcher } from './engine/GestureMatcher.js';
 import { EARCalculator } from './engine/EARCalculator.js';
+import { BlinkProgressBar } from './modules/BlinkProgressBar.js';
+import { HandModule3D } from './modules/HandModule3D.js';
 
 // ============ GLOBAL STATE ============
 const state = {
@@ -41,6 +46,9 @@ const state = {
 /** Last good gaze position before blink started (to freeze cursor during blinks) */
 let lastGoodGaze = { x: 0.5, y: 0.5 };
 
+/** Thời điểm hành động cuối được thực thi (chống kích hoạt lặp) */
+let lastActionTime = 0;
+
 // ============ INSTANTIATE SUBSYSTEMS ============
 const fusion = new FusionEngine();
 const voice = new VoiceHandler();
@@ -55,8 +63,20 @@ const audio = new AudioFeedback();
 const gazeMapper = new GazeToScreen();
 const gazeFilter = new GazeFilter();
 const adaptiveLearner = new AdaptiveLearner();
-const blinkDetector = new BlinkDetector();
+
+// Phase 2: classifier chia sẻ baseline của adaptiveLearner (học từ người dùng)
+const blinkClassifier = new BlinkClassifier({ baseline: adaptiveLearner.baseline });
+const blinkDetector = new BlinkDetector({ classifier: blinkClassifier });
 const gestureMatcher = new GestureMatcher();
+
+// Phase 3: progress bar xác nhận nháy mắt chủ đích (dwell-blink confirmation)
+const blinkProgress = new BlinkProgressBar({
+  confirmMs: 600,
+  cancelRadius: 48
+});
+
+const handModule = new HandModule3D();
+let handModuleInited = false;
 
 // ============ DOM REFS ============
 const $ = (id) => document.getElementById(id);
@@ -68,19 +88,39 @@ const dom = {
   webcam: $('webcam'),
   overlay: $('overlay'),
   fps: $('fps-counter'),
+  blinkStats: $('blink-stats'),
   tabs: document.querySelectorAll('.nav-tab'),
   tabContents: document.querySelectorAll('.tab-content'),
   camStatus: $('cam-status'),
   gazeStatus: $('gaze-status'),
   voiceStatus: $('voice-status'),
-  calibrationCanvas: $('calibration-canvas'),
-  btnStartCal: $('btn-start-calibration'),
-  btnSkipCal: $('btn-skip-calibration'),
+
+  // Calibration DOM
+  calSetupCard: $('cal-setup-card'),
+  calWorkspaceCard: $('cal-workspace-card'),
   calibrationResult: $('calibration-result'),
+  calibrationCanvas: $('calibration-canvas'),
+  calGazePreview: $('cal-gaze-preview'),
+  calProgressFill: $('cal-progress-fill'),
+  calPhaseText: $('cal-phase-text'),
+  calSampleCount: $('cal-sample-count'),
+  calMetricAcc: $('cal-metric-acc'),
+  calMetricStab: $('cal-metric-stab'),
+  calMetricMode: $('cal-metric-mode'),
+  calMetricModeSub: $('cal-metric-mode-sub'),
   calibrationMode: $('calibration-mode'),
   calibrationStatus: $('calibration-status'),
+  calModeDesc: $('calibration-mode-desc'),
+  calHitRate: $('cal-hit-rate'),
+  hitRateGrid: $('hit-rate-grid'),
+  btnStartCal: $('btn-start-calibration'),
+  btnSkipCal: $('btn-skip-calibration'),
+  btnCancelCal: $('btn-cancel-calibration'),
+  btnTestCal: $('btn-test-calibration'),
   btnApplyCal: $('btn-apply-calibration'),
+  btnRestartCal: $('btn-restart-calibration'),
 
+  // General UI
   gazeCursor: $('gaze-cursor'),
   voiceFeedback: $('voice-feedback'),
   btnToggleAnalytics: $('btn-toggle-analytics'),
@@ -89,6 +129,8 @@ const dom = {
   statClicks: $('stat-clicks'),
   statAccuracy: $('stat-accuracy'),
   statErrors: $('stat-errors'),
+
+  // Physics DOM
   physicsCanvas: $('physics-canvas'),
   btnNewProblem: $('btn-new-problem'),
   btnLockAnswer: $('btn-lock-answer'),
@@ -96,6 +138,8 @@ const dom = {
   physicsQuestion: $('physics-question'),
   physicsScore: $('physics-score'),
   physicsResultText: $('physics-result-text'),
+
+  // Voice toggle
   btnMicToggle: $('btn-mic-toggle'),
   micIcon: $('mic-icon'),
 };
@@ -119,22 +163,21 @@ async function init() {
     
     // Show the app
     setTimeout(() => {
-      dom.loading.classList.add('hidden');
-      dom.app.style.display = 'flex';
+      if (dom.loading) dom.loading.classList.add('hidden');
+      if (dom.app) dom.app.style.display = 'flex';
       startGazeLoop();
       voice.start();
       scaleCalculator();
     }, 500);
   } catch (err) {
     console.error('Init error:', err);
-    dom.loadingStatus.textContent = `Lỗi: ${err.message}. Vui lòng reload.`;
+    if (dom.loadingStatus) dom.loadingStatus.textContent = `Lỗi: ${err.message}. Vui lòng reload.`;
   }
 }
 
 // ============ MEDIAPIPE FACE MESH ============
 async function initMediaPipe() {
   try {
-    // MediaPipe Face Mesh loaded via CDN script tag
     const { FaceMesh } = window;
     if (!FaceMesh) {
       throw new Error('MediaPipe Face Mesh not loaded. Using fallback mode.');
@@ -156,7 +199,6 @@ async function initMediaPipe() {
     state.faceMesh.onResults(onFaceResults);
   } catch (e) {
     console.warn('MediaPipe init warning:', e.message);
-    // Continue without face mesh - will use mouse fallback
   }
 }
 
@@ -171,77 +213,106 @@ async function initWebcam() {
       audio: false,
     });
     
-    dom.webcam.srcObject = stream;
-    await dom.webcam.play();
-    dom.camStatus.classList.add('active');
+    if (dom.webcam) {
+      dom.webcam.srcObject = stream;
+      await dom.webcam.play();
+    }
+    if (dom.camStatus) dom.camStatus.classList.add('active');
   } catch (e) {
     console.warn('Webcam access denied:', e.message);
-    dom.camStatus.classList.add('error');
-    // Continue without webcam
+    if (dom.camStatus) dom.camStatus.classList.add('error');
   }
 }
 
 // ============ MODULES INIT ============
 function initModules() {
-  // Casio (initialized by casio/script.js on DOMContentLoaded)
-  
-  
   // Physics
-  physics.init(dom.physicsCanvas);
-  physics.onScoreUpdate = (result) => {
-    dom.physicsResultText.textContent = result.correct
-      ? `✅ Đúng! (${result.score}/${result.total})`
-      : `❌ Sai! Đáp án đúng đã hiển thị (${result.score}/${result.total})`;
-    dom.physicsScore.style.display = 'block';
-    dom.btnLockAnswer.disabled = true;
-  };
+  if (dom.physicsCanvas) {
+    physics.init(dom.physicsCanvas);
+    physics.onScoreUpdate = (result) => {
+      if (dom.physicsResultText) {
+        dom.physicsResultText.textContent = result.correct
+          ? `✅ Đúng! (${result.score}/${result.total})`
+          : `❌ Sai! Đáp án đúng đã hiển thị (${result.score}/${result.total})`;
+      }
+      if (dom.physicsScore) dom.physicsScore.style.display = 'block';
+      if (dom.btnLockAnswer) dom.btnLockAnswer.disabled = true;
+    };
+  }
 
   // Tab switching
   dom.tabs.forEach(tab => {
-    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    tab.addEventListener('click', () => {
+      const tabId = tab.dataset.tab;
+      if (tabId) switchTab(tabId);
+    });
+  });
+
+  // Method selector radio cards in calibration
+  const methodCards = document.querySelectorAll('.cal-method-select .method-card');
+  methodCards.forEach(card => {
+    card.addEventListener('click', () => {
+      methodCards.forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      const radio = card.querySelector('input[type="radio"]');
+      if (radio) radio.checked = true;
+    });
   });
 
   // Calibration buttons
-  dom.btnStartCal.addEventListener('click', startCalibration);
-  dom.btnSkipCal.addEventListener('click', skipCalibration);
-  dom.btnApplyCal.addEventListener('click', applyCalibration);
+  if (dom.btnStartCal) dom.btnStartCal.addEventListener('click', startCalibration);
+  if (dom.btnSkipCal) dom.btnSkipCal.addEventListener('click', skipCalibration);
+  if (dom.btnCancelCal) dom.btnCancelCal.addEventListener('click', cancelCalibration);
+  if (dom.btnTestCal) dom.btnTestCal.addEventListener('click', startLiveTest);
+  if (dom.btnApplyCal) dom.btnApplyCal.addEventListener('click', applyCalibration);
+  if (dom.btnRestartCal) dom.btnRestartCal.addEventListener('click', restartCalibration);
 
   // Physics buttons
-  dom.btnNewProblem.addEventListener('click', () => {
-    const problem = physics.newProblem();
-    dom.physicsQuestion.textContent = problem.question;
-    dom.physicsScore.style.display = 'none';
-    dom.btnLockAnswer.disabled = false;
-  });
+  if (dom.btnNewProblem) {
+    dom.btnNewProblem.addEventListener('click', () => {
+      const problem = physics.newProblem();
+      if (dom.physicsQuestion) dom.physicsQuestion.textContent = problem.question;
+      if (dom.physicsScore) dom.physicsScore.style.display = 'none';
+      if (dom.btnLockAnswer) dom.btnLockAnswer.disabled = false;
+    });
+  }
   
-  dom.btnLockAnswer.addEventListener('click', () => {
-    physics._lockAnswer();
-    dom.btnLockAnswer.disabled = true;
-  });
+  if (dom.btnLockAnswer) {
+    dom.btnLockAnswer.addEventListener('click', () => {
+      physics._lockAnswer();
+      dom.btnLockAnswer.disabled = true;
+    });
+  }
   
-  dom.btnNextProblem.addEventListener('click', () => {
-    const problem = physics.newProblem();
-    dom.physicsQuestion.textContent = problem.question;
-    dom.physicsScore.style.display = 'none';
-    dom.btnLockAnswer.disabled = false;
-  });
+  if (dom.btnNextProblem) {
+    dom.btnNextProblem.addEventListener('click', () => {
+      const problem = physics.newProblem();
+      if (dom.physicsQuestion) dom.physicsQuestion.textContent = problem.question;
+      if (dom.physicsScore) dom.physicsScore.style.display = 'none';
+      if (dom.btnLockAnswer) dom.btnLockAnswer.disabled = false;
+    });
+  }
 
   // Analytics toggle
-  dom.btnToggleAnalytics.addEventListener('click', () => {
-    const visible = dom.analyticsContent.style.display !== 'none';
-    dom.analyticsContent.style.display = visible ? 'none' : 'block';
-  });
+  if (dom.btnToggleAnalytics && dom.analyticsContent) {
+    dom.btnToggleAnalytics.addEventListener('click', () => {
+      const visible = dom.analyticsContent.style.display !== 'none';
+      dom.analyticsContent.style.display = visible ? 'none' : 'block';
+    });
+  }
 
   // Mic toggle button
-  dom.btnMicToggle.addEventListener('click', () => {
-    voice.toggle();
-    updateMicUI();
-  });
+  if (dom.btnMicToggle) {
+    dom.btnMicToggle.addEventListener('click', () => {
+      voice.toggle();
+      updateMicUI();
+    });
+  }
   
   // Voice status update on start/stop
-  voice.on('onStart', () => { dom.voiceStatus.classList.add('active'); updateMicUI(); });
-  voice.on('onEnd', () => { dom.voiceStatus.classList.remove('active'); updateMicUI(); });
-  voice.on('onError', () => { dom.voiceStatus.classList.add('error'); updateMicUI(); });
+  voice.on('onStart', () => { if (dom.voiceStatus) dom.voiceStatus.classList.add('active'); updateMicUI(); });
+  voice.on('onEnd', () => { if (dom.voiceStatus) dom.voiceStatus.classList.remove('active'); updateMicUI(); });
+  voice.on('onError', () => { if (dom.voiceStatus) dom.voiceStatus.classList.add('error'); updateMicUI(); });
 
   // Scale Casio calculator to fill viewport
   scaleCalculator();
@@ -307,7 +378,9 @@ function onFaceResults(results) {
     // Keep last good gaze position, don't update cursor or snap
     const frozen = gazeToViewport(lastGoodGaze.x, lastGoodGaze.y);
     updateGazeCursor(frozen.x, frozen.y);
-    dom.gazeStatus.classList.add('active');
+    // Phase 3: gaze bị đóng băng → không tính là "rời mục tiêu"
+    blinkProgress.updateGaze(frozen.x, frozen.y);
+    if (dom.gazeStatus) dom.gazeStatus.classList.add('active');
     drawOverlay(landmarks);
     return; // Skip gesture, adaptive learner, snap, hit test
   }
@@ -325,11 +398,19 @@ function onFaceResults(results) {
   adaptiveLearner.updateFromGaze(jitter);
   gazeFilter.tune(jitter);
   
-  // 8. Dynamically set blink thresholds
-  blinkDetector.setThreshold(
-    adaptiveLearner.getEARThreshold(),
-    adaptiveLearner.getDurationThreshold()
-  );
+  // 8. Phase 1: set toàn bộ ngưỡng động (baseline cá nhân hóa)
+  blinkDetector.setThresholds(adaptiveLearner.getThresholds());
+  
+  // 8b. Phase 2: feed context cho classifier — fixation stability, vận tốc
+  //     gaze, mục tiêu, nhịp nháy, thời gian từ hành động cuối
+  const fixation = gazeFilter.getFixationState(now);
+  blinkClassifier.setContext({
+    fixationStable: fixation.stable,
+    gazeVelocity: fixation.velocity,
+    target: fusion.lastGazeTarget !== null && fusion.lastGazeTarget !== undefined,
+    blinkRate: blinkDetector.getBlinkRate(now),
+    lastActionMs: performance.now() - lastActionTime
+  });
   
   // 9. Snap gaze to nearest key (magnetic effect)
   if (state.currentTab === 'casio') {
@@ -343,15 +424,24 @@ function onFaceResults(results) {
   // 10. Update gaze cursor (viewport coords)
   updateGazeCursor(vp.x, vp.y);
   
+  // 10b. Phase 3: theo dõi gaze để hủy xác nhận nếu rời mục tiêu
+  blinkProgress.updateGaze(vp.x, vp.y);
+  
   // 11. Hit test for Casio (viewport coords)
   if (state.currentTab === 'casio') {
     const keyId = casioKeys.hitTest(vp.x, vp.y);
     casioKeys.setGazeHover(keyId);
     fusion.lastGazeTarget = keyId;
   }
+
+  // 11b. Hit test for Hand Module
+  if (state.currentTab === 'hand') {
+    const handTarget = handModule.updateGazeHover(vp.x, vp.y, now);
+    fusion.lastGazeTarget = handTarget ? 'hand_element' : null;
+  }
   
   // 12. Update gaze status
-  dom.gazeStatus.classList.add('active');
+  if (dom.gazeStatus) dom.gazeStatus.classList.add('active');
   
   // Gesture detected
   if (gesture) {
@@ -364,7 +454,7 @@ function onFaceResults(results) {
 
 // ============ GAZE LOOP ============
 function startGazeLoop() {
-  if (!state.faceMesh || !dom.webcam.srcObject) return;
+  if (!state.faceMesh || !dom.webcam || !dom.webcam.srcObject) return;
   
   state.isRunning = true;
   
@@ -372,7 +462,7 @@ function startGazeLoop() {
     if (!state.isRunning) return;
     
     try {
-      if (dom.webcam.readyState >= 2) {
+      if (dom.webcam && dom.webcam.readyState >= 2) {
         await state.faceMesh.send({ image: dom.webcam });
       }
     } catch (e) {
@@ -383,17 +473,12 @@ function startGazeLoop() {
   }
   
   loop();
-  
-  // Also run a fallback mouse-based gaze for testing without webcam
-  if (!dom.webcam.srcObject) {
-    enableMouseFallback();
-  }
 }
 
 // ============ MOUSE FALLBACK (for testing without webcam) ============
 function enableMouseFallback() {
   document.addEventListener('mousemove', (e) => {
-    state.gazePosition = { x: e.clientX, y: e.clientY };
+    state.gazePosition = { x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight };
     let mx = e.clientX, my = e.clientY;
     
     if (state.currentTab === 'casio') {
@@ -406,37 +491,43 @@ function enableMouseFallback() {
       casioKeys.setGazeHover(keyId);
       fusion.lastGazeTarget = keyId;
     }
+
+    if (state.currentTab === 'hand') {
+      const handTarget = handModule.updateGazeHover(mx, my, performance.now());
+      fusion.lastGazeTarget = handTarget ? 'hand_element' : null;
+    }
     
+    blinkProgress.updateGaze(mx, my);
     updateGazeCursor(mx, my);
   });
   
   document.addEventListener('click', (e) => {
-    fusion.handleBlink({
+    blinkProgress.start(e.clientX, e.clientY, {
       subtype: 'short',
       duration: 300,
-      timestamp: Date.now(),
-    });
+      confidence: 0.9
+    }, { target: fusion.lastGazeTarget });
   });
   
   document.addEventListener('contextmenu', (e) => {
     e.preventDefault();
-    fusion.handleBlink({
+    blinkProgress.start(e.clientX, e.clientY, {
       subtype: 'long',
       duration: 800,
-      timestamp: Date.now(),
-    });
+      confidence: 0.9
+    }, { target: fusion.lastGazeTarget });
   });
 }
 
 // ============ GAZE CURSOR ============
 function updateGazeCursor(vpX, vpY) {
   const cursor = dom.gazeCursor;
+  if (!cursor) return;
   
   if (state.currentTab === 'casio') {
     const appEl = document.getElementById('casio-app');
     if (appEl) {
       const appRect = appEl.getBoundingClientRect();
-      // Convert viewport coords to be relative to casio-app
       cursor.style.left = `${(vpX - appRect.left) / appRect.width * 100}%`;
       cursor.style.top = `${(vpY - appRect.top) / appRect.height * 100}%`;
       cursor.classList.add('visible');
@@ -444,55 +535,148 @@ function updateGazeCursor(vpX, vpY) {
     }
   }
   
-  // Default: position relative to viewport
   cursor.style.left = `${vpX}px`;
   cursor.style.top = `${vpY}px`;
   cursor.classList.add('visible');
 }
 
-// ============ BLINK DETECTOR WIRING ============
-// Intentional blink → fusion (click/action) + adaptive learner (k-means training)
+// ============ BLINK DETECTOR WIRING (Phase 1 + 2 + 3) ============
+// Phân loại chi tiết → adaptive learner + chip UI
+blinkDetector.on('onClassified', (classification) => {
+  if (classification.blink) {
+    adaptiveLearner.updateFromBlink({
+      type: classification.type,
+      duration: classification.blink.duration,
+      earLeft: null,
+      earRight: null,
+      features: classification.blink.features,
+      ...classification.blink
+    });
+  }
+
+  // Chip phân loại gần con trỏ (feedback realtime)
+  if (classification.type === 'natural' || classification.type === 'intentional' || classification.type === 'uncertain') {
+    blinkProgress.showClassification(
+      lastGoodGaze.x * window.innerWidth,
+      lastGoodGaze.y * window.innerHeight,
+      classification
+    );
+  }
+
+  analytics.log({
+    input: 'blink_classified',
+    type: classification.type,
+    confidence: classification.confidence,
+    ...(classification.blink?.features ? { duration: classification.blink.duration } : {})
+  });
+
+  updateBlinkStatsUI();
+});
+
+// Nháy chủ đích → Phase 3: mở progress bar xác nhận
 blinkDetector.on('onIntentional', (blinkData) => {
-  adaptiveLearner.updateFromBlink(blinkData);
-  fusion.handleBlink({
-    subtype: blinkData.type,
-    duration: blinkData.duration,
-    timestamp: Date.now(),
+  if (blinkProgress.isActive) {
+    blinkProgress.upgradeToDouble(blinkData);
+    return;
+  }
+
+  let cx = 0, cy = 0;
+  const rect = dom.gazeCursor ? dom.gazeCursor.getBoundingClientRect() : null;
+  if (rect && rect.width > 0 && rect.height > 0) {
+    cx = rect.left + rect.width / 2;
+    cy = rect.top + rect.height / 2;
+  } else {
+    const vp = gazeToViewport(lastGoodGaze.x, lastGoodGaze.y);
+    cx = vp.x; cy = vp.y;
+  }
+
+  blinkProgress.start(cx, cy, blinkData, {
+    target: fusion.lastGazeTarget
   });
 });
 
 blinkDetector.on('onWink', (side, duration) => {
-  fusion.handleBlink({
-    subtype: 'wink',
-    side,
-    duration,
-    timestamp: Date.now(),
+  let cx = 0, cy = 0;
+  const rect = dom.gazeCursor ? dom.gazeCursor.getBoundingClientRect() : null;
+  if (rect && rect.width > 0 && rect.height > 0) {
+    cx = rect.left + rect.width / 2;
+    cy = rect.top + rect.height / 2;
+  } else {
+    const vp = gazeToViewport(lastGoodGaze.x, lastGoodGaze.y);
+    cx = vp.x; cy = vp.y;
+  }
+
+  blinkProgress.start(cx, cy, { subtype: 'wink', side, duration }, {
+    target: fusion.lastGazeTarget
   });
 });
 
-// Natural blink → adaptive learner only (not an action)
+// Nháy tự nhiên → adaptive learner + hủy progress bar nếu đang chờ
 blinkDetector.on('onNatural', (blinkData) => {
-  adaptiveLearner.updateFromBlink(blinkData);
+  adaptiveLearner.updateFromBlink({
+    type: blinkData.type === 'uncertain' ? 'unknown' : 'natural',
+    duration: blinkData.duration,
+    features: blinkData.features
+  });
+
+  if (blinkProgress.isActive) {
+    blinkProgress.cancel('natural_blink');
+  }
+
+  updateBlinkStatsUI();
 });
+
+// ============ BLINK PROGRESS BAR CALLBACKS (Phase 3) ============
+blinkProgress.on('onConfirm', (data) => {
+  const blink = data.blink;
+  lastActionTime = performance.now();
+
+  audio.playClick();
+
+  analytics.log({
+    input: 'blink',
+    action: blink.subtype || 'click',
+    target: data.target || 'unknown',
+    confidence: blink.confidence,
+    success: true
+  });
+
+  fusion.handleBlink({
+    subtype: blink.subtype || 'short',
+    duration: blink.duration,
+    side: blink.side,
+    confidence: blink.confidence,
+    features: blink.features,
+    timestamp: Date.now()
+  });
+});
+
+blinkProgress.on('onCancel', (data, reason) => {
+  audio.playCancel();
+  analytics.log({
+    input: 'blink_cancel',
+    reason,
+    subtype: data.blink?.subtype,
+    success: false
+  });
+});
+
+blinkProgress.onHalfTick = () => {
+  audio.playTick();
+};
 
 // ============ FUSION ENGINE WIRING ============
 fusion.on('onClick', (clickData) => {
   const { action, target, x, y } = clickData;
-  
-  audio.playClick();
-  analytics.log({
-    input: 'blink',
-    action,
-    target: target || 'unknown',
-    accuracy: 1,
-    success: true,
-  });
 
   switch (state.currentTab) {
     case 'casio':
       if (target) {
         casioKeys.pressKey(target);
       }
+      break;
+    case 'hand':
+      handModule.triggerEyeClick();
       break;
     case 'physics':
       physics.handleBlink(clickData);
@@ -506,6 +690,17 @@ fusion.on('onVoice', (voiceData) => {
   if (!command || command.type === 'unknown') return;
   
   audio.playVoiceReceived();
+
+  // Handle physics 3D voice commands
+  if (command.type === 'physics') {
+    analytics.log({
+      input: 'voice',
+      action: command.action,
+      target: command.raw,
+      success: true,
+    });
+    return;
+  }
   
   if (!window.handleKey) return;
   
@@ -580,38 +775,96 @@ fusion.on('onGazeHover', (gazeData) => {
 
 // ============ VOICE HANDLER ============
 voice.on('onResult', (command, raw) => {
+  const text = raw.toLowerCase().trim();
+  if (text === 'hãy mở bàn tay 3d' || text === 'hãy mở bàn tay ba đê' || text === 'hãy mở bàn tay 3 d') {
+    if (state.currentTab !== 'hand') {
+      switchTab('hand');
+    }
+    if (dom.voiceFeedback) dom.voiceFeedback.classList.remove('visible', 'listening');
+    return;
+  }
+  if (text === 'hãy mở casio ảo') {
+    if (state.currentTab !== 'casio') {
+      switchTab('casio');
+    }
+    if (dom.voiceFeedback) dom.voiceFeedback.classList.remove('visible', 'listening');
+    return;
+  }
+
   // Show voice feedback
-  dom.voiceFeedback.textContent = `🎤 "${raw}"`;
-  dom.voiceFeedback.classList.add('visible', 'listening');
-  setTimeout(() => dom.voiceFeedback.classList.remove('listening'), 2000);
+  if (dom.voiceFeedback) {
+    dom.voiceFeedback.textContent = `🎤 "${raw}"`;
+    dom.voiceFeedback.classList.add('visible', 'listening');
+    setTimeout(() => dom.voiceFeedback.classList.remove('listening'), 2000);
+  }
   
   fusion.handleVoice(command);
 });
 
 voice.on('onInterim', (text) => {
-  dom.voiceFeedback.textContent = `🎤 ${text}`;
-  dom.voiceFeedback.classList.add('visible');
+  const t = text.toLowerCase().trim();
+  if (t === 'hãy mở bàn tay 3d' || t === 'hãy mở bàn tay ba đê' || t === 'hãy mở bàn tay 3 d' || t === 'hãy mở casio ảo') {
+    if (dom.voiceFeedback) dom.voiceFeedback.classList.remove('visible');
+    return;
+  }
+  if (dom.voiceFeedback) {
+    dom.voiceFeedback.textContent = `🎤 ${text}`;
+    dom.voiceFeedback.classList.add('visible');
+  }
 });
 
 voice.on('onEnd', () => {
-  dom.voiceFeedback.classList.remove('visible', 'listening');
+  if (dom.voiceFeedback) dom.voiceFeedback.classList.remove('visible', 'listening');
 });
 
 voice.on('onError', (err) => {
-  dom.voiceStatus.classList.add('error');
-  dom.voiceFeedback.textContent = `⚠️ Lỗi mic: ${err}`;
-  dom.voiceFeedback.classList.add('visible');
+  if (dom.voiceStatus) dom.voiceStatus.classList.add('error');
+  if (dom.voiceFeedback) {
+    dom.voiceFeedback.textContent = `⚠️ Lỗi mic: ${err}`;
+    dom.voiceFeedback.classList.add('visible');
+  }
 });
 
 // ============ TAB SWITCHING ============
 function switchTab(tabId) {
+  // Clear hand hover when leaving hand tab
+  if (state.currentTab === 'hand' && tabId !== 'hand') {
+    handModule.clearHover();
+  }
+
   state.currentTab = tabId;
   
   dom.tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
   dom.tabContents.forEach(t => t.classList.toggle('active', t.id === `tab-${tabId}`));
   
+  const cursor = dom.gazeCursor;
+  if (cursor) {
+    if (tabId === 'casio') {
+      const overlay = document.getElementById('gaze-overlay');
+      if (overlay && cursor.parentElement !== overlay) {
+        overlay.appendChild(cursor);
+      }
+    } else {
+      const app = document.getElementById('app') || document.body;
+      if (app && cursor.parentElement !== app) {
+        app.appendChild(cursor);
+      }
+    }
+  }
+  
+  // Lazy-init Hand Module on first switch
+  if (tabId === 'hand' && !handModuleInited) {
+    handModuleInited = true;
+    const vp = document.getElementById('hand-viewport');
+    const container = document.getElementById('tab-hand');
+    setTimeout(() => {
+      handModule.init(vp, container);
+      setTimeout(() => handModule.handleResize(), 100);
+    }, 50);
+  }
+
   // Handle physics tab resize
-  if (tabId === 'physics') {
+  if (tabId === 'physics' && dom.physicsCanvas) {
     setTimeout(() => {
       const container = dom.physicsCanvas.parentElement;
       if (container) {
@@ -619,34 +872,78 @@ function switchTab(tabId) {
       }
     }, 100);
   }
+
+  // Handle hand tab resize when re-entering
+  if (tabId === 'hand' && handModuleInited) {
+    setTimeout(() => handModule.handleResize(), 100);
+  }
 }
 
 // ============ CALIBRATION ============
 async function startCalibration() {
-  dom.btnStartCal.disabled = true;
-  dom.btnStartCal.textContent = 'Đang hiệu chỉnh...';
-  
+  const selectedMethodRadio = document.querySelector('input[name="cal-method"]:checked');
+  const method = selectedMethodRadio ? selectedMethodRadio.value : 'grid9';
+
+  // Switch to workspace view
+  if (dom.calSetupCard) dom.calSetupCard.style.display = 'none';
+  if (dom.calibrationResult) dom.calibrationResult.style.display = 'none';
+  if (dom.calWorkspaceCard) dom.calWorkspaceCard.style.display = 'flex';
+
+  if (dom.calProgressFill) dom.calProgressFill.style.width = '0%';
+  if (dom.calPhaseText) {
+    dom.calPhaseText.textContent = method === 'grid9'
+      ? 'Đang hiệu chỉnh lưới 9 điểm (Điểm 1/9)...'
+      : 'Đang theo dõi bám đuổi chuyển động...';
+  }
+  if (dom.calSampleCount) dom.calSampleCount.textContent = '0 mẫu';
+
+  audio.playClick();
+
   calibration.onProgress = (progress) => {
-    dom.calibrationStatus.textContent = 
-      `Đã thu thập: ${progress.samples} mẫu`;
+    if (progress.phase === 'point_done') {
+      const pct = Math.round((progress.index / progress.total) * 100);
+      if (dom.calProgressFill) dom.calProgressFill.style.width = `${pct}%`;
+      if (dom.calPhaseText) {
+        dom.calPhaseText.textContent = `Đang hiệu chỉnh lưới 9 điểm (Điểm ${Math.min(progress.index + 1, 9)}/9)...`;
+      }
+      audio.playClick();
+    } else {
+      if (dom.calSampleCount) dom.calSampleCount.textContent = `${progress.samples} mẫu`;
+    }
   };
-  
+
   calibration.onComplete = (result) => {
-    dom.calibrationResult.style.display = 'block';
-    dom.calibrationMode.textContent = `Phát hiện: Mode ${result.mode}`;
-    dom.calibrationStatus.textContent = 
-      `Độ chính xác: ${Math.round(result.accuracy * 100)}%` + 
-      (result.winkCapable ? ' | Có thể nháy mắt' : ' | Chớp cả 2 mắt');
-    dom.btnStartCal.textContent = 'Bắt đầu hiệu chỉnh';
-    dom.btnStartCal.disabled = false;
-    
+    if (dom.calWorkspaceCard) dom.calWorkspaceCard.style.display = 'none';
+    if (dom.calibrationResult) dom.calibrationResult.style.display = 'flex';
+
+    const accPct = Math.round(result.accuracy * 100);
+    const stabPct = Math.round((result.stability || 0.85) * 100);
+
+    if (dom.calMetricAcc) dom.calMetricAcc.textContent = `${accPct}%`;
+    if (dom.calMetricStab) dom.calMetricStab.textContent = `${stabPct}%`;
+    if (dom.calMetricMode) dom.calMetricMode.textContent = `Mode ${result.mode}`;
+    if (dom.calMetricModeSub) {
+      dom.calMetricModeSub.textContent = result.mode === 'B' ? 'Nháy mắt riêng' : result.mode === 'C' ? 'Nhìn dừng' : 'Chớp 2 mắt';
+    }
+
+    if (dom.calibrationMode) {
+      dom.calibrationMode.textContent = `Phát hiện: Mode ${result.mode} (${result.mode === 'B' ? 'Nháy mắt trái/phải độc lập' : result.mode === 'C' ? 'Nhìn dừng 1.2s' : 'Chớp mắt bình thường'})`;
+    }
+    if (dom.calibrationStatus) {
+      dom.calibrationStatus.textContent = `Độ chính xác: ${accPct}% | Độ ổn định: ${stabPct}% | Sẵn sàng điều khiển`;
+    }
+    if (dom.calModeDesc) {
+      dom.calModeDesc.textContent = result.modeDescription || 'Hệ thống đã tính toán xong ma trận ánh xạ tọa độ.';
+    }
+
     audio.playCalibrationDone();
-    
-    // Save profile
+
+    // Save profile to IndexedDB
     profileManager.save({
       id: 'default',
       mode: result.mode,
       accuracy: result.accuracy,
+      stability: result.stability,
       gazeCalibrated: true,
       winkCapable: result.winkCapable,
       calibrationPoints: result.calibrationPoints,
@@ -655,25 +952,58 @@ async function startCalibration() {
   };
 
   const getGaze = () => state.gazePosition;
-  
-  // Pass existing gaze mapper and adaptive learner
+
   calibration.start(
     dom.calibrationCanvas,
     getGaze,
-    { gazeMapper, adaptiveLearner }
+    { method, gazeMapper, adaptiveLearner }
   );
 }
 
+function startLiveTest() {
+  if (!calibration || !dom.calibrationCanvas) return;
+  if (dom.calSetupCard) dom.calSetupCard.style.display = 'none';
+  if (dom.calibrationResult) dom.calibrationResult.style.display = 'none';
+  if (dom.calWorkspaceCard) dom.calWorkspaceCard.style.display = 'flex';
+  if (dom.calPhaseText) dom.calPhaseText.textContent = '🧪 Chế độ thử nghiệm trực tiếp điểm nhìn';
+
+  const getGaze = () => state.gazePosition;
+  calibration.startLiveTest(dom.calibrationCanvas, getGaze);
+}
+
+function restartCalibration() {
+  calibration.cancel();
+  if (dom.calWorkspaceCard) dom.calWorkspaceCard.style.display = 'none';
+  if (dom.calibrationResult) dom.calibrationResult.style.display = 'none';
+  if (dom.calSetupCard) dom.calSetupCard.style.display = 'flex';
+}
+
+function cancelCalibration() {
+  calibration.cancel();
+  restartCalibration();
+}
+
 function skipCalibration() {
-  dom.calibrationResult.style.display = 'block';
-  dom.calibrationMode.textContent = 'Phát hiện: Mode A (mặc định)';
-  dom.calibrationStatus.textContent = 'Độ chính xác: ~50% (ước tính)';
+  if (dom.calSetupCard) dom.calSetupCard.style.display = 'none';
+  if (dom.calWorkspaceCard) dom.calWorkspaceCard.style.display = 'none';
+  if (dom.calibrationResult) dom.calibrationResult.style.display = 'flex';
+
+  if (dom.calMetricAcc) dom.calMetricAcc.textContent = '65%';
+  if (dom.calMetricStab) dom.calMetricStab.textContent = '70%';
+  if (dom.calMetricMode) dom.calMetricMode.textContent = 'Mode A';
+  if (dom.calMetricModeSub) dom.calMetricModeSub.textContent = 'Chớp 2 mắt';
+  if (dom.calibrationMode) dom.calibrationMode.textContent = 'Phát hiện: Mode A (Mặc định)';
+  if (dom.calibrationStatus) dom.calibrationStatus.textContent = 'Độ chính xác ước tính: 65% (Chưa hiệu chỉnh)';
   calibration.cancel();
 }
 
 function applyCalibration() {
   state.isCalibrated = true;
-  dom.calibrationResult.style.display = 'none';
+  if (dom.gazeStatus) {
+    dom.gazeStatus.classList.add('active');
+  }
+  if (dom.calibrationResult) dom.calibrationResult.style.display = 'none';
+  audio.playCalibrationDone();
   switchTab('casio');
 }
 
@@ -705,13 +1035,13 @@ async function loadProfile() {
 // ============ VOICE MIC UI ============
 function updateMicUI() {
   if (voice.isListening) {
-    dom.btnMicToggle.classList.add('active', 'listening');
-    dom.micIcon.textContent = '🎙️';
-    dom.voiceStatus.classList.add('active');
+    if (dom.btnMicToggle) dom.btnMicToggle.classList.add('active', 'listening');
+    if (dom.micIcon) dom.micIcon.textContent = '🎙️';
+    if (dom.voiceStatus) dom.voiceStatus.classList.add('active');
   } else {
-    dom.btnMicToggle.classList.remove('active', 'listening');
-    dom.micIcon.textContent = '🎤';
-    dom.voiceStatus.classList.remove('active');
+    if (dom.btnMicToggle) dom.btnMicToggle.classList.remove('active', 'listening');
+    if (dom.micIcon) dom.micIcon.textContent = '🎤';
+    if (dom.voiceStatus) dom.voiceStatus.classList.remove('active');
   }
 }
 
@@ -736,8 +1066,8 @@ function scaleCalculator() {
 
 // ============ UTILITIES ============
 function updateLoading(pct, text) {
-  dom.loadingFill.style.width = `${pct}%`;
-  if (text) dom.loadingStatus.textContent = text;
+  if (dom.loadingFill) dom.loadingFill.style.width = `${pct}%`;
+  if (text && dom.loadingStatus) dom.loadingStatus.textContent = text;
 }
 
 // Jitter measurement buffer
@@ -755,53 +1085,102 @@ function measureJitter(x, y) {
   return (sumDx + sumDy) / (_jitterBuf.length - 1) / 2;
 }
 
-// Draw overlay on cam preview
+// Draw overlay on cam preview & calibration preview
 function drawOverlay(landmarks) {
-  const ctx = dom.overlay.getContext('2d');
-  const W = 160, H = 120;
-  
-  ctx.clearRect(0, 0, W, H);
-  
   if (!landmarks) return;
-  
-  // Draw eye landmarks
-  ctx.fillStyle = '#00d4ff';
-  ctx.strokeStyle = '#00d4ff';
-  ctx.lineWidth = 1;
-  
-  const eyeIndices = [33, 133, 159, 145, 158, 153, 362, 263, 385, 380, 386, 373];
-  eyeIndices.forEach(idx => {
-    const pt = landmarks[idx];
-    if (pt) {
-      const x = pt.x * W;
-      const y = pt.y * H;
-      ctx.beginPath();
-      ctx.arc(x, y, 2, 0, Math.PI * 2);
-      ctx.fill();
+
+  if (dom.overlay) {
+    const ctx = dom.overlay.getContext('2d');
+    const W = 160, H = 120;
+    ctx.clearRect(0, 0, W, H);
+    
+    // Draw eye landmarks
+    ctx.fillStyle = '#00d4ff';
+    ctx.strokeStyle = '#00d4ff';
+    ctx.lineWidth = 1;
+    
+    const eyeIndices = [33, 133, 159, 145, 158, 153, 362, 263, 385, 380, 386, 373];
+    eyeIndices.forEach(idx => {
+      const pt = landmarks[idx];
+      if (pt) {
+        const x = pt.x * W;
+        const y = pt.y * H;
+        ctx.beginPath();
+        ctx.arc(x, y, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+  }
+
+  // Draw real-time preview in calibration setup card if active
+  if (state.currentTab === 'calibration' && dom.calGazePreview && dom.calSetupCard && dom.calSetupCard.style.display !== 'none') {
+    const pCtx = dom.calGazePreview.getContext('2d');
+    const pW = dom.calGazePreview.width || 200;
+    const pH = dom.calGazePreview.height || 150;
+    pCtx.clearRect(0, 0, pW, pH);
+
+    pCtx.fillStyle = 'rgba(0, 212, 255, 0.2)';
+    pCtx.strokeStyle = '#00d4ff';
+    pCtx.lineWidth = 1.5;
+
+    const eyeIndices = [33, 133, 159, 145, 158, 153, 362, 263, 385, 380, 386, 373];
+    eyeIndices.forEach(idx => {
+      const pt = landmarks[idx];
+      if (pt) {
+        pCtx.beginPath();
+        pCtx.arc(pt.x * pW, pt.y * pH, 2.5, 0, Math.PI * 2);
+        pCtx.fill();
+      }
+    });
+
+    if (state.gazePosition) {
+      pCtx.fillStyle = '#00e676';
+      pCtx.beginPath();
+      pCtx.arc(state.gazePosition.x * pW, state.gazePosition.y * pH, 4, 0, Math.PI * 2);
+      pCtx.fill();
     }
-  });
+  }
+}
+
+// ============ BLINK STATS UI ============
+function updateBlinkStatsUI() {
+  if (!dom.blinkStats) return;
+
+  const s = blinkDetector.stats;
+  const baseline = adaptiveLearner.getBaselineSummary();
+  const ready = baseline.isReady ? '✓' : '⏳';
+
+  dom.blinkStats.textContent =
+    `Nháy: ${s.totalNatural} tự nhiên · ${s.totalIntentional} chủ đích · ${s.totalWinks} nháy 1 mắt` +
+    ` | Baseline ${ready}${baseline.isReady ? ` (${baseline.naturalCount} mẫu)` : ` ${baseline.naturalCount}/${baseline.readyAfter} mẫu`}`;
 }
 
 // ============ ANALYTICS UPDATE LOOP ============
 setInterval(() => {
   const metrics = analytics.getMetrics();
-  dom.statSession.textContent = metrics.sessionTime;
-  dom.statClicks.textContent = metrics.totalClicks;
-  dom.statAccuracy.textContent = `${metrics.avgAccuracy}%`;
-  dom.statErrors.textContent = metrics.totalErrors;
+  if (dom.statSession) dom.statSession.textContent = metrics.sessionTime;
+  if (dom.statClicks) dom.statClicks.textContent = metrics.totalClicks;
+  if (dom.statAccuracy) dom.statAccuracy.textContent = `${metrics.avgAccuracy}%`;
+  if (dom.statErrors) dom.statErrors.textContent = metrics.totalErrors;
 }, 2000);
 
 // ============ START ============
-document.addEventListener('DOMContentLoaded', () => {
+function bootstrap() {
   init();
   
   // Physics canvas resize on window resize
   window.addEventListener('resize', () => {
-    if (state.currentTab === 'physics') {
+    if (state.currentTab === 'physics' && dom.physicsCanvas) {
       const container = dom.physicsCanvas.parentElement;
       if (container) {
         physics.handleResize(container.clientWidth, container.clientHeight);
       }
     }
   });
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrap);
+} else {
+  bootstrap();
+}

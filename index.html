@@ -6,6 +6,7 @@
   <title>EyeAssist STEM</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/src/styles/base.css" />
+  <link rel="stylesheet" href="/src/styles/calibration.css" />
   <link rel="stylesheet" href="/src/styles/physics.css" />
   <link rel="stylesheet" href="/casio/style.css" />
 </head>
@@ -36,9 +37,9 @@
           <span class="tab-icon">🖩</span>
           <span class="tab-label">Casio Ảo</span>
         </button>
-        <button class="nav-tab" data-tab="physics">
+        <button class="nav-tab" data-tab="hand">
           <span class="tab-icon">✋</span>
-          <span class="tab-label">Vật Lý 3D</span>
+          <span class="tab-label">Bàn Tay 3D</span>
         </button>
         <button class="nav-tab" data-tab="calibration">
           <span class="tab-icon">🎯</span>
@@ -60,25 +61,146 @@
       <video id="webcam" autoplay playsinline muted></video>
       <canvas id="overlay" width="160" height="120"></canvas>
       <span id="fps-counter">0 FPS</span>
+      <span id="blink-stats"></span>
     </div>
 
     <!-- Calibration Tab -->
     <div id="tab-calibration" class="tab-content">
       <div id="calibration-screen">
-        <h2>🎯 Hiệu chỉnh mắt</h2>
-        <p>Nhìn theo ngôi sao để hiệu chỉnh hệ thống</p>
-        <canvas id="calibration-canvas" width="800" height="500"></canvas>
-        <div id="calibration-controls">
-          <button id="btn-start-calibration" class="btn-primary">Bắt đầu hiệu chỉnh</button>
-          <button id="btn-skip-calibration" class="btn-secondary">Bỏ qua</button>
+        <!-- Step 1: Pre-Calibration Setup Card -->
+        <div id="cal-setup-card" class="cal-card">
+          <div class="cal-header">
+            <span class="cal-badge">🎯 TỐI ƯU ÁNH MẮT</span>
+            <h2>Hiệu Chỉnh Điểm Nhìn & Nháy Mắt</h2>
+            <p class="cal-desc">Hệ thống sẽ học cấu trúc mắt và góc nhìn của bạn để con trỏ di chuyển chính xác và mượt mà nhất.</p>
+          </div>
+
+          <!-- Posture & Environment Checklist -->
+          <div class="cal-checklist-grid">
+            <div class="check-item">
+              <span class="check-icon">📏</span>
+              <div>
+                <strong>Khoảng cách ngồi</strong>
+                <p>Cách màn hình khoảng 40 - 60 cm</p>
+              </div>
+            </div>
+            <div class="check-item">
+              <span class="check-icon">💡</span>
+              <div>
+                <strong>Ánh sáng môi trường</strong>
+                <p>Đủ sáng, tránh ngược sáng từ sau lưng</p>
+              </div>
+            </div>
+            <div class="check-item">
+              <span class="check-icon">👁️</span>
+              <div>
+                <strong>Tư thế khuôn mặt</strong>
+                <p>Giữ đầu thẳng tự nhiên, hướng về camera</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Method Selection -->
+          <div class="cal-method-select">
+            <h4>Chọn phương thức hiệu chỉnh:</h4>
+            <div class="method-options">
+              <label class="method-card active" data-method="grid9">
+                <input type="radio" name="cal-method" value="grid9" checked />
+                <div class="method-content">
+                  <span class="method-title">🎯 Lưới 9 Điểm (Chuẩn Khoa Học)</span>
+                  <span class="method-sub">Nhìn dừng vào 9 điểm cố định theo nhịp vòng tròn co lại (Khuyên dùng)</span>
+                </div>
+              </label>
+              <label class="method-card" data-method="pursuit">
+                <input type="radio" name="cal-method" value="pursuit" />
+                <div class="method-content">
+                  <span class="method-title">⭐ Bám Đuổi Ngôi Sao (Smooth Pursuit)</span>
+                  <span class="method-sub">Nhìn theo ngôi sao chuyển động mềm mại + thử nghiệm nháy mắt trái/phải</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Real-time gaze preview -->
+          <div class="cal-preview-section">
+            <div class="cal-preview-label">👁️ Xem trước ánh mắt</div>
+            <canvas id="cal-gaze-preview" width="200" height="150"></canvas>
+            <div class="cal-preview-hint">Camera đang theo dõi mắt bạn. Đảm bảo khuôn mặt nằm trong khung hình.</div>
+          </div>
+
+          <div class="cal-action-row">
+            <button id="btn-start-calibration" class="btn-primary btn-large">🚀 Bắt đầu hiệu chỉnh</button>
+            <button id="btn-skip-calibration" class="btn-secondary">Bỏ qua (Dùng mặc định)</button>
+          </div>
         </div>
-        <div id="calibration-result" style="display:none;">
-          <p id="calibration-mode">Phát hiện: Mode A</p>
-          <p id="calibration-status">Độ chính xác: 0%</p>
-          <button id="btn-apply-calibration" class="btn-primary">Áp dụng</button>
+
+        <!-- Step 2: Active Calibration Workspace -->
+        <div id="cal-workspace-card" class="cal-card" style="display:none;">
+          <div class="cal-progress-bar-container">
+            <div class="cal-progress-label">
+              <span id="cal-phase-text">Đang thu thập mẫu điểm nhìn...</span>
+              <span id="cal-sample-count">0 mẫu</span>
+            </div>
+            <div class="cal-progress-bar">
+              <div class="cal-progress-fill" id="cal-progress-fill"></div>
+            </div>
+          </div>
+
+          <div class="cal-canvas-wrapper">
+            <canvas id="calibration-canvas" width="800" height="500"></canvas>
+          </div>
+
+          <div class="cal-workspace-controls">
+            <button id="btn-cancel-calibration" class="btn-secondary btn-sm">🛑 Hủy hiệu chỉnh</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Result & Analytics Dashboard -->
+        <div id="calibration-result" class="cal-card" style="display:none;">
+          <div class="cal-header">
+            <span class="cal-badge green">✅ HOÀN TẤT HIỆU CHỈNH</span>
+            <h2>Kết Quả Phân Tích Ánh Mắt</h2>
+            <p id="calibration-mode-desc" class="cal-desc">Hệ thống đã xây dựng ma trận hồi quy đa thức tọa độ thành công.</p>
+          </div>
+
+          <div class="cal-metrics-grid">
+            <div class="metric-card">
+              <span class="metric-label">Độ chính xác</span>
+              <span class="metric-value green" id="cal-metric-acc">92%</span>
+              <span class="metric-sub">Độ lệch trung bình &lt; 25px</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Độ ổn định điểm nhìn</span>
+              <span class="metric-value cyan" id="cal-metric-stab">88%</span>
+              <span class="metric-sub">Mức độ rung lắc mắt thấp</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Chế độ điều khiển đề xuất</span>
+              <span class="metric-value purple" id="cal-metric-mode">Mode A</span>
+              <span class="metric-sub" id="cal-metric-mode-sub">Chớp 2 mắt</span>
+            </div>
+          </div>
+
+          <div class="cal-mode-info-box">
+            <strong id="calibration-mode">Phát hiện: Mode A (Mặc định)</strong>
+            <p id="calibration-status">Độ chính xác: 92% | Sẵn sàng điều khiển</p>
+          </div>
+
+          <!-- Hit rate from live test -->
+          <div id="cal-hit-rate" class="cal-hit-rate" style="display:none;">
+            <div class="hit-rate-title">🎯 Kết quả thử nghiệm</div>
+            <div class="hit-rate-grid" id="hit-rate-grid"></div>
+          </div>
+
+          <div class="cal-result-actions">
+            <button id="btn-test-calibration" class="btn-secondary">🧪 Thử nghiệm trực tiếp</button>
+            <button id="btn-apply-calibration" class="btn-primary btn-large">✅ Áp dụng cấu hình</button>
+            <button id="btn-restart-calibration" class="btn-secondary">🔄 Hiệu chỉnh lại</button>
+          </div>
         </div>
       </div>
     </div>
+
 
     <!-- Casio Tab -->
     <div id="tab-casio" class="tab-content active">
@@ -406,35 +528,123 @@
       </div>
     </div>
 
-    <!-- Physics Tab -->
-    <div id="tab-physics" class="tab-content">
-      <div id="physics-app">
-        <div id="physics-sidebar">
-          <h3>📘 Bài tập</h3>
-          <div id="physics-problem">
-            <p id="physics-question">Nhấn "Tạo đề" để bắt đầu</p>
+
+    <!-- Hand Module Tab -->
+    <div id="tab-hand" class="tab-content hand-tab-content">
+
+      <!-- Hand Loading Overlay -->
+      <div id="hand-loading">
+        <div class="hand-spinner"></div>
+        <div class="hand-load-msg" id="hand-load-msg">Đang khởi tạo môi trường 3D...</div>
+      </div>
+
+      <div id="hand-app">
+        <!-- Sidebar -->
+        <div id="hand-sidebar">
+          <div class="hand-s-header">
+            <h2>✋ Hand Controller</h2>
+            <div class="hand-sub">Học Quy Tắc Bàn Tay 3D — Trực Quan & Tương Tác</div>
           </div>
-          <div class="physics-controls">
-            <button id="btn-new-problem" class="btn-primary">Tạo đề mới</button>
-            <button id="btn-lock-answer" class="btn-secondary" disabled>Khóa đáp án</button>
-          </div>
-          <div id="physics-score" style="display:none;">
-            <h4>Kết quả</h4>
-            <p id="physics-result-text"></p>
-            <button id="btn-next-problem" class="btn-primary">Bài tiếp</button>
-          </div>
-          <div class="physics-help">
-            <p>👁️ Nhìn để xoay bàn tay</p>
-            <p>👁️‍🗨️ Nháy mắt trái: xoay trái</p>
-            <p>👁️‍🗨️ Nháy mắt phải: xoay phải</p>
-            <p>😑 Giữ nhắm 2 mắt: khóa</p>
+          <div class="hand-s-body">
+            <!-- Step Progress -->
+            <div class="step-progress">
+              <div class="step-node active" id="node-1">1</div>
+              <div class="step-node" id="node-2">2</div>
+              <div class="step-node" id="node-3">3</div>
+            </div>
+            <!-- STEP 1 -->
+            <div id="step-1" class="step-card">
+              <div class="step-title">📌 Bước 1: Chọn trường hợp & Quy tắc vật lý</div>
+              <div class="hand-stem-row">
+                <label>Loại quy tắc</label>
+                <select class="stem-select" id="stem-rule-type" onchange="handUpdateStemLabels()">
+                  <option value="LEFT_AMPERE">✋ Bàn tay trái — Lực Ampe (F = I × B)</option>
+                  <option value="LEFT_LORENTZ">⚡ Bàn tay trái — Lực Lorentz (F = qv × B)</option>
+                </select>
+              </div>
+              <div class="hand-sec-label">Chọn 1 trong 3 trường hợp bài tập:</div>
+              <div class="th-grid">
+                <div class="th-card selected" id="th-1" onclick="handSelectTH('TH1')">
+                  <div>
+                    <strong style="font-size:0.83rem">TH1: Cho B, I → Tìm F</strong>
+                    <div style="font-size:0.72rem;color:var(--text-secondary);margin-top:2px">Đề bài cho hướng Cảm ứng từ B & Dòng điện I</div>
+                  </div>
+                  <span class="th-tag">TH1</span>
+                </div>
+                <div class="th-card" id="th-2" onclick="handSelectTH('TH2')">
+                  <div>
+                    <strong style="font-size:0.83rem">TH2: Cho B, F → Tìm I</strong>
+                    <div style="font-size:0.72rem;color:var(--text-secondary);margin-top:2px">Đề bài cho hướng Cảm ứng từ B & Lực từ F</div>
+                  </div>
+                  <span class="th-tag">TH2</span>
+                </div>
+                <div class="th-card" id="th-3" onclick="handSelectTH('TH3')">
+                  <div>
+                    <strong style="font-size:0.83rem">TH3: Cho F, I → Tìm B</strong>
+                    <div style="font-size:0.72rem;color:var(--text-secondary);margin-top:2px">Đề bài cho hướng Lực từ F & Dòng điện I</div>
+                  </div>
+                  <span class="th-tag">TH3</span>
+                </div>
+              </div>
+              <div class="wizard-btn-row">
+                <button class="btn-next" onclick="handGoToStep(2)">Tiếp theo ➔</button>
+              </div>
+            </div>
+            <!-- STEP 2 -->
+            <div id="step-2" class="step-card" style="display:none;">
+              <div class="step-title">📥 Bước 2: Chọn 2 dữ kiện đề cho</div>
+              <div class="hand-stem-row" id="row-given-1">
+                <label id="label-given-1">🔵 Cảm ứng từ B</label>
+                <select class="stem-select" id="select-given-1">
+                  <option value="INTO_PAGE">⊗ Vào trong màn hình</option>
+                  <option value="OUT_OF_PAGE">⊙ Ra ngoài màn hình</option>
+                  <option value="UP">↑ Hướng lên</option>
+                  <option value="DOWN">↓ Hướng xuống</option>
+                  <option value="LEFT">← Sang trái</option>
+                  <option value="RIGHT">→ Sang phải</option>
+                </select>
+              </div>
+              <div class="hand-stem-row" id="row-given-2">
+                <label id="label-given-2">🔴 Dòng điện I</label>
+                <select class="stem-select" id="select-given-2">
+                  <option value="RIGHT" selected>→ Sang phải</option>
+                  <option value="LEFT">← Sang trái</option>
+                  <option value="UP">↑ Hướng lên</option>
+                  <option value="DOWN">↓ Hướng xuống</option>
+                  <option value="INTO_PAGE">⊗ Vào trong màn hình</option>
+                  <option value="OUT_OF_PAGE">⊙ Ra ngoài màn hình</option>
+                </select>
+              </div>
+              <div class="wizard-btn-row">
+                <button class="btn-prev" onclick="handGoToStep(1)">← Quay lại</button>
+                <button class="btn-next" onclick="handConfirmData()">Xác nhận & Xem 3D ➔</button>
+              </div>
+            </div>
+            <!-- STEP 3 -->
+            <div id="step-3" class="step-card" style="display:none;">
+              <div class="step-title">❓ Bước 3: Câu hỏi trắc nghiệm</div>
+              <div id="quiz-question-text" style="font-size:0.8rem;line-height:1.4;color:var(--text-primary);background:rgba(255,255,255,0.03);padding:10px;border-radius:8px;border:1px solid var(--border-color)">Nhìn vào mô hình 3D bàn tay với 2 mũi tên vectơ vừa chọn, hãy xác định hướng đúng của dữ kiện còn lại:</div>
+              <div class="quiz-options" id="quiz-options"></div>
+              <div class="stem-res" id="stem-res"></div>
+              <div class="wizard-btn-row">
+                <button class="btn-prev" onclick="handGoToStep(2)">← Sửa dữ kiện</button>
+                <button class="btn-next" id="btn-restart" style="display:none;" onclick="handGoToStep(1)">🔄 Bài tập mới</button>
+              </div>
+            </div>
           </div>
         </div>
-        <div id="physics-canvas-container">
-          <canvas id="physics-canvas"></canvas>
+        <!-- 3D Viewport -->
+        <div id="hand-viewport">
+          <div class="hand-badge" id="hand-badge"><span class="hand-dot" style="background:var(--text-secondary)"></span>Đang tải mô hình...</div>
+          <div class="hand-tools">
+            <button class="tb on" id="hand-tb-arrows" onclick="handToggleArrows()">🎯 Vectơ (B,I,F)</button>
+            <button class="tb" id="hand-tb-rot" onclick="handToggleRot()">🔄 Xoay</button>
+            <button class="tb" onclick="handResetCam()">🎯 Reset</button>
+          </div>
         </div>
       </div>
     </div>
+
 
     <!-- Analytics Panel (hidden, toggled) -->
     <div id="analytics-panel">
@@ -466,15 +676,6 @@
     <div id="voice-feedback">🎤 Đang nghe...</div>
   </div>
 
-  <!-- Scripts — importmap MUST come before module scripts -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
-    }
-  }
-  </script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
   <script src="/casio/script.js"></script>
   <script type="module" src="/src/main.js"></script>

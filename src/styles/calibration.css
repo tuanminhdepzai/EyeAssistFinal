@@ -1,0 +1,336 @@
+
+/* ===== Calibration Premium Dark-Tech UI ===== */
+
+/* Setup Card */
+.cal-card {
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(56, 189, 248, 0.15);
+  border-radius: 12px;
+  padding: 24px;
+  backdrop-filter: blur(16px);
+}
+
+.cal-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cal-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  padding: 4px 10px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+.cal-badge.green {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.1);
+  border-color: rgba(52, 211, 153, 0.25);
+}
+
+.cal-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0 0 6px 0;
+}
+
+.cal-desc {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Checklist Grid */
+.cal-checklist-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.check-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+
+.check-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.check-item strong {
+  display: block;
+  font-size: 12px;
+  color: #e2e8f0;
+  margin-bottom: 2px;
+}
+
+.check-item p {
+  font-size: 11px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Method Selection */
+.cal-method-select h4 {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0 0 10px 0;
+}
+
+.method-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.method-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.method-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.method-card.active {
+  background: rgba(56, 189, 248, 0.08);
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.method-card input[type="radio"] {
+  accent-color: #38bdf8;
+}
+
+.method-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.method-sub {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* Gaze Preview */
+.cal-preview-section {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.cal-preview-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+
+#cal-gaze-preview {
+  background: #060913;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 8px;
+  display: block;
+  margin: 0 auto;
+}
+
+.cal-preview-hint {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 6px;
+}
+
+/* Action Row */
+.cal-action-row {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-large {
+  padding: 12px 24px;
+  font-size: 14px;
+}
+
+/* Progress Bar */
+.cal-progress-bar-container {
+  margin-bottom: 16px;
+}
+
+.cal-progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+
+.cal-progress-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.cal-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #34d399);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+/* Canvas Wrapper */
+.cal-canvas-wrapper {
+  border: 1px solid rgba(56, 189, 248, 0.15);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+#calibration-canvas {
+  display: block;
+  width: 100%;
+}
+
+/* Metrics Grid */
+.cal-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.metric-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 14px;
+  text-align: center;
+}
+
+.metric-label {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-value {
+  display: block;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.metric-value.green { color: #34d399; }
+.metric-value.cyan { color: #38bdf8; }
+.metric-value.purple { color: #a78bfa; }
+
+.metric-sub {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+/* Mode Info Box */
+.cal-mode-info-box {
+  background: rgba(56, 189, 248, 0.06);
+  border: 1px solid rgba(56, 189, 248, 0.15);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.cal-mode-info-box strong {
+  display: block;
+  font-size: 13px;
+  color: #38bdf8;
+  margin-bottom: 4px;
+}
+
+.cal-mode-info-box p {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* Hit Rate Display */
+.cal-hit-rate {
+  background: rgba(52, 211, 153, 0.06);
+  border: 1px solid rgba(52, 211, 153, 0.15);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.hit-rate-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #34d399;
+  margin-bottom: 10px;
+}
+
+.hit-rate-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.hit-rate-item {
+  text-align: center;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+}
+
+.hit-rate-item .label {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.hit-rate-item .value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #34d399;
+}
+
+/* Workspace Controls */
+.cal-workspace-controls {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 12px;
+}

@@ -1,12 +1,13 @@
 /**
- * CalibrationFlow — Orchestrates the calibration process
+ * CalibrationFlow — Master Orchestrator for Eye Calibration & Profiling
  *
  * Steps:
- *   1. PursuitGame (15s gaze tracking)
- *   2. Polynomial fitting
- *   3. Wink capability test
- *   4. Mode auto-selection (A/B/C)
- *   5. Profile save
+ *   1. Pre-calibration setup & posture check
+ *   2. Method Selection: 9-Point Grid (Default) or Smooth Pursuit Tracking
+ *   3. Polynomial Regression fitting on (gaze -> screen) coordinate pairs
+ *   4. Gaze stability & wink capability analysis
+ *   5. Mode auto-recommendation (Mode A: Blink, Mode B: Wink, Mode C: Dwell)
+ *   6. Live interactive test before profile commit
  */
 import { PursuitGame } from './PursuitGame.js';
 import { GazeToScreen } from '../engine/GazeToScreen.js';
@@ -17,11 +18,15 @@ export class CalibrationFlow {
     this.gazeMapper = new GazeToScreen();
     this.adaptiveLearner = new AdaptiveLearner();
     this.pursuitGame = new PursuitGame();
+
     this.isActive = false;
-    this.mode = 'A';
+    this.method = 'grid9'; // 'grid9' | 'pursuit'
+    this.mode = 'A';       // 'A' | 'B' | 'C'
     this.accuracy = 0;
+    this.stability = 0;
     this.winkCapable = false;
     this.calibrationPoints = [];
+
     this.onComplete = () => {};
     this.onProgress = () => {};
   }
@@ -34,100 +39,105 @@ export class CalibrationFlow {
    */
   start(canvas, getGazePosition, options = {}) {
     this.isActive = true;
+    this.method = options.method || 'grid9';
     this.gazeMapper = options.gazeMapper || this.gazeMapper;
     this.adaptiveLearner = options.adaptiveLearner || this.adaptiveLearner;
 
-    // Wire pursuit game callbacks
     this.pursuitGame.callbacks.onSample = (count) => {
-      this.onProgress({ phase: 'tracking', samples: count });
+      this.onProgress({ phase: 'tracking', samples: count, method: this.method });
+    };
+
+    this.pursuitGame.callbacks.onPointComplete = ({ index, total }) => {
+      this.onProgress({ phase: 'point_done', index, total, method: this.method });
     };
 
     this.pursuitGame.callbacks.onComplete = (result) => {
-      this._onPursuitComplete(result);
+      this._onDataComplete(result);
     };
 
-    // Start the game
-    this.pursuitGame.start(canvas, getGazePosition);
+    this.pursuitGame.start(canvas, getGazePosition, this.method);
   }
 
   /**
-   * Handle external wink detection during wink test phase
+   * Start live verification test target zone
    */
+  startLiveTest(canvas, getGazePosition) {
+    this.pursuitGame.startTestMode(canvas, getGazePosition);
+  }
+
   handleWink(side) {
     if (this.pursuitGame.isRunning && this.pursuitGame.winkTestPhase) {
       this.pursuitGame.registerWink(side);
     }
   }
 
-  _onPursuitComplete(result) {
+  _onDataComplete(result) {
     this.calibrationPoints = result.samples;
     this.winkCapable = result.winkCapable;
 
-    // Fit polynomial mapping
-    this.gazeMapper.setCalibration(
-      this.calibrationPoints,
-      this.gazeMapper.resolution.w,
-      this.gazeMapper.resolution.h
-    );
+    // Set calibration on GazeMapper
+    const w = this.pursuitGame.canvas ? this.pursuitGame.canvas.width : 800;
+    const h = this.pursuitGame.canvas ? this.pursuitGame.canvas.height : 500;
+    this.gazeMapper.setCalibration(this.calibrationPoints, w, h);
 
     this.accuracy = this.gazeMapper.getAccuracy();
+    this.stability = this._calculateStability();
     this.mode = this._selectMode();
 
     this.isActive = false;
 
-    // Notify completion
+    // Return detailed analysis report
     this.onComplete({
       mode: this.mode,
       accuracy: this.accuracy,
+      stability: this.stability,
       winkCapable: this.winkCapable,
+      method: this.method,
       gazeMapper: this.gazeMapper,
       adaptiveLearner: this.adaptiveLearner,
-      calibrationPoints: this.calibrationPoints
+      calibrationPoints: this.calibrationPoints,
+      modeDescription: this._getModeDescription(this.mode),
     });
   }
 
   _selectMode() {
-    // Mode A (default): both-eyes blink - short/long for left/right click
-    // Mode B (wink): separate left/right wink for click
-    // Mode C (dwell): for users with very unstable blink, use dwell time
-
-    if (this.winkCapable && this.accuracy > 0.6) {
-      return 'B'; // Wink capable + decent accuracy → wink mode
-    } else if (this.accuracy < 0.4) {
-      return 'C'; // Low accuracy → dwell mode (forgiveness)
+    if (this.winkCapable && this.accuracy > 0.65) {
+      return 'B'; // Wink capable + high accuracy -> Wink mode
+    } else if (this.accuracy < 0.45 || this.stability < 0.4) {
+      return 'C'; // Low accuracy or high jitter -> Dwell mode (forgiveness)
     }
-
-    // Analyze calibration quality
-    const jitter = this._measureCalibrationJitter();
-    if (jitter > 0.1) {
-      return 'A'; // High jitter → use duration-based blink (safer)
-    }
-
-    return 'A'; // Default
+    return 'A'; // Standard Blink mode
   }
 
-  _measureCalibrationJitter() {
-    if (this.calibrationPoints.length < 10) return 0.5;
+  _calculateStability() {
+    if (this.calibrationPoints.length < 10) return 0.7;
 
     let totalJitter = 0;
     let count = 0;
 
-    for (let i = 5; i < this.calibrationPoints.length; i++) {
-      const dx = this.calibrationPoints[i].gazeX - this.calibrationPoints[i - 5].gazeX;
-      const dy = this.calibrationPoints[i].gazeY - this.calibrationPoints[i - 5].gazeY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      // If gaze moved a lot when target barely moved → jitter
-      const targetDx = this.calibrationPoints[i].screenX - this.calibrationPoints[i - 5].screenX;
-      const targetDy = this.calibrationPoints[i].screenY - this.calibrationPoints[i - 5].screenY;
-      const targetDist = Math.sqrt(targetDx * targetDx + targetDy * targetDy);
+    for (let i = 2; i < this.calibrationPoints.length; i++) {
+      const p1 = this.calibrationPoints[i - 1];
+      const p2 = this.calibrationPoints[i];
+      const targetDist = Math.hypot(p2.screenX - p1.screenX, p2.screenY - p1.screenY);
+      const gazeDist = Math.hypot(p2.gazeX - p1.gazeX, p2.gazeY - p1.gazeY);
 
-      if (targetDist < 0.05 && dist > 0.02) {
-        totalJitter += dist;
+      if (targetDist < 0.02) {
+        totalJitter += gazeDist;
         count++;
       }
     }
 
-    return count > 0 ? totalJitter / count : 0;
+    const avgJitter = count > 0 ? totalJitter / count : 0.05;
+    return Math.max(0, Math.min(1, 1 - avgJitter / 0.1));
+  }
+
+  _getModeDescription(mode) {
+    const map = {
+      'A': 'Chế độ Chớp mắt (Mode A) — Chớp 2 mắt bình thường: nháy nhanh = click trái, giữ 0.5s = click phải.',
+      'B': 'Chế độ Nháy mắt riêng biệt (Mode B) — Nháy mắt trái = click trái, nháy mắt phải = click phải.',
+      'C': 'Chế độ Nhìn dừng (Mode C / Dwell) — Giữ ánh mắt vào nút 1.2s để tự động click (rất dễ dùng).',
+    };
+    return map[mode] || map['A'];
   }
 
   cancel() {

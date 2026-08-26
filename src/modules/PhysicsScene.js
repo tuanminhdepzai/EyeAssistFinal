@@ -73,54 +73,13 @@ export class PhysicsScene {
   }
 
   /**
-   * Create a simplified hand model from primitives
+   * Create a simplified hand model from primitives (Disabled)
    */
   _createHand() {
+    // Hand 3D model removed per user request
     const T = this.THREE;
     this.hand = new T.Group();
-
-    const palmMat = new T.MeshStandardMaterial({
-      color: 0x8b5cf6,
-      roughness: 0.7,
-      metalness: 0.1,
-    });
-
-    const fingerMat = new T.MeshStandardMaterial({
-      color: 0xa78bfa,
-      roughness: 0.6,
-      metalness: 0.1,
-    });
-
-    // Palm (center of hand)
-    const palm = new T.Mesh(new T.BoxGeometry(1.2, 0.3, 0.8), palmMat);
-    palm.position.set(0, 0, 0);
-    this.hand.add(palm);
-
-    // 4 Fingers (extending to the right +x direction)
-    const fingerPositions = [
-      { x: -0.35, z: -0.3 },
-      { x: -0.35, z: -0.1 },
-      { x: -0.35, z: 0.1 },
-      { x: -0.35, z: 0.3 },
-    ];
-
-    fingerPositions.forEach((pos) => {
-      const finger = new T.Mesh(new T.BoxGeometry(0.8, 0.12, 0.12), fingerMat);
-      finger.position.set(pos.x + 0.4, 0.15, pos.z);
-      this.hand.add(finger);
-    });
-
-    // Thumb (perpendicular to fingers, extending in +z direction)
-    const thumb = new T.Mesh(new T.BoxGeometry(0.15, 0.12, 0.6), fingerMat);
-    thumb.position.set(-0.15, 0.15, 0.45);
-    this.hand.add(thumb);
-
-    // Wrist
-    const wrist = new T.Mesh(new T.BoxGeometry(0.4, 0.25, 0.5), palmMat);
-    wrist.position.set(-0.8, -0.1, 0);
-    this.hand.add(wrist);
-
-    this.scene.add(this.hand);
+    // this.scene.add(this.hand);
   }
 
   /**

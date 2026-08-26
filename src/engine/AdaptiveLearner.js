@@ -1,16 +1,23 @@
 /**
- * AdaptiveLearner — Bayesian online learning + k-means for blink thresholds
+ * AdaptiveLearner — Bayesian online learning + k-means + BlinkBaseline
  *
  * Learns per-user:
- *   - EAR threshold (blink depth)
+ *   - EAR threshold (blink depth, từ open-eye baseline)
  *   - Duration threshold (natural vs intentional boundary via k-means)
- *   - Jitter tolerance
+ *   - Jitter tolerance (cho GazeFilter)
+ *   - Per-feature baseline phân phối (BlinkBaseline — Welford online stats):
+ *     ngưỡng động cho BlinkDetector & BlinkClassifier (Phase 1)
  *
- * k-means (k=2) clusters blink durations into natural vs intentional.
- * Threshold = midpoint between cluster centers.
+ * k-means (k=2) clusters blink durations into natural vs intentional
+ * (fallback khi BlinkBaseline chưa đủ mẫu).
  */
+import { BlinkBaseline } from './BlinkBaseline.js';
+
 export class AdaptiveLearner {
   constructor() {
+    // Per-feature online baseline (Phase 1)
+    this.baseline = new BlinkBaseline();
+
     // EAR threshold
     this.ear = { mu: 0.22, sigma: 0.05 };
     this.earOpenMu = 0.30;
@@ -52,6 +59,21 @@ export class AdaptiveLearner {
       bilateralCorr: blink.features?.bilateralCorr || 1
     });
     if (this.blinkBuffer.length > this.maxSamples) this.blinkBuffer.shift();
+
+    // Phase 1: cập nhật per-feature baseline (chỉ nháy đã phân loại rõ ràng)
+    if (blink.type === 'natural' || blink.type === 'intentional') {
+      this.baseline.update({
+        type: blink.type,
+        duration: blink.duration,
+        earMin: blink.features?.earMin ?? blink.earMin ?? 0,
+        asymmetry: blink.features?.asymmetry ?? blink.asymmetry ?? 0,
+        closeVelocity: blink.features?.closeVelocity ?? 0,
+        openVelocity: blink.features?.openVelocity ?? 0,
+        holdTime: blink.features?.holdTime ?? 0,
+        bilateralCorr: blink.features?.bilateralCorr ?? 1,
+        gap: blink.features?.gap ?? 0
+      });
+    }
 
     // Update EAR baselines
     if (blink.type === 'natural') {
@@ -103,6 +125,34 @@ export class AdaptiveLearner {
     return Math.round((this._clusterCenterNatural + this._clusterCenterIntentional) / 2);
   }
 
+  /**
+   * Get toàn bộ ngưỡng động cho BlinkDetector (Phase 1)
+   * Dùng BlinkBaseline khi đã đủ mẫu, fallback về k-means + defaults.
+   */
+  getThresholds() {
+    const defaults = {
+      earThreshold: this.getEARThreshold(),
+      earClosedThreshold: this.earClosedMu,
+      naturalDurationMax: this.getDurationThreshold(),
+      shortBlinkMax: 700,
+      holdTimeMaxNatural: 30,
+      minNaturalCloseVel: 0.3,
+      minNaturalOpenVel: 0.25,
+      minNaturalCorr: 0.7
+    };
+    return this.baseline.getThresholds(defaults);
+  }
+
+  /** Tóm tắt baseline cho UI/analytics */
+  getBaselineSummary() {
+    return this.baseline.summary();
+  }
+
+  /** Baseline đã sẵn sàng chưa? */
+  get isBaselineReady() {
+    return this.baseline.isReady;
+  }
+
   /** Get current jitter tolerance */
   getJitterTolerance() {
     return Math.round(this.jitter.mu * 1000) / 1000;
@@ -126,12 +176,16 @@ export class AdaptiveLearner {
       isStable: this.isStable,
       confidence: this.confidence,
       clusterNatural: this._clusterCenterNatural,
-      clusterIntentional: this._clusterCenterIntentional
+      clusterIntentional: this._clusterCenterIntentional,
+      baseline: this.baseline.serialize()   // Phase 1
     };
   }
 
   deserialize(data) {
-    Object.assign(this, data);
+    if (!data) return;
+    const { baseline, ...rest } = data;
+    Object.assign(this, rest);
+    if (baseline) this.baseline.deserialize(baseline);
   }
 
   // --- Private ---
@@ -142,7 +196,8 @@ export class AdaptiveLearner {
   }
 
   _updateIntentional(blink) {
-    if (blink.earLeft !== undefined && blink.earRight !== undefined) {
+    // != null bắt cả null lẫn undefined (tránh trượt earClosedMu về 0)
+    if (blink.earLeft != null && blink.earRight != null) {
       const closedAvg = (blink.earLeft + blink.earRight) / 2;
       this.earClosedMu = 0.9 * this.earClosedMu + 0.1 * closedAvg;
     }

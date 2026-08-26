@@ -10,6 +10,7 @@
 // Load all engine modules inside the worker
 importScripts('/src/engine/EARCalculator.js');
 importScripts('/src/engine/BlinkDetector.js');
+importScripts('/src/engine/BlinkClassifier.js');
 importScripts('/src/engine/GazeFilter.js');
 importScripts('/src/engine/GazeToScreen.js');
 importScripts('/src/engine/AdaptiveLearner.js');
@@ -20,7 +21,7 @@ importScripts('/src/engine/GestureMatcher.js');
 // The actual worker will be bundled by Vite with proper ES module imports.
 
 // State
-let earCalc, blinkDetector, gazeFilter, gazeMapper, adaptiveLearner, gestureMatcher;
+let earCalc, blinkDetector, gazeFilter, gazeMapper, adaptiveLearner, gestureMatcher, blinkClassifier;
 let lastTimestamp = 0;
 let fps = 0;
 let frameCount = 0;
@@ -50,37 +51,39 @@ self.onmessage = function(e) {
 
 function _init(config) {
   earCalc = new EARCalculator();
+  adaptiveLearner = new AdaptiveLearner();
+  // Phase 2: classifier chia sẻ baseline của adaptive learner
+  blinkClassifier = new BlinkClassifier({ baseline: adaptiveLearner.baseline });
   blinkDetector = new BlinkDetector({
     earThreshold: config.earThreshold || 0.22,
     earClosedThreshold: config.earClosedThreshold || 0.18,
     naturalDurationMax: config.naturalDurationMax || 250,
-    shortBlinkMax: config.shortBlinkMax || 700
+    shortBlinkMax: config.shortBlinkMax || 700,
+    classifier: blinkClassifier
   });
   gazeFilter = new GazeFilter();
   gazeMapper = new GazeToScreen();
-  adaptiveLearner = new AdaptiveLearner();
   gestureMatcher = new GestureMatcher();
 
   // Wire blink detector callbacks
-  blinkDetector.on('onBlink', (type, duration) => {
+  blinkDetector.on('onClassified', (classification) => {
     self.postMessage({
-      type: 'blink',
-      subtype: type,
-      duration,
-      earLeft: blinkDetector._leftStart,
-      earRight: blinkDetector._rightStart,
-      asymmetry: blinkDetector._lastAsymmetry,
+      type: 'blinkClassified',
+      classification: classification.type,
+      confidence: classification.confidence,
+      features: classification.blink?.features,
       timestamp: performance.now()
     });
   });
 
   blinkDetector.on('onIntentional', (blinkData) => {
-    // Feed intentional blinks to adaptive learner (for k-means)
+    // Feed intentional blinks to adaptive learner (baseline + k-means)
     adaptiveLearner.updateFromBlink(blinkData);
     self.postMessage({
       type: 'intentionalBlink',
       subtype: blinkData.type,
       duration: blinkData.duration,
+      confidence: blinkData.confidence,
       features: blinkData.features,
       timestamp: performance.now()
     });
@@ -148,11 +151,18 @@ function _processFrame(landmarks, timestamp) {
   adaptiveLearner.updateFromGaze(jitter);
   gazeFilter.tune(jitter);
 
-  // 9. Dynamically threshold from learner
-  blinkDetector.setThreshold(
-    adaptiveLearner.getEARThreshold(),
-    adaptiveLearner.getDurationThreshold()
-  );
+  // 9. Phase 1: dynamic thresholds from baseline (per-user)
+  blinkDetector.setThresholds(adaptiveLearner.getThresholds());
+
+  // 9b. Phase 2: feed context to classifier
+  const fixation = gazeFilter.getFixationState(timestamp);
+  blinkClassifier.setContext({
+    fixationStable: fixation.stable,
+    gazeVelocity: fixation.velocity,
+    target: false,
+    blinkRate: blinkDetector.getBlinkRate(timestamp),
+    lastActionMs: 10000
+  });
 
   // 10. Send result to main thread
   self.postMessage({

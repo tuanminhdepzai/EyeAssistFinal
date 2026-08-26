@@ -1,0 +1,2516 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hand Controller — 3D Simulation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script src="/mediapipe/face_mesh/face_mesh.js"></script>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --panel: rgba(14, 19, 32, 0.88);
+      --border: rgba(255, 255, 255, 0.06);
+      --accent: #4f8ef7;
+      --accent2: #a78bfa;
+      --glow: rgba(79, 142, 247, 0.35);
+      --text: #e8edf5;
+      --dim: #7c8698;
+      --green: #34d399;
+      --red: #f87171;
+      --font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --radius: 10px;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      user-select: none;
+    }
+
+    /* ── Loading ── */
+    #loading {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      transition: opacity .5s ease;
+    }
+
+    #loading.done {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 3px solid rgba(255, 255, 255, .06);
+      border-radius: 50%;
+      border-top-color: var(--accent);
+      animation: spin .7s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .load-msg {
+      margin-top: 16px;
+      font-size: .9rem;
+      color: var(--dim);
+    }
+
+    /* ── Layout ── */
+    #app {
+      display: flex;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: 30%;
+      min-width: 320px;
+      height: 100%;
+      background: var(--panel);
+      backdrop-filter: blur(24px);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      z-index: 10;
+    }
+
+    .s-header {
+      padding: 24px 22px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .s-header h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .s-header .sub {
+      color: var(--dim);
+      font-size: .8rem;
+      margin-top: 3px;
+    }
+
+    .s-body {
+      padding: 18px 22px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .sec-label {
+      font-size: .7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--dim);
+      margin-bottom: 6px;
+    }
+
+    /* ── Presets ── */
+    .preset-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+    }
+
+    .p-btn {
+      background: rgba(255, 255, 255, .025);
+      border: 1px solid var(--border);
+      padding: 9px 6px;
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: .78rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .2s;
+      text-align: center;
+    }
+
+    .p-btn:hover {
+      background: rgba(79, 142, 247, .08);
+      border-color: rgba(79, 142, 247, .25);
+    }
+
+    .p-btn.on {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 14px var(--glow);
+    }
+
+    /* ── Finger Accordion ── */
+    .fg {
+      background: rgba(255, 255, 255, .015);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .fg+.fg {
+      margin-top: 6px;
+    }
+
+    .fg-hdr {
+      padding: 11px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: .88rem;
+      transition: background .15s;
+    }
+
+    .fg-hdr:hover {
+      background: rgba(255, 255, 255, .025);
+    }
+
+    .fg-hdr .arr {
+      font-size: .65rem;
+      color: var(--dim);
+      transition: transform .2s;
+    }
+
+    .fg.shut .arr {
+      transform: rotate(-90deg);
+    }
+
+    .fg-body {
+      padding: 12px 14px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .fg.shut .fg-body {
+      display: none;
+    }
+
+    .cr {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .cr label {
+      display: flex;
+      justify-content: space-between;
+      font-size: .75rem;
+      color: var(--dim);
+      font-weight: 500;
+    }
+
+    .cr .v {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 5px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, .07);
+      outline: none;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 0 6px var(--glow);
+      transition: transform .1s;
+    }
+
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    input[type=range]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      border: none;
+    }
+
+    /* ── Viewport ── */
+    #viewport {
+      flex: 1;
+      height: 100%;
+      position: relative;
+    }
+
+    #viewport canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .tools {
+      position: absolute;
+      bottom: 18px;
+      right: 18px;
+      display: flex;
+      gap: 8px;
+      z-index: 5;
+    }
+
+    .tb {
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 13px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: var(--font);
+      font-size: .78rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all .2s;
+    }
+
+    .tb:hover {
+      background: rgba(255, 255, 255, .06);
+      border-color: rgba(255, 255, 255, .12);
+    }
+
+    .tb.on {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .badge {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: .75rem;
+      color: var(--dim);
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      flex-shrink: 0;
+    }
+
+    /* ── Debug Panel ── */
+    #debug-panel {
+      position: absolute;
+      top: 50px;
+      left: 14px;
+      width: 360px;
+      max-height: 220px;
+      background: rgba(11, 15, 25, 0.9);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 11px;
+      line-height: 1.4;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+    #debug-panel .hdr {
+      font-weight: bold;
+      color: var(--dim);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 4px;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+    #debug-logs {
+      overflow-y: auto;
+      flex: 1;
+      max-height: 170px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .log-info { color: #4f8ef7; }
+    .log-success { color: #34d399; }
+    .log-warn { color: #fbbf24; }
+    .log-err { color: #f87171; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, .07);
+      border-radius: 3px;
+    }
+
+    /* ── Hand Selector Tabs ── */
+    .hand-selector {
+      display: flex;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 4px;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+
+    .hand-tab {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--dim);
+      padding: 8px 4px;
+      border-radius: 6px;
+      font-family: var(--font);
+      font-size: .78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .hand-tab:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .hand-tab.on {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 10px var(--glow);
+    }
+
+    /* ── Step-by-Step Wizard UI ── */
+    .wizard-container {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .step-progress {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      margin-bottom: 6px;
+    }
+
+    .step-progress::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 10%;
+      right: 10%;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.08);
+      z-index: 1;
+      transform: translateY(-50%);
+    }
+
+    .step-node {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(14, 19, 32, 0.95);
+      border: 2px solid var(--border);
+      color: var(--dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      z-index: 2;
+      transition: all 0.3s;
+    }
+
+    .step-node.active {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 12px var(--glow);
+    }
+
+    .step-node.done {
+      border-color: var(--green);
+      background: var(--green);
+      color: #0b0f19;
+    }
+
+    .step-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .step-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .th-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .th-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .th-card:hover {
+      background: rgba(79, 142, 247, 0.08);
+      border-color: rgba(79, 142, 247, 0.3);
+    }
+
+    .th-card.selected {
+      background: rgba(79, 142, 247, 0.18);
+      border-color: var(--accent);
+      box-shadow: 0 0 12px var(--glow);
+    }
+
+    .th-tag {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(79, 142, 247, 0.2);
+      color: var(--accent);
+    }
+
+    .wizard-btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .btn-next, .btn-prev {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      font-family: var(--font);
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-next {
+      background: linear-gradient(135deg, #4f8ef7 0%, #3b82f6 100%);
+      color: #fff;
+      box-shadow: 0 0 12px var(--glow);
+    }
+
+    .btn-next:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+    }
+
+    .btn-prev {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--dim);
+      border: 1px solid var(--border);
+    }
+
+    .btn-prev:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text);
+    }
+
+    /* Quiz Options */
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .quiz-opt {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.8rem;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .quiz-opt:hover {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .quiz-opt.correct {
+      background: rgba(52, 211, 153, 0.2);
+      border-color: var(--green);
+      color: var(--green);
+      font-weight: 700;
+    }
+
+    .quiz-opt.wrong {
+      background: rgba(248, 113, 113, 0.2);
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    /* ── Eye Tracking UI ── */
+    #gaze-cursor {
+      position: fixed;
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(52, 211, 153, 0.85);
+      background: rgba(52, 211, 153, 0.25);
+      border-radius: 50%;
+      pointer-events: none !important;
+      z-index: 99999;
+      transform: translate(-50%, -50%);
+      transition: background-color 0.2s, border-color 0.2s, transform 0.1s ease-out;
+      box-shadow: 0 0 15px rgba(52, 211, 153, 0.6);
+      display: none;
+      will-change: left, top;
+    }
+
+    #gaze-cursor.clicking {
+      transform: translate(-50%, -50%) scale(0.6);
+      background: rgba(248, 113, 113, 0.7);
+      border-color: #f87171;
+    }
+
+    #gaze-cursor.dwelling {
+      border-color: #fbbf24;
+      background: rgba(251, 191, 36, 0.35);
+      box-shadow: 0 0 18px rgba(251, 191, 36, 0.8);
+    }
+
+    #cam-preview {
+      position: absolute;
+      bottom: 18px;
+      left: 18px;
+      width: 140px;
+      height: 105px;
+      background: rgba(14, 19, 32, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      z-index: 25;
+      display: none;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    #cam-preview video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    #cam-preview canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      transform: scaleX(-1);
+    }
+
+    .eye-hover {
+      outline: 2px solid #34d399 !important;
+      outline-offset: 2px;
+      box-shadow: 0 0 14px rgba(52, 211, 153, 0.4) !important;
+      transition: all 0.15s ease !important;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <div class="load-msg" id="load-msg">Đang khởi tạo môi trường 3D...</div>
+  </div>
+
+  <div id="app">
+    <div id="sidebar">
+      <div class="s-header">
+        <h1>✋ Hand Controller</h1>
+        <div class="sub">Học Quy Tắc Bàn Tay 3D — Trực Quan & Tương Tác</div>
+      </div>
+      <div class="s-body">
+        
+        <!-- Step Progress Header -->
+        <div class="step-progress">
+          <div class="step-node active" id="node-1">1</div>
+          <div class="step-node" id="node-2">2</div>
+          <div class="step-node" id="node-3">3</div>
+        </div>
+
+        <!-- WIZARD STEP 1: Chọn TH & Quy Tắc -->
+        <div id="step-1" class="step-card">
+          <div class="step-title">📌 Bước 1: Chọn trường hợp & Quy tắc vật lý</div>
+          
+          <div class="stem-row">
+            <label>Loại quy tắc</label>
+            <select class="stem-select" id="stem-rule-type" onchange="updateStemLabels()">
+              <option value="LEFT_AMPERE">✋ Bàn tay trái — Lực Ampe (F = I × B)</option>
+              <option value="LEFT_LORENTZ">⚡ Bàn tay trái — Lực Lorentz (F = qv × B)</option>
+            </select>
+          </div>
+
+          <div class="sec-label">Chọn 1 trong 3 trường hợp bài tập:</div>
+          <div class="th-grid">
+            <div class="th-card selected" id="th-1" onclick="selectTH('TH1')">
+              <div>
+                <strong style="font-size:0.83rem">TH1: Cho B, I → Tìm F</strong>
+                <div style="font-size:0.72rem;color:var(--dim);margin-top:2px">Đề bài cho hướng Cảm ứng từ B & Dòng điện I</div>
+              </div>
+              <span class="th-tag">TH1</span>
+            </div>
+            <div class="th-card" id="th-2" onclick="selectTH('TH2')">
+              <div>
+                <strong style="font-size:0.83rem">TH2: Cho B, F → Tìm I</strong>
+                <div style="font-size:0.72rem;color:var(--dim);margin-top:2px">Đề bài cho hướng Cảm ứng từ B & Lực từ F</div>
+              </div>
+              <span class="th-tag">TH2</span>
+            </div>
+            <div class="th-card" id="th-3" onclick="selectTH('TH3')">
+              <div>
+                <strong style="font-size:0.83rem">TH3: Cho F, I → Tìm B</strong>
+                <div style="font-size:0.72rem;color:var(--dim);margin-top:2px">Đề bài cho hướng Lực từ F & Dòng điện I</div>
+              </div>
+              <span class="th-tag">TH3</span>
+            </div>
+          </div>
+
+          <div class="wizard-btn-row">
+            <button class="btn-next" onclick="goToStep(2)">Tiếp theo ➔</button>
+          </div>
+        </div>
+
+        <!-- WIZARD STEP 2: Chọn 2 Dữ Kiện Đề Bài -->
+        <div id="step-2" class="step-card" style="display: none;">
+          <div class="step-title">📥 Bước 2: Chọn 2 dữ kiện đề cho</div>
+
+          <!-- Dynamic Input Row 1 -->
+          <div class="stem-row" id="row-given-1">
+            <label id="label-given-1">🔵 Cảm ứng từ B</label>
+            <select class="stem-select" id="select-given-1">
+              <option value="INTO_PAGE">⊗ Vào trong màn hình</option>
+              <option value="OUT_OF_PAGE">⊙ Ra ngoài màn hình</option>
+              <option value="UP">↑ Hướng lên</option>
+              <option value="DOWN">↓ Hướng xuống</option>
+              <option value="LEFT">← Sang trái</option>
+              <option value="RIGHT">→ Sang phải</option>
+            </select>
+          </div>
+
+          <!-- Dynamic Input Row 2 -->
+          <div class="stem-row" id="row-given-2">
+            <label id="label-given-2">🔴 Dòng điện I</label>
+            <select class="stem-select" id="select-given-2">
+              <option value="RIGHT" selected>→ Sang phải</option>
+              <option value="LEFT">← Sang trái</option>
+              <option value="UP">↑ Hướng lên</option>
+              <option value="DOWN">↓ Hướng xuống</option>
+              <option value="INTO_PAGE">⊗ Vào trong màn hình</option>
+              <option value="OUT_OF_PAGE">⊙ Ra ngoài màn hình</option>
+            </select>
+          </div>
+
+          <div class="wizard-btn-row">
+            <button class="btn-prev" onclick="goToStep(1)">← Quay lại</button>
+            <button class="btn-next" onclick="confirmDataAndGoStep3()">Xác nhận & Xem 3D ➔</button>
+          </div>
+        </div>
+
+        <!-- WIZARD STEP 3: Trắc Nghiệm Tương Tác 3D -->
+        <div id="step-3" class="step-card" style="display: none;">
+          <div class="step-title">❓ Bước 3: Câu hỏi trắc nghiệm</div>
+
+          <div id="quiz-question-text" style="font-size:0.8rem;line-height:1.4;color:var(--text);background:rgba(255,255,255,0.03);padding:10px;border-radius:8px;border:1px solid var(--border)">
+            Nhìn vào mô hình 3D bàn tay với 2 mũi tên vectơ vừa chọn, hãy xác định hướng đúng của dữ kiện còn lại:
+          </div>
+
+          <div class="quiz-options" id="quiz-options">
+            <!-- Options dynamically built -->
+          </div>
+
+          <div class="stem-res" id="stem-res"></div>
+
+          <div class="wizard-btn-row">
+            <button class="btn-prev" onclick="goToStep(2)">← Sửa dữ kiện</button>
+            <button class="btn-next" id="btn-restart" style="display:none;" onclick="goToStep(1)">🔄 Bài tập mới</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <div id="viewport">
+      <div class="badge" id="badge"><span class="dot" style="background:var(--dim)"></span>Đang tải mô hình...</div>
+      <div class="tools">
+        <button class="tb" id="tb-eye" onclick="toggleEyeTracking()">👁️ Eye Tracking</button>
+        <button class="tb on" id="tb-arrows" onclick="toggleArrows()">🎯 Vectơ (B,I,F)</button>
+        <button class="tb" id="tb-rot" onclick="toggleRot()">🔄 Xoay</button>
+        <button class="tb" onclick="resetCam()">🎯 Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gaze Cursor & Webcam Preview for Eye Tracking -->
+  <div id="gaze-cursor"></div>
+  <div id="cam-preview">
+    <video id="eye-webcam" autoplay playsinline muted></video>
+    <canvas id="eye-overlay" width="140" height="105"></canvas>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    /* ══════════════════════════════════════════
+       BONE MAP — from scan results
+       ══════════════════════════════════════════ */
+    const FINGER_CONFIG = {
+      thumb: {
+        label: 'Ngón Cái 👍',
+        bones: {
+          root: 'Bone.001',
+          lower: 'Bone.002',
+          tip: 'Bone.003'
+        },
+        limits: {
+          root: { curl: [-0.5, 1.5] },
+          lower: { curl: [-0.5, 1.5] },
+          tip: { curl: [-0.5, 1.5] }
+        }
+      },
+      index: {
+        label: 'Ngón Trỏ ☝️',
+        bones: {
+          root: 'IndexRoot',
+          lower: 'IndexF_lower',
+          middle: 'IndexF_middle',
+          tip: 'IndexF_tip'
+        },
+        curlAxis: 'z',
+        spreadAxis: 'x',
+        limits: {
+          lower: { curl: [-0.1, 1.6] },
+          middle: { curl: [-0.1, 1.5] },
+          tip: { curl: [-0.1, 1.2] }
+        }
+      },
+      middle: {
+        label: 'Ngón Giữa 🖕',
+        bones: {
+          root: 'MiddleRoot',
+          lower: 'MiddleF_lower',
+          middle: 'MiddleF_middle',
+          tip: 'MiddleF_tip'
+        },
+        curlAxis: 'z',
+        spreadAxis: 'x',
+        limits: {
+          lower: { curl: [-0.1, 1.6] },
+          middle: { curl: [-0.1, 1.5] },
+          tip: { curl: [-0.1, 1.2] }
+        }
+      },
+      ring: {
+        label: 'Ngón Áp Út 💍',
+        bones: {
+          root: 'RingRoot',
+          lower: 'RingF_lower',
+          middle: 'RingF_middle',
+          tip: 'RingF_tip'
+        },
+        curlAxis: 'z',
+        spreadAxis: 'x',
+        limits: {
+          lower: { curl: [-0.1, 1.6] },
+          middle: { curl: [-0.1, 1.5] },
+          tip: { curl: [-0.1, 1.2] }
+        }
+      },
+      pinky: {
+        label: 'Ngón Út 🤙',
+        bones: {
+          root: 'PinkyRoot',
+          lower: 'PinkyF_lower',
+          middle: 'PinkyF_middle',
+          tip: 'PinkyF_tip'
+        },
+        curlAxis: 'z',
+        spreadAxis: 'x',
+        limits: {
+          lower: { curl: [-0.1, 1.6] },
+          middle: { curl: [-0.1, 1.5] },
+          tip: { curl: [-0.1, 1.2] }
+        }
+      }
+    };
+
+    /* ══════════════════════════════════════════
+       PRESETS
+       ══════════════════════════════════════════ */
+    const PRESETS = {
+      'Thư giãn': {
+        thumb: { curl: 0.15, spread: 0 },
+        index: { curl: 0.12, spread: 0 },
+        middle: { curl: 0.12, spread: 0 },
+        ring: { curl: 0.15, spread: 0 },
+        pinky: { curl: 0.18, spread: 0 }
+      },
+      'Nắm tay': {
+        thumb: { curl: 0.75, spread: 0.2 },
+        index: { curl: 1.3, spread: 0 },
+        middle: { curl: 1.3, spread: 0 },
+        ring: { curl: 1.3, spread: 0 },
+        pinky: { curl: 1.3, spread: 0 }
+      },
+      'Mở rộng': {
+        thumb: { curl: -0.1, spread: -0.3 },
+        index: { curl: -0.05, spread: -0.2 },
+        middle: { curl: -0.05, spread: 0 },
+        ring: { curl: -0.05, spread: 0.2 },
+        pinky: { curl: -0.05, spread: 0.3 }
+      },
+      'Peace ✌️': {
+        thumb: { curl: 0.7, spread: 0.2 },
+        index: { curl: 0, spread: -0.15 },
+        middle: { curl: 0, spread: 0.1 },
+        ring: { curl: 1.3, spread: 0 },
+        pinky: { curl: 1.3, spread: 0 }
+      },
+      'OK 👌': {
+        thumb: { curl: 0.8, spread: 0.3 },
+        index: { curl: 1.2, spread: 0.1 },
+        middle: { curl: 0, spread: 0 },
+        ring: { curl: 0, spread: 0 },
+        pinky: { curl: 0, spread: -0.1 }
+      },
+      'Chỉ tay': {
+        thumb: { curl: 0.7, spread: 0.2 },
+        index: { curl: 0, spread: 0 },
+        middle: { curl: 1.3, spread: 0 },
+        ring: { curl: 1.3, spread: 0 },
+        pinky: { curl: 1.3, spread: 0 }
+      }
+    };
+
+    /* ══════════════════════════════════════════
+       GLOBALS
+       ══════════════════════════════════════════ */
+    let scene, camera, renderer, orbit;
+    let skelVisible = false;
+    let wireOn = false;
+
+    const hands = {
+      left: {
+        name: 'Tay Trái',
+        side: 'left',
+        model: null,
+        skinnedMesh: null,
+        skelHelper: null,
+        boneRefs: {},
+        baseQuats: {},
+        currentPose: {}
+      },
+      right: {
+        name: 'Tay Phải',
+        side: 'right',
+        model: null,
+        skinnedMesh: null,
+        skelHelper: null,
+        boneRefs: {},
+        baseQuats: {},
+        currentPose: {}
+      }
+    };
+    let activeHand = 'both'; // 'both' | 'left' | 'right'
+
+    Object.keys(FINGER_CONFIG).forEach(k => {
+      hands.left.currentPose[k] = { curl: 0, spread: 0 };
+      hands.right.currentPose[k] = { curl: 0, spread: 0 };
+    });
+
+    /* ══════════════════════════════════════════
+       LOGGER
+       ══════════════════════════════════════════ */
+    function logDebug(msg, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const text = `[${timestamp}] ${msg}`;
+      console.log(`%c${text}`, type === 'err' ? 'color:#f87171' : type === 'success' ? 'color:#34d399' : type === 'warn' ? 'color:#fbbf24' : 'color:#4f8ef7');
+      const panel = document.getElementById('debug-logs');
+      if (panel) {
+        const div = document.createElement('div');
+        div.className = `log-${type}`;
+        div.textContent = text;
+        panel.appendChild(div);
+        panel.scrollTop = panel.scrollHeight;
+      }
+    }
+
+    /* ══════════════════════════════════════════
+       INIT
+       ══════════════════════════════════════════ */
+    function init() {
+      const vp = document.getElementById('viewport');
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0b0f19);
+
+      camera = new THREE.PerspectiveCamera(38, vp.clientWidth / vp.clientHeight, 0.01, 100);
+      camera.position.set(0, 0.38, 0.75);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(vp.clientWidth, vp.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.4;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      vp.appendChild(renderer.domElement);
+
+      orbit = new OrbitControls(camera, renderer.domElement);
+      orbit.enableDamping = true;
+      orbit.dampingFactor = 0.06;
+      orbit.minDistance = 0.12;
+      orbit.maxDistance = 3;
+      orbit.target.set(0, 0.05, 0);
+
+      /* ── Studio Lighting ── */
+      const key = new THREE.DirectionalLight(0xfff4e6, 3.0);
+      key.position.set(2, 4, 3);
+      key.castShadow = true;
+      key.shadow.mapSize.set(2048, 2048);
+      key.shadow.camera.near = 0.1;
+      key.shadow.camera.far = 15;
+      key.shadow.camera.left = -1.5;
+      key.shadow.camera.right = 1.5;
+      key.shadow.camera.top = 1.5;
+      key.shadow.camera.bottom = -1.5;
+      key.shadow.bias = -0.0003;
+      scene.add(key);
+
+      const fill = new THREE.DirectionalLight(0x88b8ff, 1.2);
+      fill.position.set(-3, 2, -1);
+      scene.add(fill);
+
+      const rim = new THREE.DirectionalLight(0xffaa66, 1.5);
+      rim.position.set(-1.5, 3, -4);
+      scene.add(rim);
+
+      const bounce = new THREE.DirectionalLight(0xffd4aa, 0.4);
+      bounce.position.set(0, -2, 1);
+      scene.add(bounce);
+
+      const hemi = new THREE.HemisphereLight(0xd0e0ff, 0x332211, 0.5);
+      scene.add(hemi);
+
+      scene.add(new THREE.AmbientLight(0xffffff, 0.15));
+
+      const gnd = new THREE.Mesh(
+        new THREE.PlaneGeometry(6, 6),
+        new THREE.ShadowMaterial({ opacity: 0.2 })
+      );
+      gnd.rotation.x = -Math.PI / 2;
+      gnd.position.y = -0.2;
+      gnd.receiveShadow = true;
+      scene.add(gnd);
+
+      const grid = new THREE.GridHelper(3, 30, 0x1a2540, 0x111828);
+      grid.position.y = -0.199;
+      scene.add(grid);
+
+      window.addEventListener('resize', () => {
+        camera.aspect = vp.clientWidth / vp.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(vp.clientWidth, vp.clientHeight);
+      });
+
+      init3DArrows();
+      loadModel();
+    }
+
+    /* ══════════════════════════════════════════
+       LOAD MODEL
+       ══════════════════════════════════════════ */
+    function setupHandInstance(model, handObj, isRight) {
+      model.traverse(child => {
+        if (child.name) {
+          handObj.boneRefs[child.name] = child;
+          handObj.baseQuats[child.name] = child.quaternion.clone();
+        }
+        if (child.isSkinnedMesh && child.skeleton) {
+          child.skeleton.bones.forEach(b => {
+            if (b.name) {
+              handObj.boneRefs[b.name] = b;
+              handObj.baseQuats[b.name] = b.quaternion.clone();
+            }
+          });
+        }
+      });
+
+      const meshBox = new THREE.Box3();
+      model.traverse(child => {
+        if (child.isMesh || child.isSkinnedMesh) {
+          const geo = child.geometry;
+          geo.computeBoundingBox();
+          const childBox = geo.boundingBox.clone();
+          child.updateWorldMatrix(true, false);
+          childBox.applyMatrix4(child.matrixWorld);
+          meshBox.union(childBox);
+        }
+      });
+
+      if (meshBox.isEmpty()) {
+        meshBox.setFromObject(model);
+      }
+
+      const center = meshBox.getCenter(new THREE.Vector3());
+      const size = meshBox.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const targetSize = 0.35;
+      const s = maxDim > 0 ? targetSize / maxDim : 1;
+
+      if (isRight) {
+        model.scale.set(-s, s, s);
+        model.position.set(0.24 - center.x * (-s), -center.y * s, -center.z * s);
+      } else {
+        model.scale.set(s, s, s);
+        model.position.set(-0.24 - center.x * s, -center.y * s, -center.z * s);
+      }
+
+      model.traverse(child => {
+        if (child.isMesh || child.isSkinnedMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+          handObj.skinnedMesh = child;
+          if (child.material) {
+            child.material = child.material.clone();
+            child.material.side = THREE.DoubleSide;
+            child.material.needsUpdate = true;
+            if (child.material.roughness !== undefined) {
+              child.material.roughness = Math.max(0.3, Math.min(child.material.roughness, 0.7));
+            }
+            if (child.material.metalness !== undefined) {
+              child.material.metalness = Math.min(child.material.metalness, 0.15);
+            }
+          }
+        }
+      });
+
+      handObj.model = model;
+      scene.add(model);
+
+      handObj.skelHelper = new THREE.SkeletonHelper(model);
+      handObj.skelHelper.visible = skelVisible;
+      scene.add(handObj.skelHelper);
+    }
+
+    function loadModel() {
+      const loader = new GLTFLoader();
+      const msg = document.getElementById('load-msg');
+      msg.textContent = 'Đang tải mô hình bàn tay...';
+      logDebug('Khởi tạo GLTFLoader tải 3D models...', 'info');
+
+      loader.load('./Realistic Hand.glb', (gltfLeft) => {
+        logDebug('Tải xong Tay Trái, đang tạo Tay Phải đối xứng...', 'info');
+        setupHandInstance(gltfLeft.scene, hands.left, false);
+
+        loader.load('./Realistic Hand.glb', (gltfRight) => {
+          setupHandInstance(gltfRight.scene, hands.right, true);
+
+          logDebug(`Tải thành công cả 2 bàn tay! Tay Trái: ${Object.keys(hands.left.boneRefs).length} nodes, Tay Phải: ${Object.keys(hands.right.boneRefs).length} nodes`, 'success');
+
+          camera.position.set(0, 0.38, 0.75);
+          orbit.target.set(0, 0.05, 0);
+          orbit.update();
+
+          buildPresets();
+          buildControls();
+          applyPreset('Thư giãn');
+
+          const badge = document.getElementById('badge');
+          badge.innerHTML = '<span class="dot"></span>Realistic Dual Hands — Tay Trái & Tay Phải';
+
+          document.getElementById('loading').classList.add('done');
+
+          animate();
+        }, null, (err) => console.error('Lỗi tải tay phải:', err));
+
+      }, (xhr) => {
+        if (xhr.total) msg.textContent = `Đang tải: ${Math.round(xhr.loaded / xhr.total * 100)}%`;
+      }, (err) => {
+        console.error(err);
+        msg.innerHTML = '<span style="color:#f87171">Lỗi tải model</span>';
+      });
+    }
+
+    /* ══════════════════════════════════════════
+       FUZZY BONE LOOKUP & ROTATION
+       ══════════════════════════════════════════ */
+    function getBone(handObj, name) {
+      if (!name || !handObj) return null;
+      if (handObj.boneRefs[name]) return handObj.boneRefs[name];
+      const clean = name.replace(/[\._\s]/g, '').toLowerCase();
+      const matchKey = Object.keys(handObj.boneRefs).find(k => k.replace(/[\._\s]/g, '').toLowerCase() === clean);
+      return matchKey ? handObj.boneRefs[matchKey] : null;
+    }
+
+    function getBaseQuat(handObj, name) {
+      const bone = getBone(handObj, name);
+      if (!bone) return null;
+      return handObj.baseQuats[bone.name] || handObj.baseQuats[name] || bone.quaternion.clone();
+    }
+
+    function setBoneRotation(handObj, boneName, axis, angleRad) {
+      const bone = getBone(handObj, boneName);
+      const base = getBaseQuat(handObj, boneName);
+      if (!bone || !base) return;
+
+      const delta = new THREE.Quaternion();
+      const euler = new THREE.Euler();
+      euler[axis] = angleRad;
+      delta.setFromEuler(euler);
+
+      bone.quaternion.copy(base).multiply(delta);
+    }
+
+    function applyFingerPoseToHand(handObj, fingerKey, curl, spread) {
+      const cfg = FINGER_CONFIG[fingerKey];
+      if (!cfg || !handObj) return;
+
+      const curlAxis = cfg.curlAxis;
+      const spreadAxis = cfg.spreadAxis;
+
+      if (fingerKey === 'thumb') {
+        const thumbJoints = [
+          { joint: 'root', curlAxis: 'x', spreadAxis: 'z', weight: 0.5 },
+          { joint: 'lower', curlAxis: 'x', weight: 0.6 },
+          { joint: 'tip', curlAxis: 'z', weight: 0.5 }
+        ];
+
+        thumbJoints.forEach(item => {
+          const boneName = cfg.bones[item.joint];
+          if (!boneName) return;
+          const bone = getBone(handObj, boneName);
+          const base = getBaseQuat(handObj, boneName);
+          if (!bone || !base) return;
+
+          const lim = cfg.limits[item.joint];
+          let clampedCurl = 0;
+          if (lim) {
+            clampedCurl = Math.max(lim.curl[0], Math.min(lim.curl[1], curl * item.weight * 2.0));
+          }
+
+          const euler = new THREE.Euler();
+          euler[item.curlAxis] = clampedCurl;
+          if (item.spreadAxis && spread !== undefined) {
+            euler[item.spreadAxis] = spread;
+          }
+
+          const delta = new THREE.Quaternion().setFromEuler(euler);
+          bone.quaternion.copy(base).multiply(delta);
+        });
+      } else {
+        const joints = ['lower', 'middle', 'tip'];
+        const weights = [0.4, 0.35, 0.25];
+        joints.forEach((j, i) => {
+          const boneName = cfg.bones[j];
+          if (!boneName) return;
+          const lim = cfg.limits[j];
+          if (lim) {
+            const clampedCurl = Math.max(lim.curl[0], Math.min(lim.curl[1], curl * weights[i] * 2.5));
+            setBoneRotation(handObj, boneName, curlAxis, clampedCurl);
+          }
+        });
+
+     const rootBone = cfg.bones.root;
+        if (rootBone && spread !== undefined) {
+          const bone = getBone(handObj, rootBone);
+          const base = getBaseQuat(handObj, rootBone); // FIX 1: Đã thêm handObj
+          if (bone && base) {
+            const delta = new THREE.Quaternion();
+            const euler = new THREE.Euler();
+            euler[spreadAxis] = spread;
+            delta.setFromEuler(euler);
+            bone.quaternion.copy(base).multiply(delta);
+          }
+        }
+      }
+      handObj.currentPose[fingerKey] = { curl, spread };
+    }
+
+    function applyFingerPose(fingerKey, curl, spread) {
+      let finalCurl = curl;
+      if (fingerKey === 'thumb') {
+        finalCurl = THREE.MathUtils.degToRad(-10);
+      }
+      if (activeHand === 'left' || activeHand === 'both') {
+        hands.left.currentPose[fingerKey] = { curl: finalCurl, spread }; // FIX 2: Gán object an toàn
+        applyFingerPoseToHand(hands.left, fingerKey, finalCurl, spread);
+      }
+      if (activeHand === 'right' || activeHand === 'both') {
+        hands.right.currentPose[fingerKey] = { curl: finalCurl, spread }; // FIX 2: Gán object an toàn
+        applyFingerPoseToHand(hands.right, fingerKey, finalCurl, spread);
+      }
+    }
+
+    /* ══════════════════════════════════════════
+       HAND SELECTION TAB
+       ══════════════════════════════════════════ */
+    function setHandTab(tabKey) {
+      activeHand = tabKey;
+      document.querySelectorAll('.hand-tab').forEach(btn => {
+        btn.classList.toggle('on', btn.id === `tab-${tabKey}`);
+      });
+
+      const targetHand = tabKey === 'right' ? hands.right : hands.left;
+      Object.keys(FINGER_CONFIG).forEach(fk => {
+        const pose = targetHand.currentPose[fk];
+        const curlDeg = Math.round(THREE.MathUtils.radToDeg(pose.curl));
+        const spreadDeg = Math.round(THREE.MathUtils.radToDeg(pose.spread));
+
+        const sc = document.getElementById(`s-${fk}-curl`);
+        const ss = document.getElementById(`s-${fk}-spread`);
+        const vc = document.getElementById(`v-${fk}-curl`);
+        const vs = document.getElementById(`v-${fk}-spread`);
+        if (sc) sc.value = curlDeg;
+        if (ss) ss.value = spreadDeg;
+        if (vc) vc.textContent = curlDeg + '°';
+        if (vs) vs.textContent = spreadDeg + '°';
+      });
+
+      const label = tabKey === 'both' ? 'Cả Hai Tay' : tabKey === 'left' ? 'Tay Trái' : 'Tay Phải';
+      logDebug(`🖐️ Chế độ điều khiển: ${label}`, 'success');
+    }
+    window.setHandTab = setHandTab;
+
+    /* ══════════════════════════════════════════
+       WIZARD FLOW & QUIZ LOGIC
+       ══════════════════════════════════════════ */
+    let currentTH = 'TH1'; // 'TH1' | 'TH2' | 'TH3'
+    let currentStep = 1;
+    let quizSolution = null;
+
+    function selectTH(thKey) {
+      currentTH = thKey;
+      document.querySelectorAll('.th-card').forEach(c => c.classList.remove('selected'));
+      const card = document.getElementById(thKey === 'TH1' ? 'th-1' : thKey === 'TH2' ? 'th-2' : 'th-3');
+      if (card) card.classList.add('selected');
+      updateStep2Inputs();
+      logDebug(`📌 Đã chọn trường hợp: ${thKey}`, 'info');
+    }
+    window.selectTH = selectTH;
+
+    function updateStep2Inputs() {
+      const ruleType = document.getElementById('stem-rule-type').value;
+      const l1 = document.getElementById('label-given-1');
+      const l2 = document.getElementById('label-given-2');
+      const s1 = document.getElementById('select-given-1');
+      const s2 = document.getElementById('select-given-2');
+
+      const nameB = '🔵 Cảm ứng từ B';
+      const nameI = ruleType === 'RIGHT_FARADAY' ? '🔴 Dòng cảm ứng I_cu' : ruleType === 'LEFT_LORENTZ' ? '🔴 Vận tốc hạt v' : '🔴 Dòng điện I';
+      const nameF = ruleType === 'LEFT_LORENTZ' ? '🟡 Lực Lorentz F' : '🟡 Lực từ F';
+
+      if (currentTH === 'TH1') {
+        l1.textContent = nameB;
+        l2.textContent = nameI;
+      } else if (currentTH === 'TH2') {
+        l1.textContent = nameB;
+        l2.textContent = nameF;
+      } else if (currentTH === 'TH3') {
+        l1.textContent = nameF;
+        l2.textContent = nameI;
+      }
+    }
+
+    function goToStep(stepNum) {
+      currentStep = stepNum;
+      document.getElementById('step-1').style.display = stepNum === 1 ? 'flex' : 'none';
+      document.getElementById('step-2').style.display = stepNum === 2 ? 'flex' : 'none';
+      document.getElementById('step-3').style.display = stepNum === 3 ? 'flex' : 'none';
+
+      for (let i = 1; i <= 3; i++) {
+        const node = document.getElementById(`node-${i}`);
+        if (node) {
+          node.classList.toggle('active', i === stepNum);
+          node.classList.toggle('done', i < stepNum);
+        }
+      }
+
+      if (stepNum === 2) {
+        updateStep2Inputs();
+      }
+    }
+    window.goToStep = goToStep;
+
+    function confirmDataAndGoStep3() {
+      const ruleType = document.getElementById('stem-rule-type').value;
+      const val1 = document.getElementById('select-given-1').value;
+      const val2 = document.getElementById('select-given-2').value;
+
+      let data = { ruleType: ruleType, B: null, I: null, F: null };
+
+      if (currentTH === 'TH1') {
+        data.B = val1;
+        data.I = val2;
+      } else if (currentTH === 'TH2') {
+        data.B = val1;
+        data.F = val2;
+      } else if (currentTH === 'TH3') {
+        data.F = val1;
+        data.I = val2;
+      }
+
+      const res = solveHandRuleV2(data);
+      if (res.error) {
+        alert(res.message);
+        logDebug(res.message, 'err');
+        return;
+      }
+
+      quizSolution = res;
+      goToStep(3);
+
+      // Setup 3D hand alignment & ONLY show 2 GIVEN ARROWS initially
+      const activeHandObj = res.handType === 'RIGHT_HAND' ? hands.right : hands.left;
+      if (activeHandObj.model) {
+        alignHandWithVectors(activeHandObj.model, res.arrowOverlay.arrowB.vector, res.arrowOverlay.arrowI.vector, ruleType, res.handType === 'RIGHT_HAND');
+      }
+      positionArrowsOnHand(activeHandObj, res.handType === 'RIGHT_HAND', res.arrowOverlay.arrowB.vector);
+
+      // Set orientations
+      setArrowOrientation(arrowB, res.arrowOverlay.arrowB.vector);
+      setArrowOrientation(arrowI, res.arrowOverlay.arrowI.vector);
+      setArrowOrientation(arrowF, res.arrowOverlay.arrowF.vector);
+
+      // Hide the target arrow until answered
+      if (res.missingElement === 'B') arrowB.visible = false;
+      if (res.missingElement === 'I') arrowI.visible = false;
+      if (res.missingElement === 'F') arrowF.visible = false;
+
+      // Auto switch active hand tab
+      setHandTab(res.handType === 'RIGHT_HAND' ? 'right' : 'left');
+      applyPreset('Mở rộng');
+
+      buildQuizQuestion(res);
+    }
+    window.confirmDataAndGoStep3 = confirmDataAndGoStep3;
+
+    function buildQuizQuestion(res) {
+      const qText = document.getElementById('quiz-question-text');
+      const optsDiv = document.getElementById('quiz-options');
+      const resDiv = document.getElementById('stem-res');
+      const btnRestart = document.getElementById('btn-restart');
+
+      resDiv.style.display = 'none';
+      btnRestart.style.display = 'none';
+      optsDiv.innerHTML = '';
+
+      const ruleType = document.getElementById('stem-rule-type').value;
+      const missing = res.missingElement;
+      const missingLabel = missing === 'F'
+        ? (ruleType === 'RIGHT_FARADAY' ? 'Vận tốc v' : ruleType === 'LEFT_LORENTZ' ? 'Lực Lorentz F' : 'Lực từ F')
+        : missing === 'I'
+          ? (ruleType === 'RIGHT_FARADAY' ? 'Dòng cảm ứng I_cu' : ruleType === 'LEFT_LORENTZ' ? 'Vận tốc hạt v' : 'Dòng điện I')
+          : 'Cảm ứng từ B';
+
+      qText.innerHTML = `<strong>Hỏi:</strong> Dựa vào mô hình 3D bàn tay và 2 vectơ dữ kiện vừa hiện trên màn hình, hướng của <strong>${missingLabel} (${missing})</strong> sẽ là hướng nào?`;
+
+      // Correct Option
+      const correctDir = res.calculatedResult;
+      const correctText = DIRECTIONS[correctDir] ? DIRECTIONS[correctDir].label : correctDir;
+
+      // Generate 2 Wrong Options
+      const allKeys = Object.keys(DIRECTIONS).filter(k => k !== correctDir);
+      // Shuffle & pick 2
+      const wrongKeys = allKeys.sort(() => 0.5 - Math.random()).slice(0, 2);
+
+      const optionsList = [
+        { key: correctDir, label: correctText, isCorrect: true },
+        { key: wrongKeys[0], label: DIRECTIONS[wrongKeys[0]].label, isCorrect: false },
+        { key: wrongKeys[1], label: DIRECTIONS[wrongKeys[1]].label, isCorrect: false }
+      ].sort(() => 0.5 - Math.random()); // Randomize order of 3 options
+
+      optionsList.forEach((opt, idx) => {
+        const btn = document.createElement('div');
+        btn.className = 'quiz-opt';
+        btn.innerHTML = `<strong>${String.fromCharCode(65 + idx)}.</strong> ${opt.label}`;
+        btn.onclick = () => checkQuizAnswer(btn, opt.isCorrect, res);
+        optsDiv.appendChild(btn);
+      });
+    }
+
+    function checkQuizAnswer(selectedBtn, isCorrect, res) {
+      const optsDiv = document.getElementById('quiz-options');
+      const resDiv = document.getElementById('stem-res');
+      const btnRestart = document.getElementById('btn-restart');
+
+      // Disable further clicks
+      Array.from(optsDiv.children).forEach(child => child.style.pointerEvents = 'none');
+
+      if (isCorrect) {
+        selectedBtn.classList.add('correct');
+        logDebug('🎉 Học sinh đã trả lời ĐÚNG!', 'success');
+      } else {
+        selectedBtn.classList.add('wrong');
+        // Highlight correct one
+        logDebug('❌ Học sinh trả lời CHƯA ĐÚNG.', 'warn');
+      }
+
+      // Show missing arrow now
+      if (res.missingElement === 'B') arrowB.visible = true;
+      if (res.missingElement === 'I') arrowI.visible = true;
+      if (res.missingElement === 'F') arrowF.visible = true;
+
+      // Highlight target arrow
+      if (res.missingElement === 'B') targetPulseArrow = arrowB;
+      else if (res.missingElement === 'I') targetPulseArrow = arrowI;
+      else if (res.missingElement === 'F') targetPulseArrow = arrowF;
+
+      const palmHint = getPalmOrientationHint(res.arrowOverlay.arrowB.direction, res.arrowOverlay.arrowI.direction);
+
+      resDiv.style.display = 'block';
+      resDiv.className = isCorrect ? 'stem-res' : 'stem-res err';
+      resDiv.innerHTML = `
+        <strong>${isCorrect ? '🎉 CHÍNH XÁC!' : '❌ CHƯA CHÍNH XÁC!'}</strong><br>
+        <span style="font-size:.77rem">
+        🎯 Đáp án đúng: <strong>${res.resultLabel}</strong><br>
+        ✋ Quy tắc áp dụng: <em>${res.handType === 'RIGHT_HAND' ? 'Bàn tay phải' : 'Bàn tay trái'}</em><br>
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,.07);margin:5px 0">
+        🖐️ <strong>Giải thích hướng bàn tay:</strong><br>
+        ${palmHint}
+        </span>
+      `;
+
+      btnRestart.style.display = 'flex';
+    }
+
+    function buildPresets() {} // Presets removed from main UI but kept for API safety
+
+    function buildControls() {
+      const container = document.getElementById('ctrls');
+      if (!container) return;
+      container.innerHTML = '';
+
+      Object.entries(FINGER_CONFIG).forEach(([key, cfg]) => {
+        const fg = document.createElement('div');
+        fg.className = 'fg';
+
+        const hdr = document.createElement('div');
+        hdr.className = 'fg-hdr';
+        hdr.innerHTML = `<span>${cfg.label}</span><span class="arr">▾</span>`;
+        hdr.addEventListener('click', () => fg.classList.toggle('shut'));
+
+        const body = document.createElement('div');
+        body.className = 'fg-body';
+
+        const curlRow = document.createElement('div');
+        curlRow.className = 'cr';
+        const isThumb = key === 'thumb';
+        curlRow.innerHTML = `
+          <label><span>Gập ngón</span><span class="v" id="v-${key}-curl">${isThumb ? '-10' : '0'}°</span></label>
+          <input type="range" id="s-${key}-curl" min="-10" max="90" value="${isThumb ? '-10' : '0'}" step="1" ${isThumb ? 'disabled' : ''}>
+        `;
+        if (!isThumb) {
+          curlRow.querySelector('input').addEventListener('input', e => {
+            const deg = parseInt(e.target.value);
+            document.getElementById(`v-${key}-curl`).textContent = deg + '°';
+            const rad = THREE.MathUtils.degToRad(deg);
+            logDebug(`🎚️ [${cfg.label}] Kéo Gập: ${deg}°`, 'info');
+            const refHand = activeHand === 'right' ? hands.right : hands.left;
+            const currentSpread = refHand.currentPose[key].spread;
+            applyFingerPose(key, rad, currentSpread);
+            clearActive();
+          });
+        }
+        body.appendChild(curlRow);
+
+        const spreadRow = document.createElement('div');
+        spreadRow.className = 'cr';
+        spreadRow.innerHTML = `
+          <label><span>Xòe ngón</span><span class="v" id="v-${key}-spread">0°</span></label>
+          <input type="range" id="s-${key}-spread" min="-25" max="25" value="0" step="1">
+        `;
+        spreadRow.querySelector('input').addEventListener('input', e => {
+          const deg = parseInt(e.target.value);
+          document.getElementById(`v-${key}-spread`).textContent = deg + '°';
+          const rad = THREE.MathUtils.degToRad(deg);
+          logDebug(`🎚️ [${cfg.label}] Kéo Xòe: ${deg}°`, 'info');
+          const refHand = activeHand === 'right' ? hands.right : hands.left;
+          const currentCurl = refHand.currentPose[key].curl;
+          applyFingerPose(key, currentCurl, rad);
+          clearActive();
+        });
+        body.appendChild(spreadRow);
+
+        fg.appendChild(hdr);
+        fg.appendChild(body);
+        container.appendChild(fg);
+      });
+    }
+
+    /* ══════════════════════════════════════════
+       PRESETS
+       ══════════════════════════════════════════ */
+    function applyPreset(name) {
+      const p = PRESETS[name];
+      if (!p) return;
+
+      Object.keys(p).forEach(fk => {
+        const curl = p[fk].curl;
+        const spread = p[fk].spread;
+        applyFingerPose(fk, curl, spread);
+
+        const curlDeg = Math.round(THREE.MathUtils.radToDeg(curl));
+        const spreadDeg = Math.round(THREE.MathUtils.radToDeg(spread));
+        const sc = document.getElementById(`s-${fk}-curl`);
+        const ss = document.getElementById(`s-${fk}-spread`);
+        const vc = document.getElementById(`v-${fk}-curl`);
+        const vs = document.getElementById(`v-${fk}-spread`);
+        if (sc) sc.value = curlDeg;
+        if (ss) ss.value = spreadDeg;
+        if (vc) vc.textContent = curlDeg + '°';
+        if (vs) vs.textContent = spreadDeg + '°';
+      });
+    }
+    window.applyPreset = applyPreset;
+
+    function clearActive() {
+      document.querySelectorAll('.p-btn').forEach(b => b.classList.remove('on'));
+    }
+
+    /* ══════════════════════════════════════════
+       TOOLS
+       ══════════════════════════════════════════ */
+    window.toggleSkel = function () {
+      skelVisible = !skelVisible;
+      if (hands.left.skelHelper) hands.left.skelHelper.visible = skelVisible;
+      if (hands.right.skelHelper) hands.right.skelHelper.visible = skelVisible;
+      document.getElementById('tb-skel').classList.toggle('on', skelVisible);
+      logDebug(`🦴 Skeleton helper: ${skelVisible ? 'HIỆN' : 'ẨN'}`, 'info');
+    };
+
+    window.toggleWire = function () {
+      wireOn = !wireOn;
+      if (hands.left.skinnedMesh && hands.left.skinnedMesh.material) hands.left.skinnedMesh.material.wireframe = wireOn;
+      if (hands.right.skinnedMesh && hands.right.skinnedMesh.material) hands.right.skinnedMesh.material.wireframe = wireOn;
+      document.getElementById('tb-wire').classList.toggle('on', wireOn);
+      logDebug(`🔲 Wireframe mode: ${wireOn ? 'BẬT' : 'TẮT'}`, 'info');
+    };
+
+    window.toggleRot = function () {
+      orbit.autoRotate = !orbit.autoRotate;
+      orbit.autoRotateSpeed = 1.5;
+      document.getElementById('tb-rot').classList.toggle('on', orbit.autoRotate);
+      logDebug(`🔄 Tự động xoay: ${orbit.autoRotate ? 'BẬT' : 'TẮT'}`, 'info');
+    };
+
+    window.resetCam = function () {
+      camera.position.set(0, 0.38, 0.75);
+      orbit.target.set(0, 0.05, 0);
+      orbit.update();
+      logDebug(`🎯 Reset Camera & Orbit`, 'info');
+    };
+
+    /* ══════════════════════════════════════════
+       STEM PHYSICS V2 & 3D ARROW OVERLAY SYSTEM
+       ══════════════════════════════════════════ */
+    const DIRECTIONS = {
+      LEFT:        { label: "Sang trái (←)",               vector: [-1, 0, 0] },
+      RIGHT:       { label: "Sang phải (→)",               vector: [ 1, 0, 0] },
+      UP:          { label: "Hướng lên (↑)",               vector: [ 0, 1, 0] },
+      DOWN:        { label: "Hướng xuống (↓)",             vector: [ 0,-1, 0] },
+      INTO_PAGE:   { label: "Vào trong màn hình (⊗)",       vector: [ 0, 0,-1] },
+      OUT_OF_PAGE: { label: "Ra ngoài màn hình (⊙)",        vector: [ 0, 0, 1] }
+    };
+
+    let arrowsGroup = null;
+    let arrowB = null, arrowI = null, arrowF = null;
+    let targetPulseArrow = null;
+    let arrowsVisible = true;
+
+    function create3DArrow(colorHex, labelText) {
+      const group = new THREE.Group();
+
+      const shaftGeo = new THREE.CylinderGeometry(0.007, 0.007, 0.22, 16);
+      shaftGeo.translate(0, 0.11, 0);
+      const mat = new THREE.MeshStandardMaterial({
+        color: colorHex,
+        emissive: colorHex,
+        emissiveIntensity: 0.35,
+        roughness: 0.2,
+        metalness: 0.1
+      });
+      const shaft = new THREE.Mesh(shaftGeo, mat);
+      shaft.castShadow = true;
+      group.add(shaft);
+
+      const coneGeo = new THREE.ConeGeometry(0.02, 0.05, 16);
+      coneGeo.translate(0, 0.245, 0);
+      const cone = new THREE.Mesh(coneGeo, mat);
+      cone.castShadow = true;
+      group.add(cone);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 128;
+      canvas.height = 64;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = colorHex;
+      ctx.font = 'Bold 44px sans-serif';
+      ctx.shadowColor = '#000000';
+      ctx.shadowBlur = 8;
+      ctx.fillText(labelText, 16, 46);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      const spriteMat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+      const sprite = new THREE.Sprite(spriteMat);
+      sprite.position.set(0, 0.29, 0);
+      sprite.scale.set(0.12, 0.06, 1);
+      group.add(sprite);
+
+      group.userData = { mat, initialEmissive: 0.35 };
+      return group;
+    }
+
+    function init3DArrows() {
+      arrowsGroup = new THREE.Group();
+
+      arrowB = create3DArrow(0x1a73e8, 'B');  // Blue
+      arrowI = create3DArrow(0xd93025, 'I');  // Red
+      arrowF = create3DArrow(0xf9ab00, 'F');  // Yellow
+
+      arrowsGroup.add(arrowB);
+      arrowsGroup.add(arrowI);
+      arrowsGroup.add(arrowF);
+
+      arrowsGroup.visible = arrowsVisible;
+      scene.add(arrowsGroup);
+    }
+
+    function setArrowOrientation(arrowObj, vecArr) {
+      if (!vecArr || vecArr.length < 3) {
+        arrowObj.visible = false;
+        return;
+      }
+      arrowObj.visible = true;
+      const dir = new THREE.Vector3(vecArr[0], vecArr[1], vecArr[2]).normalize();
+      const defaultDir = new THREE.Vector3(0, 1, 0);
+      const quat = new THREE.Quaternion().setFromUnitVectors(defaultDir, dir);
+      arrowObj.quaternion.copy(quat);
+    }
+
+    function crossProduct(vA, vB) {
+      return [
+        vA[1] * vB[2] - vA[2] * vB[1],
+        vA[2] * vB[0] - vA[0] * vB[2],
+        vA[0] * vB[1] - vA[1] * vB[0]
+      ];
+    }
+
+    function vectorToDirectionName(vec) {
+      for (let key in DIRECTIONS) {
+        const v = DIRECTIONS[key].vector;
+        if (v[0] === vec[0] && v[1] === vec[1] && v[2] === vec[2]) {
+          return key;
+        }
+      }
+      return "UNKNOWN";
+    }
+
+    function computeHandAngles(bDir, iDir, fDir) {
+      let rx = 0, ry = 0, rz = 0;
+      if (bDir === "INTO_PAGE") {
+        ry = 0;
+        if (iDir === "RIGHT") rz = 0;
+        if (iDir === "LEFT")  rz = 180;
+        if (iDir === "UP")    rz = 90;
+        if (iDir === "DOWN")  rz = -90;
+      } else if (bDir === "OUT_OF_PAGE") {
+        ry = 180;
+        if (iDir === "RIGHT") rz = 0;
+        if (iDir === "LEFT")  rz = 180;
+        if (iDir === "UP")    rz = -90;
+        if (iDir === "DOWN")  rz = 90;
+      } else if (bDir === "UP") {
+        rx = -90;
+        if (iDir === "RIGHT") rz = 0;
+        if (iDir === "LEFT") rz = 180;
+      } else if (bDir === "DOWN") {
+        rx = 90;
+        if (iDir === "RIGHT") rz = 0;
+        if (iDir === "LEFT") rz = 180;
+      }
+      return { rotX: rx, rotY: ry, rotZ: rz };
+    }
+    function solveHandRuleV2(problemData) {
+      let bVec = problemData.B ? DIRECTIONS[problemData.B].vector : null;
+      let iVec = problemData.I ? DIRECTIONS[problemData.I].vector : null;
+      let fVec = problemData.F ? DIRECTIONS[problemData.F].vector : null;
+
+      if (bVec && iVec) {
+        const dotProduct = Math.abs(bVec[0]*iVec[0] + bVec[1]*iVec[1] + bVec[2]*iVec[2]);
+        if (dotProduct === 1) {
+          return {
+            error: true,
+            message: "⚠️ Dòng điện I (hoặc v) song song với Cảm ứng từ B nên Lực từ F = 0 (Không hình thành góc bàn tay)."
+          };
+        }
+      }
+
+      let missingElement = "";
+      let calculatedResultDir = "";
+
+      if (bVec && iVec && !fVec) {
+        missingElement = "F";
+        const resVec = crossProduct(iVec, bVec);
+        calculatedResultDir = vectorToDirectionName(resVec);
+        fVec = resVec;
+      } else if (bVec && fVec && !iVec) {
+        missingElement = "I";
+        const resVec = crossProduct(bVec, fVec);
+        calculatedResultDir = vectorToDirectionName(resVec);
+        iVec = resVec;
+      } else if (iVec && fVec && !bVec) {
+        missingElement = "B";
+        const resVec = crossProduct(fVec, iVec);
+        calculatedResultDir = vectorToDirectionName(resVec);
+        bVec = resVec;
+      } else {
+        return {
+          error: true,
+          message: "⚠️ Vui lòng chọn đúng 2 đại lượng đã biết để tự động tìm đại lượng thứ 3!"
+        };
+      }
+
+      const bDirName = problemData.B || (missingElement === "B" ? calculatedResultDir : null);
+      const iDirName = problemData.I || (missingElement === "I" ? calculatedResultDir : null);
+      const fDirName = problemData.F || (missingElement === "F" ? calculatedResultDir : null);
+
+      const rotationAngles = computeHandAngles(bDirName, iDirName, fDirName);
+
+      const arrowOverlay = {
+        arrowB: {
+          color: "#1a73e8",
+          direction: bDirName,
+          vector: bVec,
+          label: "B (Từ trường)",
+          isTargetResult: missingElement === "B"
+        },
+        arrowI: {
+          color: "#d93025",
+          direction: iDirName,
+          vector: iVec,
+          label: problemData.ruleType === "RIGHT_FARADAY" ? "I_cu (Dòng cảm ứng)" : problemData.ruleType === "LEFT_LORENTZ" ? "v (Vận tốc)" : "I (Dòng điện)",
+          isTargetResult: missingElement === "I"
+        },
+        arrowF: {
+          color: "#f9ab00",
+          direction: fDirName,
+          vector: fVec,
+          label: problemData.ruleType === "LEFT_LORENTZ" ? "F_Lorentz" : "F_Ampe",
+          isTargetResult: missingElement === "F"
+        }
+      };
+
+      return {
+        error: false,
+        missingElement: missingElement,
+        calculatedResult: calculatedResultDir,
+        resultLabel: DIRECTIONS[calculatedResultDir] ? DIRECTIONS[calculatedResultDir].label : "",
+        handType: problemData.ruleType.includes("RIGHT") ? "RIGHT_HAND" : "LEFT_HAND",
+        rotationAngles: rotationAngles,
+        arrowOverlay: arrowOverlay
+      };
+    }
+
+    function updateStemLabels() {
+      const ruleType = document.getElementById('stem-rule-type').value;
+      const labelI = document.getElementById('stem-label-i');
+      const labelIHint = document.getElementById('stem-label-i-hint');
+      const labelF = document.getElementById('stem-label-f');
+      const labelFHint = document.getElementById('stem-label-f-hint');
+
+      if (ruleType === 'RIGHT_FARADAY') {
+        // Quy tắc bàn tay phải: 4 ngón = I_cu, ngón cái = v (chiều chuyển động dây dẫn)
+        labelI.textContent = '🔴 Dòng cảm ứng I\u1b63';
+        labelIHint.textContent = ' — Gốc: Cổ tay → 4 ngón';
+        labelF.textContent = '🟡 Vận tốc v (dây dẫn)';
+        labelFHint.textContent = ' — Gốc: Ngón cái choẽ 90°';
+      } else if (ruleType === 'LEFT_LORENTZ') {
+        // Quy tắc bàn tay trái: 4 ngón = v (hạt điện), ngón cái = F_Lorentz
+        labelI.textContent = '🔴 Vận tốc hạt v';
+        labelIHint.textContent = ' — Gốc: Cổ tay → 4 ngón (q>0 cùng chiều v)';
+        labelF.textContent = '🟡 Lực Lorentz F';
+        labelFHint.textContent = ' — Gốc: Ngón cái choẽ 90°';
+      } else {
+        // Quy tắc bàn tay trái: 4 ngón = I, ngón cái = F_Ampe
+        labelI.textContent = '🔴 Dòng điện I';
+        labelIHint.textContent = ' — Gốc: Cổ tay → 4 ngón duỗi thẳng';
+        labelF.textContent = '🟡 Lực từ F (Ampe)';
+        labelFHint.textContent = ' — Gốc: Ngón cái choẽ 90°';
+      }
+    }
+    window.updateStemLabels = updateStemLabels;
+
+    function runStemSolver() {
+      const ruleType = document.getElementById('stem-rule-type').value;
+      const valB = document.getElementById('stem-b').value;
+      const valI = document.getElementById('stem-i').value;
+      const valF = document.getElementById('stem-f').value;
+      const resDiv = document.getElementById('stem-res');
+
+      const data = {
+        ruleType: ruleType,
+        B: valB || null,
+        I: valI || null,
+        F: valF || null
+      };
+
+      const res = solveHandRuleV2(data);
+      resDiv.style.display = 'block';
+
+      if (res.error) {
+        resDiv.className = 'stem-res err';
+        resDiv.innerHTML = res.message;
+        logDebug(res.message, 'err');
+        return;
+      }
+
+      resDiv.className = 'stem-res';
+
+      // Build rich result labels by rule type
+      const missing = res.missingElement;
+      const missingLabel = missing === 'F'
+        ? (ruleType === 'RIGHT_FARADAY' ? 'Vận tốc v (dây dẫn)' : ruleType === 'LEFT_LORENTZ' ? 'Lực Lorentz F' : 'Lực từ F')
+        : missing === 'I'
+          ? (ruleType === 'RIGHT_FARADAY' ? 'Dòng cảm ứng I\u1b63' : ruleType === 'LEFT_LORENTZ' ? 'Vận tốc hạt v' : 'Dòng điện I')
+          : 'Cảm ứng từ B';
+
+      // Compute orientation hint for palm
+      const palmHint = getPalmOrientationHint(res.arrowOverlay.arrowB.direction, res.arrowOverlay.arrowI.direction);
+
+      resDiv.innerHTML = `
+        <strong>✅ KẾT QUẢ VẬT LÝ V2:</strong><br>
+        <span style="font-size:.77rem">
+        🎯 <strong>${missingLabel}</strong> = <strong>${res.resultLabel}</strong><br>
+        ✋ Quy tắc: <em>${res.handType === 'RIGHT_HAND' ? 'Bàn tay phải' : 'Bàn tay trái'}</em><br>
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,.07);margin:5px 0">
+        🖐️ <strong>Cách đặt bàn tay:</strong><br>
+        ${palmHint}
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,.07);margin:5px 0">
+        💡 Mũi tên <strong style="color:#${missing==='B'?'1a73e8':missing==='I'?'d93025':'f9ab00'}">${missing}</strong> đang nhấp nháy chỉ hướng!
+        </span>
+      `;
+
+      logDebug(`⚡ STEM V2: ${missingLabel} = ${res.resultLabel} | ${palmHint.replace(/<[^>]+>/g,'')}`, 'success');
+
+      // Auto switch active hand tab
+      setHandTab(res.handType === 'RIGHT_HAND' ? 'right' : 'left');
+
+      // Apply open extended pose
+      applyPreset('Mở rộng');
+
+      const activeHandObj = res.handType === 'RIGHT_HAND' ? hands.right : hands.left;
+
+      // Rotate hand first so bone world positions update
+      const activeModel = activeHandObj.model;
+      if (activeModel) {
+        alignHandWithVectors(activeModel, res.arrowOverlay.arrowB.vector, res.arrowOverlay.arrowI.vector, ruleType, res.handType === 'RIGHT_HAND');
+      }
+
+      // Position arrows AFTER hand rotation (bone positions now correct)
+      positionArrowsOnHand(activeHandObj, res.handType === 'RIGHT_HAND', res.arrowOverlay.arrowB.vector);
+
+      // Set vector directions (correct physics direction, no negation)
+      setArrowOrientation(arrowB, res.arrowOverlay.arrowB.vector);
+      setArrowOrientation(arrowI, res.arrowOverlay.arrowI.vector);
+      setArrowOrientation(arrowF, res.arrowOverlay.arrowF.vector);
+
+      // Reset emissives
+      [arrowB, arrowI, arrowF].forEach(a => {
+        if (a && a.userData) a.userData.mat.emissiveIntensity = a.userData.initialEmissive;
+      });
+
+      // Mark pulsing target arrow
+      targetPulseArrow = null;
+      if (missing === 'B') targetPulseArrow = arrowB;
+      else if (missing === 'I') targetPulseArrow = arrowI;
+      else if (missing === 'F') targetPulseArrow = arrowF;
+    }
+    window.runStemSolver = runStemSolver;
+
+   /* ── Precise vector-based 3D hand alignment (FIXED WITH GLTF OFFSET) ── */
+    function alignHandWithVectors(handModel, vB, vI, ruleType, isRight) {
+      if (!handModel || !vB || !vI) return;
+
+      // 1. Chuyển đổi mảng [x, y, z] sang Vector3 & Chuẩn hóa
+      const vecB = new THREE.Vector3(...vB).normalize(); // Hướng Cảm ứng từ B
+      const vecI = new THREE.Vector3(...vI).normalize(); // Hướng Dòng điện I / Vận tốc v
+
+      // 2. Xác định các trục không gian (World Space) cho Bàn Tay
+      const targetFinger = vecI.clone();
+      let targetPalm = vecB.clone();
+      let targetThumb = new THREE.Vector3().crossVectors(targetFinger, targetPalm).normalize();
+
+      targetPalm.crossVectors(targetThumb, targetFinger).normalize();
+
+      // 3. Xây dựng Ma trận Xoay 3D
+      const m = new THREE.Matrix4();
+      m.makeBasis(targetThumb, targetFinger, targetPalm);
+      handModel.quaternion.setFromRotationMatrix(m);
+
+      // 4. BÙ GỐC XOAY HOÀN CHỈNH CHO FILE GLTF
+      handModel.rotateX(Math.PI / 1);
+
+      // Xoay ngang và lật úp bàn tay
+      handModel.rotateY(-Math.PI / 2); 
+      
+      // Đổi thành dấu dương để 4 ngón tay duỗi thẳng sang phải theo mũi tên đỏ (I)
+      handModel.rotateZ(Math.PI / 2);
+
+      if (isRight) {
+        handModel.rotateY(Math.PI);
+      }
+    }
+    window.alignHandWithVectors = alignHandWithVectors;
+
+    /* ── Palm orientation hint generator ── */
+    function getPalmOrientationHint(bDir, iDir) {
+      const hints = {
+        'INTO_PAGE': '• 🔵 B đâm vào trong (⊗): <strong>Lòng bàn tay hướng vào trong màn hình (mu tay ra ngoài)</strong><br>• 🔴 4 ngón thẳng theo chiều ' + (DIRECTIONS[iDir] ? DIRECTIONS[iDir].label : iDir),
+        'OUT_OF_PAGE': '• 🔵 B bắn ra ngoài (⊙): <strong>Lòng bàn tay hướng ra ngoài về phía người nhìn</strong><br>• 🔴 4 ngón thẳng theo chiều ' + (DIRECTIONS[iDir] ? DIRECTIONS[iDir].label : iDir),
+        'UP': '• 🔵 B hướng lên (↑): <strong>Lòng bàn tay ngửa sang phải để hứng từ trường</strong><br>• 🔴 4 ngón thẳng theo chiều ' + (DIRECTIONS[iDir] ? DIRECTIONS[iDir].label : iDir),
+        'DOWN': '• 🔵 B hướng xuống (↓): <strong>Lòng bàn tay ngửa sang trái để hứng từ trường</strong><br>• 🔴 4 ngón thẳng theo chiều ' + (DIRECTIONS[iDir] ? DIRECTIONS[iDir].label : iDir),
+        'LEFT': '• 🔵 B hướng sang trái (←): <strong>Lòng bàn tay ngửa lên trên</strong><br>• 🔴 4 ngón thẳng theo chiều ' + (DIRECTIONS[iDir] ? DIRECTIONS[iDir].label : iDir),
+        'RIGHT': '• 🔵 B hướng sang phải (→): <strong>Lòng bàn tay hướng sang phải</strong><br>• 🔴 4 ngón thẳng theo chiều ' + (DIRECTIONS[iDir] ? DIRECTIONS[iDir].label : iDir),
+      };
+      return hints[bDir] || `• Đặt lòng bàn tay theo hướng B = ${bDir}`;
+    }
+
+    /* ── Position arrows at anatomical bone anchor points ── */
+    function positionArrowsOnHand(handObj, isRight, bVec) {
+      if (!handObj || !handObj.model) return;
+
+      // Arrow B → Palm center, offset behind hand so B visually enters the palm
+      const palmBoneNames = ['MiddleRoot', 'IndexRoot', 'RingRoot'];
+      let palmPos = null;
+      for (const bname of palmBoneNames) {
+        const bone = getBone(handObj, bname);
+        if (bone) {
+          const wpos = new THREE.Vector3();
+          bone.getWorldPosition(wpos);
+          palmPos = wpos;
+          break;
+        }
+      }
+      if (palmPos) {
+        arrowB.position.copy(palmPos);
+        // Offset arrow origin slightly opposite to B so the shaft comes from behind the palm
+        if (bVec) {
+          const bDir = new THREE.Vector3(bVec[0], bVec[1], bVec[2]).normalize();
+          arrowB.position.sub(bDir.multiplyScalar(0.035));
+        }
+      } else {
+        // Fallback: model-relative offset for palm center
+        const handOffset = isRight ? new THREE.Vector3(0.24, 0.02, 0) : new THREE.Vector3(-0.24, 0.02, 0);
+        arrowB.position.copy(handOffset);
+      }
+
+      // Arrow I → Wrist base (Bone.001 or wrist bone world position)
+      const wristBoneNames = ['Bone', 'Wrist', 'Hand', 'mixamorigRightHand', 'mixamorigLeftHand'];
+      let wristPos = null;
+      for (const bname of wristBoneNames) {
+        const bone = getBone(handObj, bname);
+        if (bone) {
+          const wpos = new THREE.Vector3();
+          bone.getWorldPosition(wpos);
+          wristPos = wpos;
+          break;
+        }
+      }
+      if (wristPos) {
+        arrowI.position.copy(wristPos);
+      } else {
+        const handOffset = isRight ? new THREE.Vector3(0.24, -0.13, 0) : new THREE.Vector3(-0.24, -0.13, 0);
+        arrowI.position.copy(handOffset);
+      }
+
+      // Arrow F → Thumb joint (Bone.001 thumb root world position)
+      const thumbBoneNames = ['Bone.001', 'ThumbRoot', 'mixamorigRightHandThumb1', 'mixamorigLeftHandThumb1'];
+      let thumbPos = null;
+      for (const bname of thumbBoneNames) {
+        const bone = getBone(handObj, bname);
+        if (bone) {
+          const wpos = new THREE.Vector3();
+          bone.getWorldPosition(wpos);
+          thumbPos = wpos;
+          break;
+        }
+      }
+      if (thumbPos) {
+        arrowF.position.copy(thumbPos);
+      } else {
+        const thumbOffset = isRight ? new THREE.Vector3(0.28, 0.03, 0.03) : new THREE.Vector3(-0.28, 0.03, 0.03);
+        arrowF.position.copy(thumbOffset);
+      }
+    }
+
+    window.toggleArrows = function () {
+      arrowsVisible = !arrowsVisible;
+      if (arrowsGroup) arrowsGroup.visible = arrowsVisible;
+      document.getElementById('tb-arrows').classList.toggle('on', arrowsVisible);
+      logDebug(`🎯 Mũi tên Vectơ 3D: ${arrowsVisible ? 'HIỆN' : 'ẨN'}`, 'info');
+    };
+
+    /* ══════════════════════════════════════════
+       EYE TRACKING SUBSYSTEMS (Ported from CASIOFINAL)
+       ══════════════════════════════════════════ */
+    class EARCalculator {
+      static compute(landmarks) {
+        if (!landmarks || landmarks.length < 468) return { left: 0, right: 0, average: 0 };
+        const left = this._computeEAR(landmarks[33], landmarks[159], landmarks[158], landmarks[133], landmarks[153], landmarks[145]);
+        const right = this._computeEAR(landmarks[362], landmarks[385], landmarks[386], landmarks[263], landmarks[373], landmarks[380]);
+        return {
+          left: Math.round(left * 1000) / 1000,
+          right: Math.round(right * 1000) / 1000,
+          average: Math.round((left + right) / 2 * 1000) / 1000
+        };
+      }
+      static _computeEAR(p1, p2, p3, p4, p5, p6) {
+        const d1 = this._dist(p2, p6);
+        const d2 = this._dist(p3, p5);
+        const d3 = this._dist(p1, p4);
+        if (d3 === 0) return 0;
+        return (d1 + d2) / (2.0 * d3);
+      }
+      static _dist(a, b) {
+        const dx = (a.x || a[0]) - (b.x || b[0]);
+        const dy = (a.y || a[1]) - (b.y || b[1]);
+        const dz = (a.z || a[2]) - (b.z || b[2]);
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+      }
+    }
+
+    class GazeFilter {
+      constructor() {
+        this._minCutoff = 1.5;
+        this._beta = 0.5;
+        this._derivativeCutoff = 1.5;
+        this._xf = { y: 0, dy: 0, prevTime: 0, hasPrev: false };
+        this._yf = { y: 0, dy: 0, prevTime: 0, hasPrev: false };
+      }
+      filter(rawX, rawY, timestamp) {
+        let fx = this._filterDim(rawX, timestamp, this._xf);
+        let fy = this._filterDim(rawY, timestamp, this._yf);
+        return { x: fx, y: fy };
+      }
+      _filterDim(value, timestamp, state) {
+        if (!state.hasPrev) {
+          state.y = value;
+          state.hasPrev = true;
+          state.prevTime = timestamp;
+          return value;
+        }
+        const dt = Math.max(timestamp - state.prevTime, 0.001);
+        state.prevTime = timestamp;
+        const cutoff = this._minCutoff + this._beta * Math.abs(state.dy);
+        const alpha = this._smoothingFactor(cutoff, dt);
+        const y = state.y + alpha * (value - state.y);
+        const alphaDeriv = this._smoothingFactor(this._derivativeCutoff, dt);
+        state.dy = alphaDeriv * ((y - state.y) / dt) + (1 - alphaDeriv) * state.dy;
+        state.y = y;
+        return y;
+      }
+      _smoothingFactor(cutoff, dt) {
+        const r = 2 * Math.PI * cutoff * dt;
+        return r / (r + 1);
+      }
+    }
+
+    class GazeToScreen {
+      constructor() {
+        this.sensitivity = 2.2;
+      }
+      map(rawGazeX, rawGazeY) {
+        let gx = 0.5 + (rawGazeX - 0.5) * this.sensitivity;
+        let gy = 0.5 + (rawGazeY - 0.5) * this.sensitivity;
+        return {
+          x: Math.max(0, Math.min(1, gx)),
+          y: Math.max(0, Math.min(1, gy))
+        };
+      }
+      static computeGazeVector(landmarks) {
+        if (!landmarks || landmarks.length < 468) return { x: 0.5, y: 0.5 };
+        const irisLeft = landmarks[468] || landmarks[33];
+        const irisRight = landmarks[473] || landmarks[362];
+        let gazeX = (irisLeft.x + irisRight.x) / 2;
+        const gazeY = (irisLeft.y + irisRight.y) / 2;
+        
+        // Luôn lật ngang trục X (1 - gazeX) để khớp với chuyển động nhìn thực tế qua gương Webcam
+        gazeX = 1 - gazeX;
+        return { x: gazeX, y: gazeY };
+      }
+    }
+
+    class SimpleBlinkDetector {
+      constructor() {
+        this.earThreshold = 0.22;
+        this.state = 'OPEN';
+        this.blinkStart = 0;
+        this.onShortBlink = null;
+        this.onLongBlink = null;
+      }
+      update(earAvg, now) {
+        if (this.state === 'OPEN') {
+          if (earAvg < this.earThreshold) {
+            this.state = 'CLOSED';
+            this.blinkStart = now;
+          }
+        } else if (this.state === 'CLOSED') {
+          if (earAvg > this.earThreshold + 0.03) {
+            const dur = now - this.blinkStart;
+            this.state = 'OPEN';
+            if (dur >= 150 && dur <= 600) {
+              if (this.onShortBlink) this.onShortBlink(dur);
+            } else if (dur > 600 && dur <= 2000) {
+              if (this.onLongBlink) this.onLongBlink(dur);
+            }
+          }
+        }
+      }
+    }
+
+    /* ══════════════════════════════════════════
+       EYE TRACKING CONTROLLER STATE & LOGIC
+       ══════════════════════════════════════════ */
+    let eyeTrackingActive = false;
+    let faceMeshInstance = null;
+    let eyeWebcamStream = null;
+    const gazeFilterInst = new GazeFilter();
+    const gazeMapperInst = new GazeToScreen();
+    const blinkDetectorInst = new SimpleBlinkDetector();
+
+    let currPxX = window.innerWidth / 2;
+    let currPxY = window.innerHeight / 2;
+    let targetPxX = window.innerWidth / 2;
+    let targetPxY = window.innerHeight / 2;
+
+    let lastEyeHoverEl = null;
+    let dwellStart = 0;
+    const DWELL_TIME_MS = 1400; // 1.4s continuous stare to trigger auto click
+
+    async function initEyeTracking() {
+      const video = document.getElementById('eye-webcam');
+      const cursor = document.getElementById('gaze-cursor');
+      const preview = document.getElementById('cam-preview');
+
+      logDebug('👁️ Đang mở webcam và khởi tạo MediaPipe Face Mesh...', 'info');
+
+      try {
+        if (!window.FaceMesh) {
+          logDebug('⚠️ Không thể tải MediaPipe Face Mesh từ CDN!', 'err');
+          return false;
+        }
+
+        faceMeshInstance = new window.FaceMesh({
+          locateFile: file => `/mediapipe/face_mesh/${file}`
+        });
+
+        faceMeshInstance.setOptions({
+          maxNumFaces: 1,
+          refineLandmarks: true,
+          minDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5
+        });
+
+        faceMeshInstance.onResults(onFaceResults);
+
+        eyeWebcamStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+          audio: false
+        });
+
+        video.srcObject = eyeWebcamStream;
+        await video.play();
+
+        preview.style.display = 'block';
+        cursor.style.display = 'block';
+
+        blinkDetectorInst.onShortBlink = (dur) => {
+          logDebug(`👁️ Nháy mắt ngắn (${Math.round(dur)}ms) ➔ KÍCH HOẠT CLICK!`, 'success');
+          triggerEyeClick();
+        };
+
+        blinkDetectorInst.onLongBlink = (dur) => {
+          logDebug(`👁️ Nháy mắt dài (${Math.round(dur)}ms) ➔ ĐỔI OPTION SELECT!`, 'warn');
+          triggerEyeSelectScroll();
+        };
+
+        startEyeLoop();
+        logDebug('👁️ Khởi động Eye Tracking thành công! Hãy di chuyển mắt để điều khiển.', 'success');
+        return true;
+      } catch (err) {
+        logDebug(`⚠️ Lỗi khởi động Eye Tracking: ${err.message}`, 'err');
+        return false;
+      }
+    }
+
+    function startEyeLoop() {
+      const video = document.getElementById('eye-webcam');
+      async function eyeLoop() {
+        if (!eyeTrackingActive) return;
+        if (video && video.readyState >= 2 && faceMeshInstance) {
+          try {
+            await faceMeshInstance.send({ image: video });
+          } catch(e) {}
+        }
+        requestAnimationFrame(eyeLoop);
+      }
+      eyeLoop();
+    }
+
+    function onFaceResults(results) {
+      if (!eyeTrackingActive) return;
+      if (!results || !results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) return;
+
+      const landmarks = results.multiFaceLandmarks[0];
+      const ear = EARCalculator.compute(landmarks);
+      const rawGaze = GazeToScreen.computeGazeVector(landmarks);
+
+      const now = performance.now();
+      const filtered = gazeFilterInst.filter(rawGaze.x, rawGaze.y, now);
+      const norm = gazeMapperInst.map(filtered.x, filtered.y);
+
+      targetPxX = norm.x * window.innerWidth;
+      targetPxY = norm.y * window.innerHeight;
+
+      // Smooth interpolation (Lerp) to remove jitter/stutter
+      currPxX += (targetPxX - currPxX) * 0.35;
+      currPxY += (targetPxY - currPxY) * 0.35;
+
+      // Update Cursor position
+      const cursor = document.getElementById('gaze-cursor');
+      if (cursor) {
+        cursor.style.left = `${currPxX}px`;
+        cursor.style.top = `${currPxY}px`;
+      }
+
+      // Blink detection
+      blinkDetectorInst.update(ear.average, now);
+
+      // Hit testing & Dwell click logic
+      updateEyeHitTest(currPxX, currPxY, now);
+
+      // Draw overlay preview
+      drawEyeOverlay(landmarks);
+    }
+
+    function updateEyeHitTest(x, y, now) {
+      const cursor = document.getElementById('gaze-cursor');
+      const el = document.elementFromPoint(x, y);
+
+      const targetEl = el ? el.closest('.th-card, .btn-next, .btn-prev, .quiz-opt, .stem-select, .hand-tab, .tb') : null;
+
+      if (targetEl !== lastEyeHoverEl) {
+        if (lastEyeHoverEl) lastEyeHoverEl.classList.remove('eye-hover');
+        if (targetEl) targetEl.classList.add('eye-hover');
+
+        lastEyeHoverEl = targetEl;
+        dwellStart = now;
+        if (cursor) cursor.classList.remove('dwelling');
+      } else if (targetEl) {
+        // Dwell click progress check
+        const elapsed = now - dwellStart;
+        if (elapsed > 400 && cursor) cursor.classList.add('dwelling');
+
+        if (elapsed >= DWELL_TIME_MS) {
+          logDebug(`👁️ Nhìn lâu (>1.4s) vào [${targetEl.innerText || targetEl.tagName}] ➔ TỰ ĐỘNG CLICK!`, 'success');
+          triggerEyeClick();
+          dwellStart = now + 1000; // Refractory delay after click
+          if (cursor) cursor.classList.remove('dwelling');
+        }
+      }
+    }
+
+
+
+    function triggerEyeClick() {
+      const cursor = document.getElementById('gaze-cursor');
+      if (cursor) {
+        cursor.classList.add('clicking');
+        setTimeout(() => cursor.classList.remove('clicking'), 250);
+      }
+
+      if (lastEyeHoverEl) {
+        lastEyeHoverEl.click();
+      }
+    }
+
+    function triggerEyeSelectScroll() {
+      if (lastEyeHoverEl && lastEyeHoverEl.tagName === 'SELECT') {
+        const sel = lastEyeHoverEl;
+        if (sel.options.length > 0) {
+          sel.selectedIndex = (sel.selectedIndex + 1) % sel.options.length;
+          sel.dispatchEvent(new Event('change'));
+        }
+      }
+    }
+
+    function drawEyeOverlay(landmarks) {
+      const canvas = document.getElementById('eye-overlay');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width, H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
+
+      ctx.fillStyle = '#34d399';
+      const eyeIndices = [33, 133, 159, 145, 158, 153, 362, 263, 385, 380, 386, 373, 468, 473];
+      eyeIndices.forEach(idx => {
+        const pt = landmarks[idx];
+        if (pt) {
+          ctx.beginPath();
+          ctx.arc(pt.x * W, pt.y * H, idx >= 468 ? 3 : 1.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+    }
+
+    window.toggleEyeTracking = async function () {
+      const btn = document.getElementById('tb-eye');
+      const cursor = document.getElementById('gaze-cursor');
+      const preview = document.getElementById('cam-preview');
+
+      eyeTrackingActive = !eyeTrackingActive;
+      btn.classList.toggle('on', eyeTrackingActive);
+
+      if (eyeTrackingActive) {
+        const ok = await initEyeTracking();
+        if (!ok) {
+          eyeTrackingActive = false;
+          btn.classList.remove('on');
+          alert('Không thể kết nối webcam hoặc tải thư viện MediaPipe Face Mesh.');
+        }
+      } else {
+        if (cursor) cursor.style.display = 'none';
+        if (preview) preview.style.display = 'none';
+        if (lastEyeHoverEl) lastEyeHoverEl.classList.remove('eye-hover');
+        if (eyeWebcamStream) {
+          eyeWebcamStream.getTracks().forEach(t => t.stop());
+          eyeWebcamStream = null;
+        }
+        logDebug('👁️ Đã TẮT Eye Tracking.', 'info');
+      }
+    };
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (targetPulseArrow && targetPulseArrow.userData) {
+        const pulse = 0.35 + Math.sin(Date.now() * 0.01) * 0.45;
+        targetPulseArrow.userData.mat.emissiveIntensity = pulse;
+      }
+      orbit.update();
+      renderer.render(scene, camera);
+    }
+
+    init();
+  </script>
+</body>
+
+</html>

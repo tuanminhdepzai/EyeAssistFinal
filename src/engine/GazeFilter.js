@@ -136,6 +136,25 @@ export class GazeFilter {
     this._deadZoneRadius = Math.min(0.08, Math.max(0.01, jitterMeasurement * 3));
   }
 
+  /**
+   * Trạng thái fixation hiện tại — dùng làm context cho BlinkClassifier
+   * (Phase 2): gaze đứng yên trong dead-zone càng lâu → fixationStable càng cao.
+   * @param {number} timestamp - performance.now()
+   * @returns {{ stable:number, holdMs:number, velocity:number }}
+   */
+  getFixationState(timestamp = performance.now()) {
+    const velocity = this._estimateVelocity();
+    if (!this._dzActive) {
+      return { stable: 0, holdMs: 0, velocity };
+    }
+    const holdMs = Math.max(0, timestamp - this._dzStableSince);
+    return {
+      stable: Math.min(1, holdMs / 300),   // 300ms → stable=1
+      holdMs,
+      velocity
+    };
+  }
+
   reset() {
     this._xf.hasPrev = false;
     this._yf.hasPrev = false;

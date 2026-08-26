@@ -303,29 +303,29 @@ const KEY_TOKENS = {
 // 3. DOM REFERENCES
 // ============================================================
 const dom = {
-  calc: document.getElementById('calculator'),
-  exprBefore: document.getElementById('expr-before-cursor'),
-  exprAfter: document.getElementById('expr-after-cursor'),
-  cursorEl: document.getElementById('cursor-el'),
-  screenOutput: document.getElementById('screen-output'),
-  errorScreen: document.getElementById('error-screen'),
-  errorTitle: document.getElementById('error-title'),
-  menuScreen: document.getElementById('menu-screen'),
-  menuGrid: document.getElementById('menu-grid'),
-  menuStatusBar: document.getElementById('menu-status-bar'),
-  indShift: document.getElementById('ind-shift'),
-  indAlpha: document.getElementById('ind-alpha'),
-  indM: document.getElementById('ind-m'),
-  indComplex: document.getElementById('ind-complex'),
-  indAngle: document.getElementById('ind-angle'),
-  indFix: document.getElementById('ind-fix'),
-  indDisp: document.getElementById('ind-disp'),
-  indArrowUp: document.getElementById('ind-arrow-up'),
-  indArrowDn: document.getElementById('ind-arrow-dn'),
-  screenInput: document.getElementById('screen-input'),
-  lcd: document.getElementById('lcd'),
-  optnScreen: document.getElementById('optn-screen'),
-  solveScreen: document.getElementById('solve-screen'),
+  get calc() { return document.getElementById('calculator'); },
+  get exprBefore() { return document.getElementById('expr-before-cursor'); },
+  get exprAfter() { return document.getElementById('expr-after-cursor'); },
+  get cursorEl() { return document.getElementById('cursor-el'); },
+  get screenOutput() { return document.getElementById('screen-output'); },
+  get errorScreen() { return document.getElementById('error-screen'); },
+  get errorTitle() { return document.getElementById('error-title'); },
+  get menuScreen() { return document.getElementById('menu-screen'); },
+  get menuGrid() { return document.getElementById('menu-grid'); },
+  get menuStatusBar() { return document.getElementById('menu-status-bar'); },
+  get indShift() { return document.getElementById('ind-shift'); },
+  get indAlpha() { return document.getElementById('ind-alpha'); },
+  get indM() { return document.getElementById('ind-m'); },
+  get indComplex() { return document.getElementById('ind-complex'); },
+  get indAngle() { return document.getElementById('ind-angle'); },
+  get indFix() { return document.getElementById('ind-fix'); },
+  get indDisp() { return document.getElementById('ind-disp'); },
+  get indArrowUp() { return document.getElementById('ind-arrow-up'); },
+  get indArrowDn() { return document.getElementById('ind-arrow-dn'); },
+  get screenInput() { return document.getElementById('screen-input'); },
+  get lcd() { return document.getElementById('lcd'); },
+  get optnScreen() { return document.getElementById('optn-screen'); },
+  get solveScreen() { return document.getElementById('solve-screen'); },
 };
 
 // ============================================================
@@ -2444,9 +2444,11 @@ function dispatchAction(key) {
 
   switch (key) {
     case 'ON':
+      State.isPowerOff = false;
       clearAll();
       State.isShift = false;
       State.isAlpha = false;
+      if (dom.lcd) dom.lcd.style.opacity = '1';
       return;
 
     case 'AC':
@@ -3600,6 +3602,8 @@ function bindEvents() {
 // ============================================================
 function init() {
   loadState();
+  State.isPowerOff = false; // Always ensure screen is ON on startup
+  if (dom.lcd) dom.lcd.style.opacity = '1';
   bindEvents();
   renderAll();
 }

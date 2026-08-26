@@ -49,21 +49,32 @@ export class GazeToScreen {
 
   /** Gentle head pose hint — only minor adjustments, let user drive */
   compensateHeadPose(landmarks) {
-    if (!landmarks || landmarks.length < 10) return;
+    if (!landmarks || landmarks.length < 468) return;
 
     const nose = landmarks[1];
     const leftEye = landmarks[33];
     const rightEye = landmarks[263];
+    const chin = landmarks[152];
+    const forehead = landmarks[10];
 
     const faceWidth = Math.abs(rightEye.x - leftEye.x);
     if (faceWidth < 0.01) return;
 
-    const noseOffset = (nose.x - (leftEye.x + rightEye.x) / 2) / faceWidth;
-    const headYaw = Math.max(-0.3, Math.min(0.3, noseOffset));
+    // Yaw: horizontal head rotation from nose-eye offset
+    const eyeCenterX = (leftEye.x + rightEye.x) / 2;
+    const noseOffsetX = (nose.x - eyeCenterX) / faceWidth;
+    const headYaw = Math.max(-0.4, Math.min(0.4, noseOffsetX));
 
-    // Barely compensate — user's head INTENTIONALLY moves cursor
-    const compensation = headYaw * 0.1;  // was 0.5, now 0.1
-    this.mappedX = Math.max(0, Math.min(1, this.mappedX - compensation));
+    // Pitch: vertical head tilt from nose-chin-forehead geometry
+    const faceHeight = Math.abs(chin.y - forehead.y);
+    const eyeCenterY = (leftEye.y + rightEye.y) / 2;
+    const noseOffsetY = (nose.y - eyeCenterY) / (faceHeight || 0.1);
+    const headPitch = Math.max(-0.3, Math.min(0.3, noseOffsetY));
+
+    // Apply compensation to raw gaze BEFORE polynomial mapping
+    // Stronger than before (0.1) but not overwhelming (0.35 for yaw, 0.25 for pitch)
+    this.mappedX = Math.max(0, Math.min(1, this.mappedX - headYaw * 0.35));
+    this.mappedY = Math.max(0, Math.min(1, this.mappedY - headPitch * 0.25));
   }
 
   /** Get accuracy ratio from calibration */
@@ -72,7 +83,7 @@ export class GazeToScreen {
     let totalError = 0;
     let count = 0;
     for (const p of this.calibrationPoints) {
-      const mapped = { x: p.gazeX, y: p.gazeY };
+      const mapped = this.map(p.gazeX, p.gazeY);
       const err = Math.sqrt(
         (mapped.x - p.screenX)**2 + (mapped.y - p.screenY)**2
       );
@@ -80,7 +91,7 @@ export class GazeToScreen {
       count++;
     }
     const avgErr = totalError / count;
-    this.accuracy = Math.max(0, Math.min(1, 1 - avgErr / 0.3));
+    this.accuracy = Math.max(0, Math.min(1, 1 - avgErr / 0.15));
     return this.accuracy;
   }
 
@@ -129,15 +140,34 @@ export class GazeToScreen {
   // --- Private: polynomial fitting (least squares) ---
 
   _fitPolynomial() {
-    const pts = this.calibrationPoints;
+    let pts = this.calibrationPoints;
     if (pts.length < 6) { this.isCalibrated = false; return; }
 
-    // Build design matrix: [1, gx, gy, gx², gy², gx*gy]
+    // Initial fit to compute residuals for outlier detection
+    const X_init = pts.map(p => [1, p.gazeX, p.gazeY, p.gazeX**2, p.gazeY**2, p.gazeX*p.gazeY]);
+    const yX_init = pts.map(p => p.screenX);
+    const yY_init = pts.map(p => p.screenY);
+    const cX_init = this._solveLeastSquares(X_init, yX_init);
+    const cY_init = this._solveLeastSquares(X_init, yY_init);
+
+    // Compute residuals and trim top 20% outliers
+    const residuals = pts.map((p, i) => {
+      const predX = cX_init[0] + cX_init[1]*p.gazeX + cX_init[2]*p.gazeY + cX_init[3]*p.gazeX**2 + cX_init[4]*p.gazeY**2 + cX_init[5]*p.gazeX*p.gazeY;
+      const predY = cY_init[0] + cY_init[1]*p.gazeX + cY_init[2]*p.gazeY + cY_init[3]*p.gazeX**2 + cY_init[4]*p.gazeY**2 + cY_init[5]*p.gazeX*p.gazeY;
+      return { idx: i, err: Math.sqrt((predX - p.screenX)**2 + (predY - p.screenY)**2) };
+    });
+    residuals.sort((a, b) => a.err - b.err);
+    const keepCount = Math.max(6, Math.floor(residuals.length * 0.8));
+    const keepIndices = new Set(residuals.slice(0, keepCount).map(r => r.idx));
+    pts = pts.filter((_, i) => keepIndices.has(i));
+
+    if (pts.length < 6) { this.isCalibrated = false; return; }
+
+    // Refit with trimmed data
     const X = pts.map(p => [1, p.gazeX, p.gazeY, p.gazeX**2, p.gazeY**2, p.gazeX*p.gazeY]);
     const yScreenX = pts.map(p => p.screenX);
     const yScreenY = pts.map(p => p.screenY);
 
-    // Solve using normal equations (X^T X)^-1 X^T y
     const coeffsX = this._solveLeastSquares(X, yScreenX);
     const coeffsY = this._solveLeastSquares(X, yScreenY);
 
