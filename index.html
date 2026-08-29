@@ -5,16 +5,66 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>EyeAssist STEM</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/styles/base.css" />
+  <link rel="stylesheet" href="/src/styles/auth.css" />
   <link rel="stylesheet" href="/src/styles/calibration.css" />
   <link rel="stylesheet" href="/src/styles/physics.css" />
   <link rel="stylesheet" href="/casio/style.css" />
 </head>
 <body>
+  <!-- Auth Screen: đăng nhập / đăng ký (email+password, Google) -->
+  <div id="auth-screen">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <span class="auth-logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg>
+        </span>
+        <span class="auth-brand-name">EyeAssist STEM</span>
+      </div>
+
+      <h1 id="auth-title">Đăng nhập</h1>
+
+      <form id="auth-form" data-mode="login" novalidate>
+        <div class="auth-field" id="auth-name-field" hidden>
+          <label for="auth-name">Họ tên</label>
+          <input type="text" id="auth-name" autocomplete="name" placeholder="Nguyễn Văn A" />
+        </div>
+        <div class="auth-field">
+          <label for="auth-email">Email</label>
+          <input type="email" id="auth-email" autocomplete="email" placeholder="ban@email.com" required />
+        </div>
+        <div class="auth-field">
+          <label for="auth-password">Mật khẩu</label>
+          <input type="password" id="auth-password" autocomplete="current-password" minlength="6" placeholder="Tối thiểu 6 ký tự" required />
+        </div>
+        <div class="auth-actions">
+          <button type="submit" id="auth-submit" class="btn-primary">Đăng nhập</button>
+          <div class="auth-divider">hoặc</div>
+          <button type="button" id="auth-google" class="btn-secondary">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.2-2 3.7-5 3.7-8.6z"/><path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.2 0-5.9-2.1-6.8-5.1l-3.9 3C3.3 21.2 7.3 24 12 24z"/><path fill="#FBBC05" d="M5.2 14.3c-.2-.7-.4-1.5-.4-2.3s.1-1.6.4-2.3l-3.9-3C.5 8.3 0 10.1 0 12s.5 3.7 1.3 5.3l3.9-3z"/><path fill="#EA4335" d="M12 4.6c2.3 0 3.8 1 4.7 1.8l3.3-3.2C18 1.2 15.2 0 12 0 7.3 0 3.3 2.8 1.3 6.7l3.9 3c.9-3 3.6-5.1 6.8-5.1z"/></svg>
+            Tiếp tục với Google
+          </button>
+        </div>
+      </form>
+
+      <div id="auth-error" role="alert" hidden>
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>
+        <span id="auth-error-text"></span>
+      </div>
+
+      <div id="auth-switch-hint"></div>
+    </div>
+  </div>
+
   <!-- Loading Screen -->
   <div id="loading-screen">
     <div class="loading-content">
-      <div class="loading-icon">👁️</div>
+      <div class="loading-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="56" height="56"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg>
+      </div>
       <h1>EyeAssist STEM</h1>
       <p class="loading-subtitle">Đang khởi động hệ thống...</p>
       <div class="loading-bar">
@@ -24,38 +74,71 @@
     </div>
   </div>
 
-  <!-- Main App Container -->
+  <!-- Main App Container: rail trái + stage chính -->
   <div id="app" style="display:none;">
-    <!-- Navigation -->
-    <nav id="top-nav">
+    <!-- Rail dọc bên trái: brand + tab + trạng thái + mic -->
+    <nav id="top-nav" aria-label="Điều hướng chính">
       <div class="nav-brand">
-        <span class="nav-logo">👁️</span>
+        <span class="nav-logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg>
+        </span>
         <span class="nav-title">EyeAssist STEM</span>
       </div>
       <div class="nav-tabs">
+        <span class="nav-tabs-pill" aria-hidden="true"></span>
         <button class="nav-tab active" data-tab="casio">
-          <span class="tab-icon">🖩</span>
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/></svg>
+          </span>
           <span class="tab-label">Casio Ảo</span>
         </button>
         <button class="nav-tab" data-tab="hand">
-          <span class="tab-icon">✋</span>
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 12V6.5a1.5 1.5 0 0 1 3 0V11m0-5.5v-1a1.5 1.5 0 0 1 3 0V11m0-4a1.5 1.5 0 0 1 3 0v6.5c0 3.6-2.2 6-5.8 6-2.9 0-4.2-1.3-5.6-3.8L4.3 12.6c-.5-.8-.2-1.8.6-2.2.8-.4 1.7-.1 2.2.6L8 12"/></svg>
+          </span>
           <span class="tab-label">Bàn Tay 3D</span>
         </button>
         <button class="nav-tab" data-tab="calibration">
-          <span class="tab-icon">🎯</span>
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+          </span>
           <span class="tab-label">Hiệu chỉnh</span>
         </button>
       </div>
-      <div class="nav-status">
-        <span class="status-dot" id="cam-status"></span>
-        <span class="status-dot" id="gaze-status"></span>
-        <span class="status-dot" id="voice-status"></span>
-        <button id="btn-mic-toggle" class="mic-btn" title="Bật/tắt giọng nói">
-          <span id="mic-icon">🎤</span>
+      <div class="nav-status" aria-label="Trạng thái hệ thống">
+        <div class="status-row" id="cam-status">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span class="status-name">Camera</span>
+          <span class="status-val">Chờ</span>
+        </div>
+        <div class="status-row" id="gaze-status">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span class="status-name">Gaze</span>
+          <span class="status-val">Chờ</span>
+        </div>
+        <div class="status-row" id="voice-status">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span class="status-name">Voice</span>
+          <span class="status-val">Chờ</span>
+        </div>
+        <button id="btn-mic-toggle" class="mic-btn" title="Bật/tắt giọng nói" aria-label="Bật hoặc tắt điều khiển giọng nói">
+          <span id="mic-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+          </span>
+          <span class="mic-label">Ra lệnh giọng nói</span>
         </button>
+        <!-- Tài khoản: avatar + tên + đăng xuất -->
+        <div class="user-chip" id="user-chip" hidden>
+          <span class="user-avatar" id="user-avatar" aria-hidden="true"></span>
+          <span class="user-name" id="user-name"></span>
+          <button id="btn-logout" title="Đăng xuất" aria-label="Đăng xuất">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          </button>
+        </div>
       </div>
     </nav>
 
+    <div id="main-stage">
     <!-- Cam Preview (small, corner) -->
     <div id="cam-preview">
       <video id="webcam" autoplay playsinline muted></video>
@@ -70,7 +153,7 @@
         <!-- Step 1: Pre-Calibration Setup Card -->
         <div id="cal-setup-card" class="cal-card">
           <div class="cal-header">
-            <span class="cal-badge">🎯 TỐI ƯU ÁNH MẮT</span>
+            <span class="cal-badge"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg> TỐI ƯU ÁNH MẮT</span>
             <h2>Hiệu Chỉnh Điểm Nhìn & Nháy Mắt</h2>
             <p class="cal-desc">Hệ thống sẽ học cấu trúc mắt và góc nhìn của bạn để con trỏ di chuyển chính xác và mượt mà nhất.</p>
           </div>
@@ -78,21 +161,21 @@
           <!-- Posture & Environment Checklist -->
           <div class="cal-checklist-grid">
             <div class="check-item">
-              <span class="check-icon">📏</span>
+              <span class="check-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M3 8l13-5 5 13-13 5z"/><path d="M7.5 6.3l1.2 3M11 5l1.2 3M14.5 3.7l1.2 3"/></svg></span>
               <div>
                 <strong>Khoảng cách ngồi</strong>
                 <p>Cách màn hình khoảng 40 - 60 cm</p>
               </div>
             </div>
             <div class="check-item">
-              <span class="check-icon">💡</span>
+              <span class="check-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10.5c-.7.6-1 1.4-1 2.5H9c0-1.1-.3-1.9-1-2.5A6 6 0 0 1 12 3z"/></svg></span>
               <div>
                 <strong>Ánh sáng môi trường</strong>
                 <p>Đủ sáng, tránh ngược sáng từ sau lưng</p>
               </div>
             </div>
             <div class="check-item">
-              <span class="check-icon">👁️</span>
+              <span class="check-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg></span>
               <div>
                 <strong>Tư thế khuôn mặt</strong>
                 <p>Giữ đầu thẳng tự nhiên, hướng về camera</p>
@@ -107,14 +190,14 @@
               <label class="method-card active" data-method="grid9">
                 <input type="radio" name="cal-method" value="grid9" checked />
                 <div class="method-content">
-                  <span class="method-title">🎯 Lưới 9 Điểm (Chuẩn Khoa Học)</span>
+                  <span class="method-title"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg> Lưới 9 Điểm (Chuẩn Khoa Học)</span>
                   <span class="method-sub">Nhìn dừng vào 9 điểm cố định theo nhịp vòng tròn co lại (Khuyên dùng)</span>
                 </div>
               </label>
               <label class="method-card" data-method="pursuit">
                 <input type="radio" name="cal-method" value="pursuit" />
                 <div class="method-content">
-                  <span class="method-title">⭐ Bám Đuổi Ngôi Sao (Smooth Pursuit)</span>
+                  <span class="method-title"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M12 3l2.2 4.9 5.3.6-4 3.6 1.1 5.2L12 14.7l-4.6 2.6 1.1-5.2-4-3.6 5.3-.6z"/></svg> Bám Đuổi Ngôi Sao (Smooth Pursuit)</span>
                   <span class="method-sub">Nhìn theo ngôi sao chuyển động mềm mại + thử nghiệm nháy mắt trái/phải</span>
                 </div>
               </label>
@@ -123,13 +206,13 @@
 
           <!-- Real-time gaze preview -->
           <div class="cal-preview-section">
-            <div class="cal-preview-label">👁️ Xem trước ánh mắt</div>
+            <div class="cal-preview-label">Xem trước ánh mắt</div>
             <canvas id="cal-gaze-preview" width="200" height="150"></canvas>
             <div class="cal-preview-hint">Camera đang theo dõi mắt bạn. Đảm bảo khuôn mặt nằm trong khung hình.</div>
           </div>
 
           <div class="cal-action-row">
-            <button id="btn-start-calibration" class="btn-primary btn-large">🚀 Bắt đầu hiệu chỉnh</button>
+            <button id="btn-start-calibration" class="btn-primary btn-large">Bắt đầu hiệu chỉnh</button>
             <button id="btn-skip-calibration" class="btn-secondary">Bỏ qua (Dùng mặc định)</button>
           </div>
         </div>
@@ -151,14 +234,14 @@
           </div>
 
           <div class="cal-workspace-controls">
-            <button id="btn-cancel-calibration" class="btn-secondary btn-sm">🛑 Hủy hiệu chỉnh</button>
+            <button id="btn-cancel-calibration" class="btn-secondary btn-sm">Hủy hiệu chỉnh</button>
           </div>
         </div>
 
         <!-- Step 3: Result & Analytics Dashboard -->
         <div id="calibration-result" class="cal-card" style="display:none;">
           <div class="cal-header">
-            <span class="cal-badge green">✅ HOÀN TẤT HIỆU CHỈNH</span>
+            <span class="cal-badge green"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg> HOÀN TẤT HIỆU CHỈNH</span>
             <h2>Kết Quả Phân Tích Ánh Mắt</h2>
             <p id="calibration-mode-desc" class="cal-desc">Hệ thống đã xây dựng ma trận hồi quy đa thức tọa độ thành công.</p>
           </div>
@@ -188,14 +271,14 @@
 
           <!-- Hit rate from live test -->
           <div id="cal-hit-rate" class="cal-hit-rate" style="display:none;">
-            <div class="hit-rate-title">🎯 Kết quả thử nghiệm</div>
+            <div class="hit-rate-title">Kết quả thử nghiệm</div>
             <div class="hit-rate-grid" id="hit-rate-grid"></div>
           </div>
 
           <div class="cal-result-actions">
-            <button id="btn-test-calibration" class="btn-secondary">🧪 Thử nghiệm trực tiếp</button>
-            <button id="btn-apply-calibration" class="btn-primary btn-large">✅ Áp dụng cấu hình</button>
-            <button id="btn-restart-calibration" class="btn-secondary">🔄 Hiệu chỉnh lại</button>
+            <button id="btn-test-calibration" class="btn-secondary">Thử nghiệm trực tiếp</button>
+            <button id="btn-apply-calibration" class="btn-primary btn-large">Áp dụng cấu hình</button>
+            <button id="btn-restart-calibration" class="btn-secondary">Hiệu chỉnh lại</button>
           </div>
         </div>
       </div>
@@ -542,7 +625,7 @@
         <!-- Sidebar -->
         <div id="hand-sidebar">
           <div class="hand-s-header">
-            <h2>✋ Hand Controller</h2>
+            <h2>Hand Controller</h2>
             <div class="hand-sub">Học Quy Tắc Bàn Tay 3D — Trực Quan & Tương Tác</div>
           </div>
           <div class="hand-s-body">
@@ -554,12 +637,12 @@
             </div>
             <!-- STEP 1 -->
             <div id="step-1" class="step-card">
-              <div class="step-title">📌 Bước 1: Chọn trường hợp & Quy tắc vật lý</div>
+              <div class="step-title">Bước 1: Chọn trường hợp &amp; Quy tắc vật lý</div>
               <div class="hand-stem-row">
                 <label>Loại quy tắc</label>
                 <select class="stem-select" id="stem-rule-type" onchange="handUpdateStemLabels()">
-                  <option value="LEFT_AMPERE">✋ Bàn tay trái — Lực Ampe (F = I × B)</option>
-                  <option value="LEFT_LORENTZ">⚡ Bàn tay trái — Lực Lorentz (F = qv × B)</option>
+                  <option value="LEFT_AMPERE">Bàn tay trái — Lực Ampe (F = I × B)</option>
+                  <option value="LEFT_LORENTZ">Bàn tay trái — Lực Lorentz (F = qv × B)</option>
                 </select>
               </div>
               <div class="hand-sec-label">Chọn 1 trong 3 trường hợp bài tập:</div>
@@ -592,9 +675,9 @@
             </div>
             <!-- STEP 2 -->
             <div id="step-2" class="step-card" style="display:none;">
-              <div class="step-title">📥 Bước 2: Chọn 2 dữ kiện đề cho</div>
+              <div class="step-title">Bước 2: Chọn 2 dữ kiện đề cho</div>
               <div class="hand-stem-row" id="row-given-1">
-                <label id="label-given-1">🔵 Cảm ứng từ B</label>
+                <label id="label-given-1">Cảm ứng từ B</label>
                 <select class="stem-select" id="select-given-1">
                   <option value="INTO_PAGE">⊗ Vào trong màn hình</option>
                   <option value="OUT_OF_PAGE">⊙ Ra ngoài màn hình</option>
@@ -605,7 +688,7 @@
                 </select>
               </div>
               <div class="hand-stem-row" id="row-given-2">
-                <label id="label-given-2">🔴 Dòng điện I</label>
+                <label id="label-given-2">Dòng điện I</label>
                 <select class="stem-select" id="select-given-2">
                   <option value="RIGHT" selected>→ Sang phải</option>
                   <option value="LEFT">← Sang trái</option>
@@ -622,13 +705,13 @@
             </div>
             <!-- STEP 3 -->
             <div id="step-3" class="step-card" style="display:none;">
-              <div class="step-title">❓ Bước 3: Câu hỏi trắc nghiệm</div>
+              <div class="step-title">Bước 3: Câu hỏi trắc nghiệm</div>
               <div id="quiz-question-text" style="font-size:0.8rem;line-height:1.4;color:var(--text-primary);background:rgba(255,255,255,0.03);padding:10px;border-radius:8px;border:1px solid var(--border-color)">Nhìn vào mô hình 3D bàn tay với 2 mũi tên vectơ vừa chọn, hãy xác định hướng đúng của dữ kiện còn lại:</div>
               <div class="quiz-options" id="quiz-options"></div>
               <div class="stem-res" id="stem-res"></div>
               <div class="wizard-btn-row">
                 <button class="btn-prev" onclick="handGoToStep(2)">← Sửa dữ kiện</button>
-                <button class="btn-next" id="btn-restart" style="display:none;" onclick="handGoToStep(1)">🔄 Bài tập mới</button>
+                <button class="btn-next" id="btn-restart" style="display:none;" onclick="handGoToStep(1)">Bài tập mới</button>
               </div>
             </div>
           </div>
@@ -637,9 +720,9 @@
         <div id="hand-viewport">
           <div class="hand-badge" id="hand-badge"><span class="hand-dot" style="background:var(--text-secondary)"></span>Đang tải mô hình...</div>
           <div class="hand-tools">
-            <button class="tb on" id="hand-tb-arrows" onclick="handToggleArrows()">🎯 Vectơ (B,I,F)</button>
-            <button class="tb" id="hand-tb-rot" onclick="handToggleRot()">🔄 Xoay</button>
-            <button class="tb" onclick="handResetCam()">🎯 Reset</button>
+            <button class="tb on" id="hand-tb-arrows" onclick="handToggleArrows()">Vectơ (B,I,F)</button>
+            <button class="tb" id="hand-tb-rot" onclick="handToggleRot()">Xoay</button>
+            <button class="tb" onclick="handResetCam()">Reset</button>
           </div>
         </div>
       </div>
@@ -648,7 +731,7 @@
 
     <!-- Analytics Panel (hidden, toggled) -->
     <div id="analytics-panel">
-      <button id="btn-toggle-analytics" title="Thống kê">📊</button>
+      <button id="btn-toggle-analytics" title="Thống kê" aria-label="Thống kê phiên làm việc"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 20v-8M12 20V5M19 20v-5"/></svg></button>
       <div id="analytics-content" style="display:none;">
         <h4>Thống kê phiên làm việc</h4>
         <div class="analytics-grid">
@@ -673,7 +756,8 @@
     </div>
 
     <!-- Voice Feedback -->
-    <div id="voice-feedback">🎤 Đang nghe...</div>
+    <div id="voice-feedback">Đang nghe...</div>
+    </div><!-- /main-stage -->
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>

@@ -62,33 +62,59 @@ export class BlinkClassifier {
    */
   classify(f) {
     this.stats.total++;
-    const z = this.baseline ? this.baseline.zScore.bind(this.baseline) : () => 0;
+    // Không có baseline → z = null và các bằng chứng z-score BỊ BỎ QUA
+    // (sigmoid tại z=0 cho ~0.23-0.31, không phải trung tính → gây thiên lệch)
+    const z = this.baseline ? this.baseline.zScore.bind(this.baseline) : null;
     const sig = BlinkClassifier.sigmoid;
     const ctx = this.context;
 
     let score = 0.5;
 
+    // ================= BẰNG CHỨNG NỘI TẠI CỦA CÚ NHÁY (chủ đạo) =================
+    // Phân loại dựa trên CHÍNH cú nháy — thời lượng, độ sâu, pha giữ, động học.
+    // Gaze chỉ là tín hiệu phụ nhỏ (xem phần context bên dưới).
+
     // --- 1. Độ lệch thời lượng so với baseline tự nhiên (z-score) ---
-    //    z < 1.2 → bình thường; z > 2.5 → rõ ràng chủ đích
-    const zDur = z('duration', f.duration);
-    const durationEvidence = sig(zDur - 1.2);      // 0 → 1 quanh z=1.2
-    score += 0.22 * durationEvidence;
+    //    z < 1.2 → bình thường; z > 2.5 → rõ ràng chủ đích (chỉ khi có baseline)
+    let zDur = 0, durationEvidence = 0;
+    if (z) {
+      zDur = z('duration', f.duration);
+      durationEvidence = sig(zDur - 1.2);      // 0 → 1 quanh z=1.2
+      score += 0.22 * durationEvidence;
+    }
+
+    // --- 1b. Thời lượng tuyệt đối ngắn → rất tự nhiên (không cần baseline) ---
+    //    Nháy sinh lý thường 100-250ms; <250ms gần như chắc chắn tự nhiên
+    if (f.duration < 250) {
+      score -= 0.30 * (1 - f.duration / 250);      // 120ms → -0.156; 50ms → -0.24
+    }
 
     // --- 2. Pha giữ (hold time) — dấu hiệu chủ đích mạnh nhất ---
     //    Nháy tự nhiên KHÔNG giữ mắt nhắm; cố ý thì giữ 50-200ms
     const holdEvidence = f.holdTime > 25 ? Math.min(1, f.holdTime / 120) : 0;
     score += 0.20 * holdEvidence;
 
-    // --- 3. Độ sâu đóng mắt — nháy chủ đích thường nhắm kỹ hơn ---
-    const zMin = -z('earMin', f.earMin);           // earMin càng NHỎ → z càng âm
-    score += 0.06 * sig(zMin - 0.8);
+    // --- 2b. Không có pha giữ → bằng chứng tự nhiên bổ sung ---
+    if (f.holdTime <= 25) {
+      score -= 0.12 * (1 - f.holdTime / 25);       // 10ms → -0.072; 0ms → -0.12
+    }
+
+    // --- 3. Độ sâu đóng mắt — nháy chủ đích thường nhắm kỹ hơn (cần baseline) ---
+    if (z) {
+      const zMin = -z('earMin', f.earMin);         // earMin càng NHỎ → z càng âm
+      score += 0.06 * sig(zMin - 0.8);
+    }
 
     // --- 4. Tương quan 2 mắt — tự nhiên gần như hoàn hảo đồng bộ ---
     score += 0.10 * (1 - f.bilateralCorr);
+    //     Tương quan rất cao (>0.9) → thêm bằng chứng tự nhiên
+    if (f.bilateralCorr > 0.9) {
+      score -= 0.05 * (f.bilateralCorr - 0.9) / 0.1;   // 0.98 → -0.04
+    }
 
-    // --- 5. Đối xứng vận tốc đóng/mở — tự nhiên dạng chuông cân đối ---
+    // --- 5. Đối xứng vận tốc đóng/mở — chỉ nghi ngờ khi méo mạnh (<0.5) ---
     const vSym = f.velocitySymmetry ?? 1;          // 1 = cân đối
-    score += 0.08 * (1 - vSym);
+    if (vSym < 0.5) score += 0.08 * (0.5 - vSym) / 0.5;
 
     // --- 6. Vị trí đáy EAR (dip position) — tự nhiên ≈ giữa chu kỳ ---
     const dipDev = Math.abs((f.dipPosition ?? 0.5) - 0.5) / 0.5;
@@ -98,33 +124,30 @@ export class BlinkClassifier {
     const closedRatio = f.duration > 0 ? (f.holdTime / f.duration) : 0;
     score += 0.08 * Math.min(1, closedRatio / 0.5);
 
-    // --- 8. Khoảng cách giữa 2 lần nháy — lệch nhịp sinh học → nghi ngờ ---
-    if (f.gap > 0) {
+    // --- 8. Khoảng cách giữa 2 lần nháy — lệch nhịp sinh học → nghi ngờ (cần baseline) ---
+    if (z && f.gap > 0) {
       const zGap = z('gap', f.gap);
       score += 0.05 * sig(zGap - 1);
     }
 
-    // --- 9. Vận tốc đóng bất thường CHẬM (cố tình nhắm từ từ) ---
-    if (f.closeVelocity > 0) {
+    // --- 9. Vận tốc đóng bất thường CHẬM (cố tình nhắm từ từ, cần baseline) ---
+    if (z && f.closeVelocity > 0) {
       const zClose = z('closeVelocity', f.closeVelocity);
       if (zClose < -2) score += 0.06;               // chậm hơn 2σ so với tự nhiên
     }
 
-    // ================= CONTEXT FUSION =================
-    // --- 10. Fixation ổn định + có mục tiêu → hành vi "ngắm bắn" ---
+    // ================= CONTEXT PHỤ (chỉ gợi ý nhẹ, không quyết định) =================
+    // Giảm mạnh trọng số gaze so với bản cũ: giữ nguyên gaze khi chớp không
+    // còn bị hủy tiến trình, liếc đi cũng không hủy — cú nháy tự quyết định.
+    // --- 10. Fixation ổn định + có mục tiêu → gợi ý nhẹ ---
     if (ctx.target && ctx.fixationStable > 0.35) {
-      score += 0.12 * Math.min(1, ctx.fixationStable);
-    } else if (!ctx.target) {
-      score -= 0.05;                                 // không nhắm vào gì → nghi tự nhiên
+      score += 0.03 * Math.min(1, ctx.fixationStable);
     }
 
-    // --- 11. Gaze đang di chuyển nhanh → gần như chắc chắn tự nhiên ---
-    if (ctx.gazeVelocity > 0.35) score -= 0.10;
-
-    // --- 12. Nhịp nháy cao (mỏi mắt, chớp liên tục) → nghi tự nhiên ---
+    // --- 11. Nhịp nháy cao (mỏi mắt, chớp liên tục) → nghi tự nhiên ---
     if (ctx.blinkRate > 25) score -= 0.05;
 
-    // --- 13. Vừa thực hiện hành động gần đây → chống kích hoạt lặp ---
+    // --- 12. Vừa thực hiện hành động gần đây → chống kích hoạt lặp ---
     if (ctx.lastActionMs < 600) score -= 0.08;
 
     // Clamp + phân loại
@@ -142,9 +165,20 @@ export class BlinkClassifier {
       this.stats.uncertain++;
     }
 
+    // Confidence = xác suất của LOẠI ĐƯỢC CHỌN (không phải score thô):
+    //   intentional → score; natural → 1-score; uncertain → độ gần ranh giới
+    // Nhờ vậy nháy tự nhiên sẽ hiển thị "Tự nhiên 80-95%", KHÔNG còn hiện
+    // "Chủ đích 70-90%" cho nháy tự nhiên như trước.
+    const confidence = type === 'intentional'
+      ? score
+      : type === 'natural'
+        ? 1 - score
+        : Math.max(score - this.uncertainMin, this.intentThreshold - score) / (this.intentThreshold - this.uncertainMin);
+
     return {
       type,
-      confidence: Math.round(score * 1000) / 1000,
+      confidence: Math.round(confidence * 1000) / 1000,
+      intentScore: Math.round(score * 1000) / 1000,   // score thô (chẩn đoán)
       evidence: {
         zDuration: Math.round(zDur * 100) / 100,
         durationEvidence: Math.round(durationEvidence * 100) / 100,
@@ -154,7 +188,6 @@ export class BlinkClassifier {
         dipPosition: Math.round((f.dipPosition ?? 0.5) * 100) / 100,
         closedRatio: Math.round(closedRatio * 100) / 100,
         fixationStable: Math.round(ctx.fixationStable * 100) / 100,
-        gazeVelocity: Math.round(ctx.gazeVelocity * 100) / 100,
         target: ctx.target,
         blinkRate: Math.round(ctx.blinkRate)
       }

@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>EyeAssist STEM — Hướng Roulette (Instrument Panel)</title>
+<!--
+  HƯỚNG THIẾT KẾ ROULETTE — EyeAssist STEM
+  Style roulette ô số 12 (31 % 20 + 1 = 12).
+  GHI CHÚ TRUNG THỰC: file references/design-styles.md KHÔNG tồn tại trên máy này
+  (thư mục skill chỉ còn SKILL.md), nên không tra được định nghĩa gốc của ô số 12.
+  Fallback minh bạch: dùng style "Instrument Panel / Dụng cụ phòng thí nghiệm" —
+  DNA thị giác: nền than ấm, khung hairline bezel, nhãn chữ hoa nhỏ kiểu tem thiết bị,
+  màu phosphor-green (LCD) + signal-amber, readout mono, ring-meter.
+  Lý do hợp spec: "đáng tin như thiết bị y tế, gần gũi như dụng cụ lớp học" —
+  chrome mô phỏng chính mặt máy Casio (thiết bị thật trên bàn học).
+
+  VISUAL MOTIF (spec §8): "Vòng xác nhận" (dwell ring) — element độc quyền của sản phẩm.
+  Cùng một ngôn ngữ hình học (stroke 2–3px, round cap, điền đầy bằng dash-offset) lặp lại ở:
+  con trỏ gaze, dot trạng thái có vòng, chấm tab active, ring-meter 92% trong card hệ thống,
+  icon brand (mắt trong vòng).
+
+  Giảm thiểu: tab active đang là "Casio Ảo". Mockup này là màn hình chính (tab Casio).
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#191714;
+    --panel:#211f1b;
+    --panel-2:#26231e;
+    --line:#3a362e;
+    --line-soft:#2e2b24;
+    --ink:#ede7da;
+    --ink-2:#a99f8c;
+    --ink-3:#7d7466;
+    --green:#a8c47a;        /* phosphor — xác nhận / LCD */
+    --green-deep:#71896b;
+    --amber:#d9a441;        /* signal amber — nhãn chức năng */
+    --red:#c4674e;
+    --lcd:#c7d2b8;
+    --lcd-ink:#262d21;
+    --ring-track:rgba(237,231,218,.14);
+    --font-ui:'Be Vietnam Pro',system-ui,sans-serif;
+    --font-mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1440px;height:900px;overflow:hidden}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font-ui);
+    font-size:15px;
+    display:flex;flex-direction:column;
+  }
+  svg{display:block}
+
+  /* ============ TOP NAV ============ */
+  #top-nav{
+    height:64px;flex:0 0 64px;
+    display:flex;align-items:center;gap:28px;
+    padding:0 24px;
+    background:var(--panel);
+    border-bottom:1px solid var(--line);
+  }
+  .brand{display:flex;align-items:center;gap:11px;margin-right:8px}
+  .brand .brand-mark{color:var(--green)}
+  .brand-name{font-weight:700;font-size:18px;letter-spacing:.2px}
+  .brand-name span{color:var(--amber);font-weight:600}
+
+  .nav-tabs{display:flex;gap:6px;flex:1}
+  .nav-tab{
+    display:flex;align-items:center;gap:9px;
+    height:48px;padding:0 18px;
+    border:0;background:transparent;cursor:pointer;
+    color:var(--ink-2);font-family:var(--font-ui);
+    font-size:15px;font-weight:600;letter-spacing:.2px;
+    border-radius:6px;position:relative;
+    transition:color .15s ease,background .15s ease;
+  }
+  .nav-tab:hover{color:var(--ink);background:rgba(237,231,218,.05)}
+  .nav-tab.active{color:var(--ink);background:rgba(168,196,122,.10)}
+  .nav-tab.active::after{
+    content:"";position:absolute;left:18px;right:18px;bottom:-9px;
+    height:2px;background:var(--green);border-radius:1px;
+  }
+  .nav-tab .tab-dot{ /* motif: vòng nhỏ thay cho dấu chấm đặc */
+    width:7px;height:7px;border-radius:50%;
+    border:2px solid var(--ink-3);flex:0 0 auto;
+  }
+  .nav-tab.active .tab-dot{border-color:var(--green)}
+
+  .nav-status{display:flex;align-items:center;gap:18px}
+  .status-item{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink-2)}
+  .status-item svg{color:var(--ink-3)}
+  .status-dot{
+    width:9px;height:9px;border-radius:50%;flex:0 0 auto;
+    box-shadow:0 0 0 2px var(--ring-track); /* motif ring */
+  }
+  .status-dot.ok{background:var(--green)}
+  .status-dot.wait{background:var(--amber)}
+  .status-item b{color:var(--ink);font-weight:600}
+
+  #btn-mic-toggle{
+    width:48px;height:48px;border-radius:8px;cursor:pointer;
+    background:var(--panel-2);border:1px solid var(--line);
+    color:var(--ink);display:flex;align-items:center;justify-content:center;
+    transition:border-color .15s ease,background .15s ease;
+  }
+  #btn-mic-toggle:hover{border-color:var(--amber);background:#2b2721}
+
+  /* ============ LAYOUT ============ */
+  .app-body{flex:1;display:flex;min-height:0}
+
+  /* ---- STAGE ---- */
+  .stage{
+    flex:1;position:relative;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+    background:
+      radial-gradient(900px 560px at 46% 38%, #262219 0%, #1c1a15 55%, #171511 100%);
+  }
+  /* giấy kẻ ô phòng thí nghiệm */
+  .stage::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(237,231,218,.045) 0 1px, transparent 1px 34px),
+      repeating-linear-gradient(90deg, rgba(237,231,218,.045) 0 1px, transparent 1px 34px);
+  }
+  /* vignette */
+  .stage::after{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(120% 95% at 50% 42%, transparent 55%, rgba(8,7,5,.62) 100%);
+  }
+  .stage-label{
+    position:absolute;top:20px;left:26px;z-index:2;
+    font-size:12px;font-weight:600;letter-spacing:2.2px;
+    color:var(--ink-3);text-transform:uppercase;
+    display:flex;align-items:center;gap:10px;
+  }
+  .stage-label::after{content:"";width:64px;height:1px;background:var(--line)}
+
+  /* ---- CALCULATOR ---- */
+  .calculator-wrapper{position:relative;z-index:1}
+  #calculator{
+    width:400px;position:relative;
+    background:linear-gradient(178deg,#34322e 0%,#262421 12%,#211f1c 88%,#1a1815 100%);
+    border:1px solid #454137;
+    border-radius:18px;
+    padding:22px 20px 20px;
+    box-shadow:
+      0 1px 0 rgba(237,231,218,.09) inset,
+      0 34px 60px rgba(0,0,0,.58),
+      0 10px 22px rgba(0,0,0,.5);
+  }
+  /* bóng tiếp xúc trên mặt bàn */
+  .calculator-wrapper::after{
+    content:"";position:absolute;left:8%;right:8%;bottom:-26px;height:44px;
+    background:radial-gradient(50% 100% at 50% 0%, rgba(0,0,0,.55), transparent 70%);
+    filter:blur(6px);z-index:-1;
+  }
+  .calc-head{
+    height:44px;display:flex;align-items:flex-end;justify-content:space-between;
+    padding:0 2px 8px;
+  }
+  .casio-logo{font-family:var(--font-ui);font-weight:700;font-size:20px;letter-spacing:2.5px;color:#e8e2d4}
+  .calc-model{text-align:right;line-height:1.25}
+  .calc-model .classwiz{font-size:10px;letter-spacing:1.6px;color:var(--amber);font-weight:600;text-transform:uppercase}
+  .calc-model .model{font-family:var(--font-mono);font-size:13px;color:#cfc8b8;font-weight:500}
+
+  #lcd{
+    height:108px;border-radius:6px;
+    background:linear-gradient(180deg,#d3dcc4 0%,var(--lcd) 45%,#b8c4a8 100%);
+    border:1px solid #14130f;
+    box-shadow:0 2px 6px rgba(0,0,0,.6) inset, 0 1px 0 rgba(237,231,218,.08);
+    padding:10px 14px 8px;position:relative;overflow:hidden;
+    display:flex;flex-direction:column;justify-content:space-between;
+  }
+  .lcd-top{display:flex;justify-content:space-between;align-items:center}
+  .lcd-ind{font-family:var(--font-mono);font-size:11px;color:#4c573f;letter-spacing:1px;font-weight:600}
+  #screen-input{font-family:var(--font-mono);font-size:22px;font-weight:500;color:var(--lcd-ink);text-align:left}
+  #screen-output{font-family:var(--font-mono);font-size:40px;font-weight:600;color:#161b10;text-align:right;line-height:1}
+
+  .key-grid{
+    margin-top:14px;
+    display:grid;grid-template-columns:repeat(5,64px);
+    gap:10px;justify-content:center;
+  }
+  .key-grid button{
+    height:54px;border-radius:7px;cursor:pointer;
+    font-family:var(--font-mono);font-size:18px;font-weight:500;
+    background:linear-gradient(180deg,#3d3b36,#33312c);
+    color:#e6e0d2;border:1px solid #191713;
+    box-shadow:0 2px 0 #17150f, 0 1px 0 rgba(237,231,218,.07) inset;
+    transition:background .15s ease,transform .15s ease,box-shadow .15s ease;
+    position:relative;
+  }
+  .key-grid button sup{font-size:11px}
+  .key-grid button.k-op{background:linear-gradient(180deg,#37352f,#2c2a25);color:#ded7c6}
+  .key-grid button.k-del{background:linear-gradient(180deg,#5a4a24,#4a3d1e);color:#f0d9a0}
+  .key-grid button.k-ac{background:linear-gradient(180deg,#57352b,#472b23);color:#f0c4b3}
+  .key-grid button.k-eq{background:linear-gradient(180deg,#4c5a37,#3e4a2d);color:#e4eecf}
+
+  /* trạng thái gaze-hover (spec §6.3): vòng outline + giãn nhẹ, không chỉ đổi màu */
+  .key-grid button.gaze-hover{
+    transform:scale(1.045);
+    background:linear-gradient(180deg,#4a4840,#3d3b33);
+    box-shadow:0 0 0 2px var(--bg), 0 0 0 4px var(--green), 0 3px 0 #17150f;
+    z-index:2;
+  }
+
+  /* ---- GAZE OVERLAY ---- */
+  #gaze-overlay{position:absolute;inset:0;pointer-events:none;z-index:5}
+  #gaze-cursor{
+    position:absolute;left:126px;top:291px;
+    width:80px;height:80px;transform:translate(-50%,-50%);
+  }
+  .cursor-halo{animation:halo 2.2s ease-in-out infinite}
+  @keyframes halo{0%,100%{opacity:.55}50%{opacity:1}}
+
+  /* ---- CAMERA PREVIEW (spec §7) ---- */
+  #cam-preview{
+    position:absolute;left:26px;bottom:22px;z-index:3;
+    width:176px;background:var(--panel);
+    border:1px solid var(--line);border-radius:8px;overflow:hidden;
+    box-shadow:0 10px 24px rgba(0,0,0,.45);
+  }
+  .cam-video{
+    width:160px;height:120px;margin:8px auto 0;position:relative;border-radius:4px;overflow:hidden;
+    background:radial-gradient(70% 80% at 50% 38%, #3b362c 0%, #23211b 60%, #1a1813 100%);
+  }
+  #webcam{position:absolute;inset:0}
+  #overlay{position:absolute;inset:0}
+  #overlay .frame-line{position:absolute;width:14px;height:14px;border-color:var(--green);border-style:solid;border-width:0}
+  #overlay .tl{left:8px;top:8px;border-left-width:2px;border-top-width:2px}
+  #overlay .tr{right:8px;top:8px;border-right-width:2px;border-top-width:2px}
+  #overlay .bl{left:8px;bottom:8px;border-left-width:2px;border-bottom-width:2px}
+  #overlay .br{right:8px;bottom:8px;border-right-width:2px;border-bottom-width:2px}
+  #overlay .gaze-dot{
+    position:absolute;left:50%;top:40%;width:8px;height:8px;margin:-4px;
+    border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(168,196,122,.28);
+  }
+  #fps-counter{
+    position:absolute;right:6px;top:6px;
+    font-family:var(--font-mono);font-size:11px;font-weight:600;
+    color:#161b10;background:var(--green);padding:1px 6px;border-radius:3px;
+  }
+  #blink-stats{
+    padding:7px 10px 8px;font-size:12px;color:var(--ink-2);
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  #blink-stats b{color:var(--ink);font-weight:600}
+
+  /* ---- RIGHT RAIL ---- */
+  .rail{
+    width:324px;flex:0 0 324px;
+    border-left:1px solid var(--line);
+    background:var(--panel);
+    padding:22px 20px;display:flex;flex-direction:column;gap:16px;
+  }
+  .rail-card{
+    background:var(--panel-2);
+    border:1px solid var(--line);border-radius:10px;
+    padding:16px 16px 14px;
+  }
+  .rail-head{
+    display:flex;align-items:center;gap:9px;
+    font-size:12px;font-weight:600;letter-spacing:2px;text-transform:uppercase;
+    color:var(--ink-2);
+    padding-bottom:11px;margin-bottom:13px;border-bottom:1px solid var(--line-soft);
+  }
+  .rail-head svg{color:var(--amber)}
+
+  .stat-row{display:flex;align-items:center;gap:13px;padding:7px 0}
+  .stat-row + .stat-row{border-top:1px dashed var(--line-soft)}
+  .meter{flex:0 0 auto}
+  .meter-label{font-size:14px;color:var(--ink);line-height:1.4}
+  .meter-label small{display:block;font-size:12.5px;color:var(--ink-2)}
+  .meter-label b{font-weight:600}
+  .chip{
+    display:inline-flex;align-items:center;gap:7px;
+    font-family:var(--font-mono);font-size:13px;font-weight:600;
+    color:var(--green);background:rgba(168,196,122,.10);
+    border:1px solid rgba(168,196,122,.35);
+    padding:3px 9px;border-radius:5px;
+  }
+  .led{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 2px var(--ring-track)}
+
+  .guide-row{display:flex;gap:12px;align-items:flex-start;padding:6px 0}
+  .guide-row .g-ico{
+    flex:0 0 34px;height:34px;border-radius:8px;
+    background:rgba(217,164,65,.10);border:1px solid rgba(217,164,65,.30);
+    display:flex;align-items:center;justify-content:center;color:var(--amber);
+  }
+  .guide-row p{font-size:14px;line-height:1.5;color:var(--ink-2)}
+  .guide-row p b{color:var(--ink);font-weight:600}
+
+  .rail-foot{margin-top:auto;font-size:12.5px;color:var(--ink-3);line-height:1.5;text-align:center}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+
+  <!-- ================= TOP NAV ================= -->
+  <header id="top-nav">
+    <div class="brand">
+      <!-- motif: mắt đặt trong vòng xác nhận -->
+      <svg class="brand-mark" width="30" height="30" viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="15" cy="15" r="13" opacity=".45"/>
+        <path d="M7 15s3-5 8-5 8 5 8 5-3 5-8 5-8-5-8-5z"/>
+        <circle cx="15" cy="15" r="2.4" fill="currentColor" stroke="none"/>
+      </svg>
+      <div class="brand-name">EyeAssist <span>STEM</span></div>
+    </div>
+
+    <nav class="nav-tabs" aria-label="Công cụ học">
+      <button class="nav-tab active" data-tab="casio">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <rect x="4" y="2.5" width="16" height="19" rx="2.5"/>
+          <path d="M8 7h8M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/>
+        </svg>
+        Casio Ảo
+        <span class="tab-dot" aria-hidden="true"></span>
+      </button>
+      <button class="nav-tab" data-tab="hand">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 11V6.5a1.8 1.8 0 0 0-3.6 0V11"/>
+          <path d="M14.4 10V4.8a1.8 1.8 0 0 0-3.6 0V10"/>
+          <path d="M10.8 10.5V6a1.8 1.8 0 0 0-3.6 0v8"/>
+          <path d="M7.2 15.3 5.6 13.7a1.9 1.9 0 0 0-2.7 2.7l3.5 3.5A7.4 7.4 0 0 0 21.6 14v-2.5a1.8 1.8 0 0 0-3.6 0"/>
+        </svg>
+        Bàn Tay 3D
+        <span class="tab-dot" aria-hidden="true"></span>
+      </button>
+      <button class="nav-tab" data-tab="cal">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="6.5"/>
+          <path d="M12 2v3.5M12 18.5V22M2 12h3.5M18.5 12H22"/>
+          <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/>
+        </svg>
+        Hiệu chỉnh
+        <span class="tab-dot" aria-hidden="true"></span>
+      </button>
+    </nav>
+
+    <div class="nav-status" role="status">
+      <div class="status-item" id="cam-status">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2" y="6" width="13" height="12" rx="2"/><path d="m15 10.5 6-3.5v10l-6-3.5"/>
+        </svg>
+        <span class="status-dot ok" aria-hidden="true"></span>
+        <span><b>Camera</b> · ổn định</span>
+      </div>
+      <div class="status-item" id="gaze-status">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.6"/>
+        </svg>
+        <span class="status-dot ok" aria-hidden="true"></span>
+        <span><b>Gaze</b> · đang bám</span>
+      </div>
+      <div class="status-item" id="voice-status">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/>
+        </svg>
+        <span class="status-dot wait" aria-hidden="true"></span>
+        <span><b>Voice</b> · chờ</span>
+      </div>
+      <button id="btn-mic-toggle" aria-label="Bật micro">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M8.5 21h7"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <!-- ================= STAGE ================= -->
+    <main class="stage" id="casio-app">
+      <div class="stage-label">Sân khấu thực hành · Máy tính ảo</div>
+
+      <div class="calculator-wrapper">
+        <div id="calculator">
+          <div class="calc-head">
+            <div class="casio-logo">CASIO</div>
+            <div class="calc-model">
+              <div class="classwiz">ClassWiz · S-V.P.A.M.</div>
+              <div class="model">fx-580VN X</div>
+            </div>
+          </div>
+
+          <div id="lcd">
+            <div class="lcd-top">
+              <span class="lcd-ind">Math</span>
+              <span class="lcd-ind">DEG</span>
+            </div>
+            <div id="screen-input">12×(3+4)</div>
+            <div id="screen-output">84</div>
+          </div>
+
+          <div class="key-grid">
+            <button data-key="7">7</button>
+            <button data-key="8">8</button>
+            <button data-key="9">9</button>
+            <button data-key="del" class="k-del">DEL</button>
+            <button data-key="ac" class="k-ac">AC</button>
+
+            <button data-key="4">4</button>
+            <button data-key="5" class="gaze-hover">5</button>
+            <button data-key="6">6</button>
+            <button data-key="mul" class="k-op">×</button>
+            <button data-key="div" class="k-op">÷</button>
+
+            <button data-key="1">1</button>
+            <button data-key="2">2</button>
+            <button data-key="3">3</button>
+            <button data-key="add" class="k-op">+</button>
+            <button data-key="sub" class="k-op">−</button>
+
+            <button data-key="0">0</button>
+            <button data-key="dot">.</button>
+            <button data-key="exp">×10<sup>x</sup></button>
+            <button data-key="ans">Ans</button>
+            <button data-key="eq" class="k-eq">=</button>
+          </div>
+
+          <!-- Con trỏ gaze + vòng dwell: tâm đặt trên phím "5" -->
+          <div id="gaze-overlay">
+            <div id="gaze-cursor" aria-hidden="true">
+              <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+                <circle class="cursor-halo" cx="40" cy="40" r="39" stroke="rgba(168,196,122,.16)" stroke-width="2"/>
+                <!-- track của dwell ring -->
+                <circle cx="40" cy="40" r="33" stroke="var(--ring-track)" stroke-width="3.5"/>
+                <!-- dwell progress ≈ 70% (chu vi 2π·33 ≈ 207.3; 70% ≈ 145) -->
+                <circle cx="40" cy="40" r="33" stroke="var(--green)" stroke-width="3.5"
+                        stroke-linecap="round" stroke-dasharray="145 207.3"
+                        transform="rotate(-90 40 40)"/>
+                <circle cx="40" cy="40" r="3.2" fill="var(--ink)"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Camera preview bottom-left (spec §7) -->
+      <div id="cam-preview">
+        <div class="cam-video">
+          <div id="webcam"></div>
+          <div id="overlay">
+            <span class="frame-line tl"></span><span class="frame-line tr"></span>
+            <span class="frame-line bl"></span><span class="frame-line br"></span>
+            <span class="gaze-dot"></span>
+            <span id="fps-counter">24 FPS</span>
+          </div>
+        </div>
+        <div id="blink-stats"><span>Nháy: <b>12</b></span><span>2 mắt · trái/phải</span></div>
+      </div>
+    </main>
+
+    <!-- ================= RIGHT RAIL ================= -->
+    <aside class="rail">
+      <section class="rail-card" aria-label="Trạng thái hệ thống">
+        <div class="rail-head">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/>
+          </svg>
+          Trạng thái hệ thống
+        </div>
+
+        <div class="stat-row">
+          <!-- motif ring: meter hiệu chỉnh -->
+          <svg class="meter" width="46" height="46" viewBox="0 0 46 46" fill="none" aria-hidden="true">
+            <circle cx="23" cy="23" r="18" stroke="var(--ring-track)" stroke-width="3.5"/>
+            <!-- 92% của 2π·18 ≈ 113.1 → 104 -->
+            <circle cx="23" cy="23" r="18" stroke="var(--green)" stroke-width="3.5"
+                    stroke-linecap="round" stroke-dasharray="104 113.1"
+                    transform="rotate(-90 23 23)"/>
+            <text x="23" y="27" text-anchor="middle" font-family="IBM Plex Mono, monospace"
+                  font-size="12" font-weight="600" fill="var(--ink)">92%</text>
+          </svg>
+          <div class="meter-label"><b>Đã hiệu chỉnh 92%</b><small>Độ ổn định 88% · phiên hôm nay</small></div>
+        </div>
+
+        <div class="stat-row">
+          <svg class="meter" width="46" height="46" viewBox="0 0 46 46" fill="none" aria-hidden="true">
+            <circle cx="23" cy="23" r="18" stroke="var(--ring-track)" stroke-width="3.5"/>
+            <circle cx="23" cy="23" r="18" stroke="var(--amber)" stroke-width="3.5"
+                    stroke-linecap="round" stroke-dasharray="28 113.1"
+                    transform="rotate(-90 23 23)"/>
+            <text x="23" y="27" text-anchor="middle" font-family="IBM Plex Mono, monospace"
+                  font-size="12" font-weight="600" fill="var(--ink)">A</text>
+          </svg>
+          <div class="meter-label"><b>Mode A</b> · Chớp 2 mắt<small>Chế độ đề xuất sau hiệu chỉnh</small></div>
+        </div>
+
+        <div class="stat-row">
+          <svg class="meter" width="46" height="46" viewBox="0 0 46 46" fill="none" aria-hidden="true">
+            <circle cx="23" cy="23" r="18" stroke="var(--ring-track)" stroke-width="3.5"/>
+            <circle cx="23" cy="23" r="5" fill="none" stroke="var(--green)" stroke-width="2"/>
+            <circle cx="23" cy="23" r="1.8" fill="var(--green)"/>
+          </svg>
+          <div class="meter-label"><b>Camera ổn</b> · 24 FPS<small>Khoảng cách khuôn mặt: đạt</small></div>
+        </div>
+      </section>
+
+      <section class="rail-card" aria-label="Hướng dẫn chọn bằng mắt">
+        <div class="rail-head">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.6"/>
+          </svg>
+          Cách chọn bằng mắt
+        </div>
+        <div class="guide-row">
+          <div class="g-ico">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="8.5" opacity=".4"/>
+              <path d="M12 3.5a8.5 8.5 0 0 1 8.5 8.5"/>
+            </svg>
+          </div>
+          <p><b>Nhìn giữ lên phím ~1 giây.</b> Vòng xác nhận quanh con trỏ điền đầy là chọn xong — không cần nhấp chuột.</p>
+        </div>
+        <div class="guide-row">
+          <div class="g-ico">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/>
+            </svg>
+          </div>
+          <p><b>Hoặc nói bằng giọng nói:</b> “năm”, “nhân”, “bằng”… Micro ở góc phải màn hình.</p>
+        </div>
+      </section>
+
+      <div class="rail-foot">EyeAssist STEM · công cụ học tập điều khiển bằng ánh mắt<br>Phiên học 30–60 phút · khoảng cách 40–60 cm</div>
+    </aside>
+  </div>
+
+<script>
+  // Demo gaze-hover thuần vanilla: di chuột qua phím mô phỏng ánh mắt nhìn vào.
+  // Trạng thái mặc định (khi chưa tương tác) đang ở phím "5" như thiết kế.
+  var cursor = document.getElementById('gaze-cursor');
+  var keys = document.querySelectorAll('#calculator [data-key]');
+  function gazeAt(key){
+    keys.forEach(function(k){ k.classList.toggle('gaze-hover', k === key); });
+    if(!key) return;
+    cursor.style.left = (key.offsetLeft + key.offsetWidth/2) + 'px';
+    cursor.style.top = (key.offsetTop + key.offsetHeight/2) + 'px';
+  }
+  keys.forEach(function(k){ k.addEventListener('mouseenter', function(){ gazeAt(k); }); });
+  document.getElementById('calculator').addEventListener('mouseleave', function(){
+    gazeAt(document.querySelector('[data-key="5"]'));
+  });
+</script>
+</body>
+</html>

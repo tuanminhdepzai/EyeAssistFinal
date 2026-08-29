@@ -31,6 +31,9 @@ import { GestureMatcher } from './engine/GestureMatcher.js';
 import { EARCalculator } from './engine/EARCalculator.js';
 import { BlinkProgressBar } from './modules/BlinkProgressBar.js';
 import { HandModule3D } from './modules/HandModule3D.js';
+import { GazeSelect } from './modules/GazeSelect.js';
+import { initAuth, onAuthReady } from './auth/auth.js';
+import { saveCalibrationCloud, loadCalibrationCloud } from './auth/cloudProfile.js';
 
 // ============ GLOBAL STATE ============
 const state = {
@@ -73,6 +76,40 @@ const gestureMatcher = new GestureMatcher();
 const blinkProgress = new BlinkProgressBar({
   confirmMs: 600,
   cancelRadius: 48
+});
+
+// ---- Realtime dwell ring: lấp đầy NGAY TRONG LÚC nhắm mắt ----
+// Vòng tròn bắt đầu khi mắt nhắm qua mức tối thiểu và lấp đầy theo thời gian
+// nhắm thực tế; đủ lâu thì kích hoạt — không chờ mở mắt xong mới chạy.
+const DWELL_INTENTIONAL_MS = 450;   // nhắm đủ mức này → xác nhận
+const DWELL_MIN_START_MS = 120;     // dưới mức này = chớp thường, chưa hiện ring
+let dwellData = null;               // realtime state của vòng hiện tại
+// Khóa chống bấm liên tục: sau khi ring confirm/cancel, KHÔNG cho ring mới khởi
+// động cho tới khi mắt MỞ LẠI (blinkDetector về OPEN). Nếu không, giữ mắt nhắm
+// sẽ tái khởi động ring mỗi frame (closedMs vẫn tính từ cùng _blinkStart) và
+// sinh ra vòng lặp click vô hạn.
+let dwellLocked = false;
+
+blinkDetector.on('onCloseFrame', ({ closedMs }) => {
+  if (dwellLocked) return;
+  if (closedMs < DWELL_MIN_START_MS) return;
+
+  if (!dwellData) {
+    const rect = dom.gazeCursor ? dom.gazeCursor.getBoundingClientRect() : null;
+    let cx = 0, cy = 0;
+    if (rect && rect.width > 0 && rect.height > 0) {
+      cx = rect.left + rect.width / 2;
+      cy = rect.top + rect.height / 2;
+    } else {
+      const vp = gazeToViewport(lastGoodGaze.x, lastGoodGaze.y);
+      cx = vp.x; cy = vp.y;
+    }
+    dwellData = { x: cx, y: cy };
+    blinkProgress.start(cx, cy, { subtype: 'long', duration: 0, confidence: 0.85 }, {
+      target: fusion.lastGazeTarget,
+      confirmMs: DWELL_INTENTIONAL_MS - DWELL_MIN_START_MS
+    });
+  }
 });
 
 const handModule = new HandModule3D();
@@ -164,7 +201,8 @@ async function init() {
     // Show the app
     setTimeout(() => {
       if (dom.loading) dom.loading.classList.add('hidden');
-      if (dom.app) dom.app.style.display = 'flex';
+      if (dom.app) dom.app.style.display = 'grid';
+      moveNavPill(false); // snap pill vào tab active ngay khi app hiện (không animate lần đầu)
       startGazeLoop();
       voice.start();
       scaleCalculator();
@@ -224,6 +262,33 @@ async function initWebcam() {
   }
 }
 
+// ============ STATUS LABEL SYNC (feedback kép: dot + nhãn chữ) ============
+const STATUS_TEXT = {
+  'cam-status':   { base: 'Chờ', active: 'Ổn định', error: 'Lỗi cam' },
+  'gaze-status':  { base: 'Chờ', active: 'Đang theo', error: 'Lỗi' },
+  'voice-status': { base: 'Chờ', active: 'Đang nghe', error: 'Lỗi mic' },
+};
+
+function syncStatusLabel(row) {
+  if (!row) return;
+  const map = STATUS_TEXT[row.id];
+  const val = row.querySelector('.status-val');
+  if (!map || !val) return;
+  val.textContent = row.classList.contains('error') ? map.error
+    : row.classList.contains('active') ? map.active
+    : map.base;
+}
+
+function initStatusLabelSync() {
+  for (const id of Object.keys(STATUS_TEXT)) {
+    const row = $(id);
+    if (!row) continue;
+    new MutationObserver(() => syncStatusLabel(row))
+      .observe(row, { attributes: true, attributeFilter: ['class'] });
+    syncStatusLabel(row);
+  }
+}
+
 // ============ MODULES INIT ============
 function initModules() {
   // Physics
@@ -247,6 +312,9 @@ function initModules() {
       if (tabId) switchTab(tabId);
     });
   });
+
+  // Resize: đo lại pill không animation để nó snap đúng vị trí
+  window.addEventListener('resize', () => moveNavPill(false));
 
   // Method selector radio cards in calibration
   const methodCards = document.querySelectorAll('.cal-method-select .method-card');
@@ -314,6 +382,9 @@ function initModules() {
   voice.on('onEnd', () => { if (dom.voiceStatus) dom.voiceStatus.classList.remove('active'); updateMicUI(); });
   voice.on('onError', () => { if (dom.voiceStatus) dom.voiceStatus.classList.add('error'); updateMicUI(); });
 
+  // Dual-feedback: cập nhật nhãn chữ của cụm trạng thái theo class
+  initStatusLabelSync();
+
   // Scale Casio calculator to fill viewport
   scaleCalculator();
   window.addEventListener('resize', scaleCalculator);
@@ -349,8 +420,13 @@ function onFaceResults(results) {
 
   const landmarks = results.multiFaceLandmarks[0];
   
-  // 1. Compute EAR
-  const ear = EARCalculator.compute(landmarks);
+  // 1. Compute EAR (bù pitch để cúi/ngửa mặt không làm EAR sụt giả tạo)
+  const earRaw = EARCalculator.compute(landmarks);
+  const ear = {
+    left: EARCalculator.compensate(earRaw.left, earRaw.cosPitch),
+    right: EARCalculator.compensate(earRaw.right, earRaw.cosPitch),
+    average: EARCalculator.compensate(earRaw.average, earRaw.cosPitch)
+  };
   
   // 2. Compute gaze vector
   const gazeRaw = GazeToScreen.computeGazeVector(landmarks, gazeMapper.flipX);
@@ -384,10 +460,13 @@ function onFaceResults(results) {
     drawOverlay(landmarks);
     return; // Skip gesture, adaptive learner, snap, hit test
   }
-  
+
+  // FIX: Dwell lock — khi mắt MỞ LẠI (state === 'OPEN'), mở khóa để cho phép dwell tiếp theo
+  if (dwellLocked) dwellLocked = false;
+
   // Save last good gaze (only when eyes are OPEN)
   lastGoodGaze = { x: gazeNorm.x, y: gazeNorm.y };
-  
+
   // 6. Update gesture matcher
   gestureMatcher.addSample(vp.x, vp.y, now);
   const gesture = gestureMatcher.match();
@@ -438,6 +517,17 @@ function onFaceResults(results) {
   if (state.currentTab === 'hand') {
     const handTarget = handModule.updateGazeHover(vp.x, vp.y, now);
     fusion.lastGazeTarget = handTarget ? 'hand_element' : null;
+  }
+
+  // 11c. Nút UI chung (tabs, mic, hiệu chỉnh...) — học sinh không dùng tay
+  //      phải bấm được MỌI nút bằng mắt. Nếu gaze nằm trên một nút UI thì
+  //      nó thắng (bỏ qua phím trong #casio-app vì đã có đường casioKeys riêng)
+  const uiEl = hitTestUIElement(vp.x, vp.y);
+  updateUIHover(uiEl);
+  if (uiEl) {
+    fusion.lastGazeTarget = uiEl;
+  } else if (state.currentTab !== 'casio' && state.currentTab !== 'hand') {
+    fusion.lastGazeTarget = null;
   }
   
   // 12. Update gaze status
@@ -573,13 +663,16 @@ blinkDetector.on('onClassified', (classification) => {
   updateBlinkStatsUI();
 });
 
-// Nháy chủ đích → Phase 3: mở progress bar xác nhận
+// Nháy chủ đích → realtime dwell ring đã xử lý phần lớn trường hợp (nhắm đủ lâu).
+// Handler này chỉ còn cho double-blink upgrade (2 nháy chủ đích liên tiếp).
 blinkDetector.on('onIntentional', (blinkData) => {
   if (blinkProgress.isActive) {
     blinkProgress.upgradeToDouble(blinkData);
     return;
   }
 
+  // Nếu realtime ring chưa kịp chạy (nháy rất nhanh nhưng vẫn được phân loại
+  // chủ đích), khởi tạo ring tại chỗ với confirmMs rút gọn
   let cx = 0, cy = 0;
   const rect = dom.gazeCursor ? dom.gazeCursor.getBoundingClientRect() : null;
   if (rect && rect.width > 0 && rect.height > 0) {
@@ -611,7 +704,7 @@ blinkDetector.on('onWink', (side, duration) => {
   });
 });
 
-// Nháy tự nhiên → adaptive learner + hủy progress bar nếu đang chờ
+// Nháy tự nhiên → adaptive learner + dừng progress ring nếu đang chạy
 blinkDetector.on('onNatural', (blinkData) => {
   adaptiveLearner.updateFromBlink({
     type: blinkData.type === 'uncertain' ? 'unknown' : 'natural',
@@ -619,15 +712,19 @@ blinkDetector.on('onNatural', (blinkData) => {
     features: blinkData.features
   });
 
+  // Mở mắt quá sớm (chớp thường) → dừng ring, không hủy kiểu "gaze_moved"
   if (blinkProgress.isActive) {
     blinkProgress.cancel('natural_blink');
   }
+  dwellData = null;
 
   updateBlinkStatsUI();
 });
 
 // ============ BLINK PROGRESS BAR CALLBACKS (Phase 3) ============
 blinkProgress.on('onConfirm', (data) => {
+  dwellData = null;   // ring hoàn tất → reset realtime state
+  dwellLocked = true; // khóa đến khi mở mắt lại — chống vòng lặp click
   const blink = data.blink;
   lastActionTime = performance.now();
 
@@ -652,6 +749,10 @@ blinkProgress.on('onConfirm', (data) => {
 });
 
 blinkProgress.on('onCancel', (data, reason) => {
+  dwellData = null;   // ring bị hủy → reset realtime state
+  // Hủy vì lý do kỹ thuật (gaze nhảy) thì cho thử lại ngay; hủy vì natural blink
+  // thì khóa đến khi mở mắt lại để tránh ring khởi động lại trong cùng lần nhắm
+  if (reason === 'natural_blink') dwellLocked = true;
   audio.playCancel();
   analytics.log({
     input: 'blink_cancel',
@@ -668,6 +769,15 @@ blinkProgress.onHalfTick = () => {
 // ============ FUSION ENGINE WIRING ============
 fusion.on('onClick', (clickData) => {
   const { action, target, x, y } = clickData;
+
+  // Nút UI chung (tabs, mic, hiệu chỉnh...) → phát click thật lên phần tử DOM
+  // để listener có sẵn (switchTab, voice.toggle, startCalibration...) chạy
+  if (target instanceof Element) {
+    // Bấm ra ngoài dropdown → đóng panel đang mở (trừ khi bấm chính trigger/option của nó)
+    if (!target.closest('.gaze-select-panel, .gaze-select-btn')) GazeSelect.closeOpen();
+    target.click();
+    return;
+  }
 
   switch (state.currentTab) {
     case 'casio':
@@ -825,16 +935,63 @@ voice.on('onError', (err) => {
   }
 });
 
+// ============ GAZE HIT-TEST NÚT UI CHUNG ============
+// Học sinh không dùng tay phải chuyển tab / bật mic / hiệu chỉnh bằng mắt:
+// elementFromPoint tại vị trí gaze → phần tử bấm được gần nhất (trừ #casio-app
+// vì phím Casio đã đi đường casioKeys.pressKey riêng — tránh double-fire)
+const UI_CLICK_SELECTOR = 'button, .method-card, [role="button"]';
+let hoveredUIEl = null;
+
+function hitTestUIElement(x, y) {
+  const el = document.elementFromPoint(x, y);
+  if (!el) return null;
+  const btn = el.closest(UI_CLICK_SELECTOR);
+  if (!btn || btn.closest('#casio-app')) return null;
+  if (btn.disabled || btn.hidden || btn.closest('[hidden]')) return null;
+  return btn;
+}
+
+function updateUIHover(el) {
+  if (hoveredUIEl === el) return;
+  if (hoveredUIEl) hoveredUIEl.classList.remove('gaze-hover');
+  hoveredUIEl = el;
+  if (el) el.classList.add('gaze-hover');
+}
+
 // ============ TAB SWITCHING ============
+// Pill trượt dọc trên rail: đo tab active rồi viết translateY/height lên
+// .nav-tabs-pill để CSS transition tween giữa hai vị trí (transitions.dev tabs-sliding)
+function moveNavPill(animate) {
+  const pill = document.querySelector('.nav-tabs-pill');
+  if (!pill) return;
+  const active = [...dom.tabs].find(t => t.classList.contains('active')) || dom.tabs[0];
+  if (!active || active.offsetHeight === 0) return; // app còn display:none → bỏ qua
+  if (!animate) {
+    // Snap không animation: tắt transition, viết vị trí, force reflow, restore —
+    // tránh pill bay từ translateY(0)/height 0 ở lần đo đầu và khi resize
+    const prev = pill.style.transition;
+    pill.style.transition = 'none';
+    pill.style.transform = `translateY(${active.offsetTop}px)`;
+    pill.style.height = `${active.offsetHeight}px`;
+    void pill.offsetWidth;
+    pill.style.transition = prev;
+  } else {
+    pill.style.transform = `translateY(${active.offsetTop}px)`;
+    pill.style.height = `${active.offsetHeight}px`;
+  }
+}
+
 function switchTab(tabId) {
   // Clear hand hover when leaving hand tab
   if (state.currentTab === 'hand' && tabId !== 'hand') {
     handModule.clearHover();
+    GazeSelect.closeOpen(); // đóng dropdown đang mở để panel không rò rỉ sang tab khác
   }
 
   state.currentTab = tabId;
   
   dom.tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
+  moveNavPill(true); // pill trượt tới tab vừa chọn
   dom.tabContents.forEach(t => t.classList.toggle('active', t.id === `tab-${tabId}`));
   
   const cursor = dom.gazeCursor;
@@ -889,7 +1046,7 @@ async function startCalibration() {
   if (dom.calibrationResult) dom.calibrationResult.style.display = 'none';
   if (dom.calWorkspaceCard) dom.calWorkspaceCard.style.display = 'flex';
 
-  if (dom.calProgressFill) dom.calProgressFill.style.width = '0%';
+  if (dom.calProgressFill) dom.calProgressFill.style.transform = 'scaleX(0)';
   if (dom.calPhaseText) {
     dom.calPhaseText.textContent = method === 'grid9'
       ? 'Đang hiệu chỉnh lưới 9 điểm (Điểm 1/9)...'
@@ -902,7 +1059,7 @@ async function startCalibration() {
   calibration.onProgress = (progress) => {
     if (progress.phase === 'point_done') {
       const pct = Math.round((progress.index / progress.total) * 100);
-      if (dom.calProgressFill) dom.calProgressFill.style.width = `${pct}%`;
+      if (dom.calProgressFill) dom.calProgressFill.style.transform = `scaleX(${pct / 100})`;
       if (dom.calPhaseText) {
         dom.calPhaseText.textContent = `Đang hiệu chỉnh lưới 9 điểm (Điểm ${Math.min(progress.index + 1, 9)}/9)...`;
       }
@@ -938,8 +1095,8 @@ async function startCalibration() {
 
     audio.playCalibrationDone();
 
-    // Save profile to IndexedDB
-    profileManager.save({
+    // Save profile to IndexedDB + sync lên Firestore theo user đăng nhập
+    const calProfile = {
       id: 'default',
       mode: result.mode,
       accuracy: result.accuracy,
@@ -948,7 +1105,11 @@ async function startCalibration() {
       winkCapable: result.winkCapable,
       calibrationPoints: result.calibrationPoints,
       adaptiveState: adaptiveLearner.serialize(),
-    });
+    };
+    profileManager.save(calProfile);
+    saveCalibrationCloud(calProfile).catch((e) =>
+      console.warn('[Cloud] Không lưu được calibration:', e.message)
+    );
   };
 
   const getGaze = () => state.gazePosition;
@@ -1010,8 +1171,13 @@ function applyCalibration() {
 // ============ PROFILE ============
 async function loadProfile() {
   try {
-    const profile = await profileManager.get('default');
-    
+    // Ưu tiên dữ liệu hiệu chỉnh trên Firestore của user; fallback về IndexedDB local
+    let profile = await loadCalibrationCloud().catch((e) => {
+      console.warn('[Cloud] Không tải được calibration:', e.message);
+      return null;
+    });
+    if (!profile) profile = await profileManager.get('default');
+
     if (profile.gazeCalibrated && profile.accuracy > 0) {
       state.isCalibrated = true;
       
@@ -1066,7 +1232,7 @@ function scaleCalculator() {
 
 // ============ UTILITIES ============
 function updateLoading(pct, text) {
-  if (dom.loadingFill) dom.loadingFill.style.width = `${pct}%`;
+  if (dom.loadingFill) dom.loadingFill.style.transform = `scaleX(${Math.min(100, pct) / 100})`;
   if (text && dom.loadingStatus) dom.loadingStatus.textContent = text;
 }
 
@@ -1166,8 +1332,14 @@ setInterval(() => {
 
 // ============ START ============
 function bootstrap() {
-  init();
-  
+  // Auth gate: khởi tạo UI đăng nhập trước; chỉ boot hệ thống khi có user
+  initAuth();
+  onAuthReady((user) => {
+    console.log('[Auth] User:', user.email || user.uid);
+    if (dom.loading) dom.loading.classList.remove('hidden'); // hiện lại thanh tiến trình trong lúc tải module
+    init();
+  });
+
   // Physics canvas resize on window resize
   window.addEventListener('resize', () => {
     if (state.currentTab === 'physics' && dom.physicsCanvas) {

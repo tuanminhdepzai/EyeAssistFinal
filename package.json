@@ -15,6 +15,7 @@
   "dependencies": {
     "@mediapipe/camera_utils": "^0.3.1675466862",
     "@mediapipe/face_mesh": "^0.4.1633559619",
+    "firebase": "^12.18.0",
     "three": "^0.170.0"
   }
 }

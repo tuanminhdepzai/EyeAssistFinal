@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<!--
+  HƯỚNG THIẾT KẾ: BENCHMARK TRANSFER — Tobii Dynavox (TD Snap / Communicator, nền tảng AAC điều khiển bằng mắt)
+  Nguồn nghiên cứu: tobiidynavox.com — sản phẩm CÓ THẬT, chuẩn công nghiệp về giao tiếp thay thế (AAC)
+  cho người khuyết tật vận động, hỗ trợ eye-tracking qua phụ kiện EyeMax, tổ chức từ vựng theo hệ InterAACT.
+
+  PHÂN TÍCH DESIGN LANGUAGE CỦA BENCHMARK:
+  1. Fitzgerald Key color coding — hệ mã màu theo nhóm chức năng (danh từ = vàng, động từ = xanh lá,
+     ngữ pháp = cam...) giúp người dùng định vị target bằng "loại" thay vì đọc từng ô, giảm tải nhận thức.
+  2. Grid targets lớn, khoảng cách rộng — mọi ô bấm đều là target cỡ lớn trên nền tối/contrast cao,
+     chừa khoảng cách rõ ràng giữa các ô để bù cho sai số gaze (~1–2°).
+  3. Dwell selection với feedback tiến trình — chọn bằng cách nhìn giữ; tiến trình xác nhận phải luôn
+     hiển thị quanh chính target đang được nhìn.
+  4. Khí chất "thiết bị hỗ trợ y tế nhưng ấm": nền tối dịu, màu chức năng bão hòa vừa, không trang trí thừa.
+
+  TRANSFER SANG EYEASSIST STEM (không copy): bảng phím Casio được mã màu theo nhóm chức năng
+  kiểu Fitzgerald Key (số = amber, phép toán = xanh lá, hàm = xanh dương, xoá = đỏ ấm); layout rail dọc
+  kiểu khung thiết bị thay vì nav ngang; "vòng xác nhận" dwell-ring làm motif hình học xuyên suốt
+  (con trỏ gaze, metric ring trong card trạng thái, chỉ báo tab active).
+-->
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>EyeAssist STEM — Hướng Benchmark (Tobii Dynavox transfer)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#191613;
+    --rail:#221d17;
+    --panel:#26211a;
+    --panel-2:#2d2720;
+    --line:#3a332a;
+    --ink:#f1ead9;
+    --ink-mut:#b5a98d;
+    --amber:#e8b84b;       /* Fitzgerald: danh từ -> số */
+    --amber-hi:#f5cf6b;
+    --green:#93c47d;       /* Fitzgerald: động từ -> phép toán */
+    --blue:#7aa7d9;        /* Fitzgerald: ngữ pháp -> hàm/chức năng */
+    --red:#d98a70;         /* hành động xoá */
+    --gaze:#f5cf6b;
+    --lcd:#c9d5bd;
+    --lcd-ink:#22301f;
+    --body:#3b3d40;        /* thân xám đen Casio */
+    --body-edge:#26282a;
+    --ring-track:rgba(241,234,217,.18);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    width:1440px;height:900px;overflow:hidden;
+    background:var(--bg);color:var(--ink);
+    font-family:"Be Vietnam Pro",system-ui,sans-serif;
+    font-size:15px;line-height:1.5;
+    display:grid;grid-template-columns:252px 1fr;
+  }
+
+  /* ============ RAIL DỌC (top-nav restyle thành rail thiết bị) ============ */
+  #top-nav{
+    background:var(--rail);
+    border-right:1px solid var(--line);
+    display:flex;flex-direction:column;
+    padding:24px 18px;gap:8px;
+  }
+  .brand{display:flex;align-items:center;gap:12px;padding:2px 6px 18px;border-bottom:1px solid var(--line);margin-bottom:12px}
+  .brand-mark{
+    width:44px;height:44px;flex:0 0 44px;border-radius:50%;
+    border:2px solid var(--amber);display:flex;align-items:center;justify-content:center;
+  }
+  .brand-mark svg{width:24px;height:24px;stroke:var(--amber-hi);fill:none;stroke-width:1.8}
+  .brand-name{font-size:17px;font-weight:700;letter-spacing:.2px;line-height:1.15}
+  .brand-sub{font-size:12.5px;color:var(--ink-mut);font-weight:500;letter-spacing:1.6px;text-transform:uppercase}
+
+  .nav-label{font-size:12.5px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--ink-mut);padding:6px 8px 8px}
+  .nav-tab{
+    display:flex;align-items:center;gap:14px;
+    min-height:58px;padding:10px 14px;border-radius:12px;
+    background:transparent;border:1px solid transparent;
+    color:#d9d0bc;font:inherit;font-size:15.5px;font-weight:600;
+    cursor:pointer;text-align:left;width:100%;
+    transition:background 160ms ease,border-color 160ms ease,transform 160ms ease;
+    margin-bottom:8px;
+  }
+  .nav-tab svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;flex:0 0 22px}
+  .nav-tab:hover{background:var(--panel);transform:scale(1.02)}
+  .nav-tab.active{
+    background:var(--panel-2);border-color:var(--amber);
+    color:var(--amber-hi);
+    box-shadow:inset 0 0 0 1px rgba(232,184,75,.25);
+  }
+  .nav-tab.active .tab-ring{border-color:var(--amber)}
+  .tab-ring{
+    width:38px;height:38px;flex:0 0 38px;border-radius:50%;
+    border:2px solid var(--ring-track);
+    display:flex;align-items:center;justify-content:center;
+  }
+
+  .rail-spacer{flex:1}
+
+  /* Cụm trạng thái: dot + nhãn + vòng mini (motif ring) */
+  .status-cluster{
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:14px 14px 10px;margin-bottom:12px;
+  }
+  .status-row{display:flex;align-items:center;gap:10px;padding:7px 2px;min-height:36px}
+  .dot{width:12px;height:12px;border-radius:50%;flex:0 0 12px}
+  .dot.ok{background:#7fce6d;box-shadow:0 0 0 4px rgba(127,206,109,.16)}
+  .dot.idle{background:#8b8272;box-shadow:0 0 0 4px rgba(139,130,114,.16)}
+  .status-name{font-size:14px;font-weight:600;color:var(--ink)}
+  .status-val{margin-left:auto;font-size:13.5px;color:var(--ink-mut);font-weight:500}
+
+  #btn-mic-toggle{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    min-height:56px;border-radius:14px;cursor:pointer;
+    background:var(--panel-2);border:2px solid var(--amber);color:var(--amber-hi);
+    font:inherit;font-size:15.5px;font-weight:700;width:100%;
+    transition:transform 160ms ease,background 160ms ease;
+  }
+  #btn-mic-toggle:hover{transform:scale(1.03);background:#34301f}
+  #btn-mic-toggle svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
+
+  /* ============ STAGE CHÍNH ============ */
+  #casio-app{
+    position:relative;overflow:hidden;
+    background:
+      radial-gradient(900px 520px at 46% 38%, #221d15 0%, var(--bg) 62%),
+      var(--bg);
+  }
+  .stage-floor{
+    position:absolute;left:0;right:0;bottom:0;height:220px;
+    background:linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.38) 100%);
+    pointer-events:none;
+  }
+  .stage-hint{
+    position:absolute;top:22px;left:36px;z-index:3;
+    display:flex;align-items:center;gap:12px;
+    background:rgba(38,33,26,.88);border:1px solid var(--line);
+    border-radius:12px;padding:12px 18px;max-width:520px;
+  }
+  .stage-hint svg{width:20px;height:20px;stroke:var(--amber-hi);fill:none;stroke-width:1.8;flex:0 0 20px}
+  .stage-hint p{font-size:14px;color:var(--ink)}
+  .stage-hint strong{color:var(--amber-hi);font-weight:700}
+
+  .stage-tab-tag{
+    position:absolute;top:22px;right:36px;z-index:3;
+    font-size:13px;letter-spacing:2px;text-transform:uppercase;
+    color:var(--ink-mut);font-weight:600;
+  }
+
+  .stage-center{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    padding:40px 300px 40px 60px;
+  }
+
+  /* ============ MÁY TÍNH CASIO fx-580VN X (giữ độ trung thực) ============ */
+  .calculator-wrapper{position:relative;filter:drop-shadow(0 42px 44px rgba(0,0,0,.55))}
+  #calculator{
+    width:470px;background:linear-gradient(180deg,#44464a 0%, var(--body) 9%, var(--body) 100%);
+    border:1px solid var(--body-edge);border-radius:26px 26px 30px 30px;
+    padding:22px 26px 30px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.14), inset 0 -3px 8px rgba(0,0,0,.35);
+  }
+  .calc-head{display:flex;align-items:center;justify-content:space-between;padding:0 2px 12px}
+  .casio-logo{font-family:"Be Vietnam Pro",sans-serif;font-weight:700;font-size:21px;letter-spacing:1.5px;color:#f4f2ec}
+  .calc-model{color:#cfd1d4;font-size:13.5px;font-weight:600;letter-spacing:.5px;text-align:right;line-height:1.2}
+  .calc-model span{display:block;font-size:11px;color:#9a9da1;font-weight:500}
+  .solar{
+    display:flex;gap:3px;margin:2px 0 14px;justify-content:flex-end;
+  }
+  .solar i{width:22px;height:12px;background:linear-gradient(180deg,#2a2d33,#1a1c20);border:1px solid #111;border-radius:2px}
+
+  #lcd{
+    background:var(--lcd);border-radius:10px;border:2px solid #20241c;
+    padding:12px 16px 14px;margin-bottom:18px;
+    box-shadow:inset 0 2px 6px rgba(0,0,0,.35);
+  }
+  .lcd-row{display:flex;justify-content:space-between;align-items:center}
+  .lcd-flags{display:flex;gap:8px;font-family:"JetBrains Mono",monospace;font-size:11px;color:#5d6b53;font-weight:600}
+  #screen-input{
+    font-family:"JetBrains Mono",monospace;font-size:16px;color:#48583f;
+    text-align:right;min-height:22px;letter-spacing:.5px;
+  }
+  #screen-output{
+    font-family:"JetBrains Mono",monospace;font-size:40px;font-weight:700;color:var(--lcd-ink);
+    text-align:right;letter-spacing:1px;line-height:1.15;
+  }
+
+  /* Lưới phím — mã màu nhóm chức năng (transfer Fitzgerald Key) */
+  .keys{display:grid;grid-template-columns:repeat(5,1fr);gap:11px}
+  .key{
+    position:relative;min-height:56px;border-radius:12px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"Be Vietnam Pro",sans-serif;font-size:21px;font-weight:700;
+    border:1px solid rgba(0,0,0,.45);
+    box-shadow:0 3px 0 rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.16);
+    transition:transform 160ms ease,box-shadow 160ms ease,outline-color 160ms ease;
+    outline:3px solid transparent;outline-offset:3px;
+  }
+  .key:hover{transform:scale(1.03)}
+  .key-num{background:var(--amber);color:#2b2106}
+  .key-op{background:var(--green);color:#1c2a14}
+  .key-fn{background:var(--blue);color:#101c2b;font-size:18px}
+  .key-act{background:var(--red);color:#2d130c;font-size:16px;letter-spacing:.4px}
+  .key-eq{background:#2f3338;color:var(--amber-hi);font-size:24px}
+  .key-fn-row{min-height:48px}
+
+  /* Trạng thái gaze-hover trên phím 5: vòng outline + giãn nhẹ */
+  .key.gaze-hover{
+    transform:scale(1.05);
+    outline-color:var(--gaze);
+    box-shadow:0 3px 0 rgba(0,0,0,.5), 0 0 26px rgba(245,207,107,.45), inset 0 1px 0 rgba(255,255,255,.2);
+    z-index:2;
+  }
+
+  /* ============ GAZE CURSOR + DWELL RING (motif vòng xác nhận) ============ */
+  #gaze-cursor{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:76px;height:76px;pointer-events:none;z-index:5;
+  }
+  #gaze-cursor .track{fill:none;stroke:rgba(20,16,8,.4);stroke-width:5.5}
+  #gaze-cursor .fill{fill:none;stroke:var(--gaze);stroke-width:5.5;stroke-linecap:round}
+  #gaze-cursor .center{fill:var(--gaze)}
+  .gaze-tag{
+    position:absolute;top:calc(50% + 44px);left:50%;transform:translateX(-50%);
+    background:#141109;border:1px solid var(--amber);color:var(--amber-hi);
+    font-size:13px;font-weight:600;white-space:nowrap;
+    padding:5px 12px;border-radius:99px;pointer-events:none;
+  }
+
+  /* ============ CARD TRẠNG THÁI HỆ THỐNG (phải) ============ */
+  .status-card{
+    position:absolute;top:86px;right:36px;z-index:3;width:296px;
+    background:var(--panel);border:1px solid var(--line);border-radius:18px;
+    padding:22px;
+  }
+  .status-card h2{
+    display:flex;align-items:center;gap:10px;
+    font-size:15.5px;font-weight:700;margin-bottom:6px;
+  }
+  .status-card h2 svg{width:20px;height:20px;stroke:var(--amber-hi);fill:none;stroke-width:1.8}
+  .status-card .sub{font-size:13.5px;color:var(--ink-mut);margin-bottom:16px}
+  .sc-row{
+    display:flex;align-items:center;gap:12px;
+    padding:12px 2px;border-top:1px solid var(--line);
+  }
+  .sc-label{font-size:14px;color:var(--ink-mut);font-weight:500}
+  .sc-val{margin-left:auto;font-size:16px;font-weight:700;font-family:"JetBrains Mono",monospace}
+  .sc-val.ok{color:#9fd68b}
+  .metric-ring{flex:0 0 36px}
+  .metric-ring .track{fill:none;stroke:var(--ring-track);stroke-width:4}
+  .metric-ring .fill{fill:none;stroke:var(--amber-hi);stroke-width:4;stroke-linecap:round}
+  .mode-chip{
+    margin-top:14px;background:#1f2a18;border:1px solid #4a6238;border-radius:10px;
+    padding:10px 14px;font-size:14px;color:#cfe6c2;
+  }
+  .mode-chip strong{color:#e4f3da}
+
+  /* ============ CAMERA PREVIEW (góc trái stage) ============ */
+  #cam-preview{
+    position:absolute;left:36px;bottom:30px;z-index:3;
+    width:204px;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;padding:10px;
+  }
+  .cam-screen{
+    position:relative;width:184px;height:120px;background:#0c0b09;
+    border-radius:8px;overflow:hidden;
+  }
+  .cam-screen svg{position:absolute;inset:0;width:100%;height:100%}
+  .fps{
+    position:absolute;top:8px;right:8px;background:rgba(12,11,9,.82);
+    border:1px solid var(--line);border-radius:6px;
+    font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:600;
+    color:#9fd68b;padding:2px 8px;
+  }
+  #blink-stats{font-size:13px;color:var(--ink-mut);padding:9px 4px 2px;font-weight:500}
+  #blink-stats strong{color:var(--ink)}
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{transition:none !important;animation:none !important}
+  }
+</style>
+</head>
+<body>
+
+  <!-- RAIL DỌC: brand + tab + trạng thái + mic -->
+  <nav id="top-nav" aria-label="Điều hướng chính">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg>
+      </span>
+      <div>
+        <div class="brand-name">EyeAssist STEM</div>
+        <div class="brand-sub">Học bằng ánh mắt</div>
+      </div>
+    </div>
+
+    <div class="nav-label">Công cụ</div>
+
+    <button class="nav-tab active" data-tab="casio">
+      <span class="tab-ring" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/></svg>
+      </span>
+      Casio Ảo
+    </button>
+    <button class="nav-tab" data-tab="hand">
+      <span class="tab-ring" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M8 12V6.5a1.5 1.5 0 0 1 3 0V11m0-5.5v-1a1.5 1.5 0 0 1 3 0V11m0-4a1.5 1.5 0 0 1 3 0v6.5c0 3.6-2.2 6-5.8 6-2.9 0-4.2-1.3-5.6-3.8L4.3 12.6c-.5-.8-.2-1.8.6-2.2.8-.4 1.7-.1 2.2.6L8 12"/></svg>
+      </span>
+      Bàn Tay 3D
+    </button>
+    <button class="nav-tab" data-tab="cal">
+      <span class="tab-ring" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+      </span>
+      Hiệu chỉnh
+    </button>
+
+    <div class="rail-spacer"></div>
+
+    <div class="status-cluster" aria-label="Trạng thái hệ thống">
+      <div class="status-row" id="cam-status">
+        <span class="dot ok" aria-hidden="true"></span>
+        <span class="status-name">Camera</span>
+        <span class="status-val">Ổn định</span>
+      </div>
+      <div class="status-row" id="gaze-status">
+        <span class="dot ok" aria-hidden="true"></span>
+        <span class="status-name">Gaze</span>
+        <span class="status-val">Đang theo</span>
+      </div>
+      <div class="status-row" id="voice-status">
+        <span class="dot idle" aria-hidden="true"></span>
+        <span class="status-name">Voice</span>
+        <span class="status-val">Chờ lệnh</span>
+      </div>
+    </div>
+
+    <button id="btn-mic-toggle">
+      <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+      Ra lệnh bằng giọng nói
+    </button>
+  </nav>
+
+  <!-- STAGE CASIO -->
+  <main id="casio-app">
+    <div class="stage-floor" aria-hidden="true"></div>
+
+    <div class="stage-hint">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      <p><strong>Nhìn giữ 1 giây</strong> vào phím để nhấn — vòng vàng điền đầy quanh phím là xác nhận chọn.</p>
+    </div>
+
+    <div class="stage-tab-tag">Casio Ảo · fx-580VN X</div>
+
+    <div class="stage-center">
+      <div class="calculator-wrapper">
+        <div id="calculator" role="application" aria-label="Máy tính Casio fx-580VN X điều khiển bằng mắt">
+          <div class="calc-head">
+            <div class="casio-logo">CASIO</div>
+            <div class="calc-model">fx-580VN X<span>VN PLUS · ClassWiz</span></div>
+          </div>
+          <div class="solar" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+
+          <div id="lcd">
+            <div class="lcd-row">
+              <div class="lcd-flags"><span>MATH</span><span>D</span><span>⇔</span></div>
+            </div>
+            <div id="screen-input">12×(3+4)</div>
+            <div id="screen-output">84</div>
+          </div>
+
+          <div class="keys">
+            <button class="key key-fn key-fn-row" data-key="shift">SHIFT</button>
+            <button class="key key-fn key-fn-row" data-key="alpha">ALPHA</button>
+            <button class="key key-fn key-fn-row" data-key="sq">x²</button>
+            <button class="key key-fn key-fn-row" data-key="pi">π</button>
+            <button class="key key-fn key-fn-row" data-key="sqrt">√</button>
+
+            <button class="key key-num" data-key="7">7</button>
+            <button class="key key-num" data-key="8">8</button>
+            <button class="key key-num" data-key="9">9</button>
+            <button class="key key-act" data-key="del">DEL</button>
+            <button class="key key-act" data-key="ac">AC</button>
+
+            <button class="key key-num" data-key="4">4</button>
+            <button class="key key-num gaze-hover" data-key="5">
+              5
+              <!-- Gaze cursor + dwell-progress ring (motif vòng xác nhận) -->
+              <span id="gaze-cursor" aria-hidden="true">
+                <svg width="76" height="76" viewBox="0 0 76 76">
+                  <circle class="track" cx="38" cy="38" r="26"/>
+                  <circle class="fill" cx="38" cy="38" r="26"
+                          stroke-dasharray="117.6 163.4"
+                          transform="rotate(-90 38 38)"/>
+                  <circle class="center" cx="38" cy="38" r="4.5"/>
+                </svg>
+                <span class="gaze-tag">Đang xác nhận…</span>
+              </span>
+            </button>
+            <button class="key key-num" data-key="6">6</button>
+            <button class="key key-op" data-key="mul">×</button>
+            <button class="key key-op" data-key="div">÷</button>
+
+            <button class="key key-num" data-key="1">1</button>
+            <button class="key key-num" data-key="2">2</button>
+            <button class="key key-num" data-key="3">3</button>
+            <button class="key key-op" data-key="add">+</button>
+            <button class="key key-op" data-key="sub">−</button>
+
+            <button class="key key-num" data-key="0">0</button>
+            <button class="key key-num" data-key="dot">.</button>
+            <button class="key key-op" data-key="lparen">(</button>
+            <button class="key key-op" data-key="rparen">)</button>
+            <button class="key key-eq" data-key="eq">=</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARD TRẠNG THÁI HỆ THỐNG -->
+    <section class="status-card" aria-label="Trạng thái hệ thống">
+      <h2>
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+        Trạng thái hệ thống
+      </h2>
+      <p class="sub">Phiên học hiện tại · theo dõi thời gian thực</p>
+
+      <div class="sc-row">
+        <svg class="metric-ring" width="36" height="36" viewBox="0 0 36 36" aria-hidden="true">
+          <circle class="track" cx="18" cy="18" r="14"/>
+          <circle class="fill" cx="18" cy="18" r="14" stroke-dasharray="81 88" transform="rotate(-90 18 18)"/>
+        </svg>
+        <span class="sc-label">Đã hiệu chỉnh</span>
+        <span class="sc-val">92%</span>
+      </div>
+      <div class="sc-row">
+        <span class="sc-label" style="margin-left:48px">Độ ổn định gaze</span>
+        <span class="sc-val">88%</span>
+      </div>
+      <div class="sc-row">
+        <span class="dot ok" style="margin-left:48px" aria-hidden="true"></span>
+        <span class="sc-label">Camera</span>
+        <span class="sc-val ok">Ổn</span>
+      </div>
+
+      <div class="mode-chip">Chế độ đề xuất: <strong>Mode A · Chớp 2 mắt</strong></div>
+    </section>
+
+    <!-- CAMERA PREVIEW -->
+    <section id="cam-preview" aria-label="Xem trước camera">
+      <div class="cam-screen">
+        <svg viewBox="0 0 184 120" aria-hidden="true">
+          <ellipse cx="92" cy="62" rx="34" ry="44" fill="none" stroke="rgba(245,207,107,.35)" stroke-width="1.5" stroke-dasharray="5 4"/>
+          <path d="M70 58 q22 -14 44 0 q-22 12 -44 0z" fill="none" stroke="rgba(245,207,107,.5)" stroke-width="1.5"/>
+          <circle cx="92" cy="58" r="4" fill="rgba(245,207,107,.65)"/>
+          <path d="M8 10 h14 M8 10 v14 M176 10 h-14 M176 10 v14 M8 110 h14 M8 110 v-14 M176 110 h-14 M176 110 v-14" stroke="rgba(241,234,217,.3)" stroke-width="2" fill="none"/>
+        </svg>
+        <span class="fps" id="fps-counter">24 FPS</span>
+      </div>
+      <div id="blink-stats">Nháy xác nhận: <strong>12 lần</strong> · lệch 0</div>
+    </section>
+  </main>
+
+</body>
+</html>

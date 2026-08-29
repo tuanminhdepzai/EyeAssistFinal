@@ -5,3 +5,9 @@ dist-ssr
 .vite
 .DS_Store
 *.log
+.env
+.env.local
+.claude/
+.cursor/
+load_test_logs/
+response.json

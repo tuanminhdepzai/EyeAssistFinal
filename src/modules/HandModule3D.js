@@ -11,6 +11,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { enhanceSelects } from './GazeSelect.js';
 
 // ═══════════════════════════════════════════
 // BONE CONFIG
@@ -124,6 +125,9 @@ export class HandModule3D {
     this._init3DArrows();
     this._loadModel();
     this._bindWindowResize(viewportEl);
+
+    // Nâng cấp <select> native → GazeSelect (mở & chọn bằng mắt, style đồng bộ)
+    this._gazeSelects = enhanceSelects(containerEl);
 
     // Expose globals needed by HTML onclick handlers
     window._handModule = this;

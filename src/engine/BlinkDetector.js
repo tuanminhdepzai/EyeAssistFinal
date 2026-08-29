@@ -57,7 +57,8 @@ export class BlinkDetector {
       onNatural: () => {},
       onWink: () => {},
       onStare: () => {},
-      onClassified: () => {}      // { type, confidence, evidence, blink }
+      onClassified: () => {},     // { type, confidence, evidence, blink }
+      onCloseFrame: () => {}      // realtime mỗi frame khi mắt đang nhắm: { state, closedMs, earAvg }
     };
 
     this.stats = {
@@ -133,6 +134,16 @@ export class BlinkDetector {
           this._framesBelow = 0;
         }
         break;
+    }
+
+    // Realtime callback: cho progress ring biết mắt đã nhắm được bao lâu
+    // (chạy MỖI frame trong lúc nhắm — không chờ mở mắt xong mới phân loại)
+    if (this.state === 'CLOSING' || this.state === 'CLOSED') {
+      this.callbacks.onCloseFrame({
+        state: this.state,
+        closedMs: timestamp - this._blinkStart,
+        earAvg
+      });
     }
   }
 

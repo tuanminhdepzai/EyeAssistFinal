@@ -163,10 +163,11 @@ export class BlinkProgressBar {
    */
   showClassification(x, y, classification) {
     this._ensureDom();
+    // confidence = xác suất của loại được chọn (natural → 1-intentScore)
     const text = classification.type === 'natural'
       ? `Tự nhiên ${Math.round(classification.confidence * 100)}%`
       : classification.type === 'uncertain'
-        ? `? ${Math.round(classification.confidence * 100)}%`
+        ? `Mơ hồ ${Math.round(classification.confidence * 100)}%`
         : `Chủ đích ${Math.round(classification.confidence * 100)}%`;
 
     this._chip.textContent = text;

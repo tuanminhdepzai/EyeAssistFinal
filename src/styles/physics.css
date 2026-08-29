@@ -1,6 +1,6 @@
 /* ===== Physics Hand 3D ===== */
 #tab-physics {
-  background: #0a0e1a;
+  background: var(--bg-primary);
 }
 
 #physics-app {
@@ -13,8 +13,9 @@
   width: 280px;
   min-width: 280px;
   padding: 20px;
-  background: var(--bg-secondary);
-  border-right: 1px solid var(--border-color);
+  background: linear-gradient(160deg, rgba(255,255,255,.03), rgba(255,255,255,.008)), var(--bg-secondary);
+  backdrop-filter: var(--glass-blur);
+  border-right: 1px solid var(--glass-border);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -23,12 +24,13 @@
 
 #physics-sidebar h3 {
   font-size: 16px;
-  color: var(--accent-cyan);
+  color: var(--accent-amber-hi);
   margin-bottom: 4px;
 }
 
 #physics-problem {
-  background: var(--bg-card);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   padding: 16px;
   min-height: 80px;
@@ -47,7 +49,8 @@
 }
 
 #physics-score {
-  background: var(--bg-card);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   padding: 16px;
 }
@@ -67,9 +70,9 @@
 .physics-help {
   margin-top: auto;
   padding: 12px;
-  background: rgba(0,212,255,0.05);
+  background: rgba(232,184,75,0.05);
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(0,212,255,0.1);
+  border: 1px solid rgba(232,184,75,0.1);
 }
 
 .physics-help p {

@@ -657,6 +657,61 @@
   box-shadow: 0 0 0 #1e3e8a, 0 1px 2px rgba(0,0,0,0.4);
 }
 
+/* ===== FITZGERALD KEY COLOR CODING (EyeAssist gaze-first overlay) =====
+   Mã màu theo nhóm chức năng giúp định vị vùng phím bằng mắt trong phiên dài.
+   Lớp overlay tint + viền màu phủ TRÊN màu nhựa gốc, không thay đổi thân máy:
+   số = amber (vàng cát) · phép toán = xanh lá · DEL/AC = đất nung ấm · = = than ấm.
+   Hàm (f-btn) giữ nhựa tối; nhóm được nhận diện qua badge xanh dương ở nhãn shift. */
+.n-btn {
+  background-image: linear-gradient(180deg, rgba(232, 184, 75, 0.5) 0%, rgba(232, 184, 75, 0.32) 100%),
+    linear-gradient(180deg, #d0d5d8 0%, #b8bec2 100%);
+  border: 1px solid rgba(232, 184, 75, 0.55);
+}
+.n-btn.op-gray {
+  background-image: linear-gradient(180deg, rgba(147, 196, 125, 0.42) 0%, rgba(147, 196, 125, 0.28) 100%),
+    linear-gradient(180deg, #82878b 0%, #6a6f73 100%);
+  border-color: rgba(147, 196, 125, 0.55);
+}
+.n-btn.ac-blue {
+  background-image: linear-gradient(180deg, rgba(217, 138, 112, 0.48) 0%, rgba(217, 138, 112, 0.3) 100%),
+    linear-gradient(180deg, #4d7de0 0%, #3660c4 100%);
+  border-color: rgba(217, 138, 112, 0.6);
+}
+.n-btn[data-key="EQUALS"] {
+  background-image: linear-gradient(180deg, rgba(232, 184, 75, 0.28) 0%, rgba(232, 184, 75, 0.16) 100%),
+    linear-gradient(180deg, #82878b 0%, #6a6f73 100%);
+  border-color: rgba(232, 184, 75, 0.6);
+}
+.f-btn {
+  border: 1px solid rgba(122, 167, 217, 0.4);
+}
+/* Nhóm hàm: badge xanh dương trên nhãn shift vàng (ký hiệu nhóm, Fitzgerald: ngữ pháp) */
+.f-wrap .lbl-y::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #7aa7d9;
+  margin-right: 2px;
+  vertical-align: 1px;
+}
+/* Hàng số và phép toán: badge nhóm đặt ở góc phải nhãn trên */
+.num-grid .f-wrap .lbl-top::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--fk-group, transparent);
+}
+.num-grid .f-wrap:has(.n-btn:not(.op-gray):not(.ac-blue)) { --fk-group: rgba(232, 184, 75, 0.9); }
+.num-grid .f-wrap:has(.n-btn.op-gray) { --fk-group: rgba(147, 196, 125, 0.9); }
+.num-grid .f-wrap:has(.n-btn.ac-blue) { --fk-group: rgba(217, 138, 112, 0.9); }
+.num-grid .f-wrap .lbl-top { position: absolute; }
+
 /* ===== ACTIVE SHIFT/ALPHA glow on body ===== */
 .calculator.shift-active .btn-label-yellow { color: #ffe066; text-shadow: 0 0 6px #ffe066; }
 .calculator.alpha-active  .btn-label-red   { color: #ff7070; text-shadow: 0 0 6px #ff7070; }
