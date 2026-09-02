@@ -1,0 +1,1211 @@
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500&family=Roboto:wght@400;500;700&display=swap');
+
+/* Global resets handled by EyeAssist base.css */
+
+/* ===== CALCULATOR WRAPPER (White outer rim) ===== */
+.calculator-wrapper {
+  position: relative;
+  background: #e8e8e8;
+  border-radius: 36px 36px 60px 60px;
+  padding: 5px 5px 20px 5px;
+  box-shadow:
+    0 15px 40px rgba(0,0,0,0.5),
+    inset 0 1px 2px rgba(255,255,255,0.8);
+}
+
+/* ===== CALCULATOR BODY ===== */
+.calculator {
+  width: 370px;
+  background: linear-gradient(180deg, #3f443e 0%, #3a3f3a 60%, #363b36 100%);
+  border-radius: 32px 32px 50px 50px;
+  padding: 22px 18px 22px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  box-shadow:
+    inset 0 2px 4px rgba(255,255,255,0.08),
+    inset 0 -2px 4px rgba(0,0,0,0.3);
+}
+
+/* ===== BRANDING ===== */
+.brand-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 10px;
+  position: relative;
+  height: 42px;
+}
+
+.logo-casio {
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  position: absolute;
+  left: 8px;
+  top: 0;
+  font-family: 'Arial Black', Arial, sans-serif;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.model-name {
+  color: #aaaaaa;
+  font-size: 10px;
+  font-weight: 700;
+  position: absolute;
+  right: 8px;
+  top: 6px;
+  letter-spacing: 0.5px;
+}
+
+.logo-classwiz {
+  color: #d04058;
+  font-size: 14px;
+  font-family: 'Oswald', sans-serif;
+  letter-spacing: 5px;
+  margin-top: 26px;
+  text-shadow: 0 0 8px rgba(208,64,88,0.4);
+}
+
+/* ===== SCREEN BEZEL ===== */
+.screen-bezel {
+  background: #0f0f0f;
+  border-radius: 12px;
+  padding: 8px 10px 12px;
+  margin-bottom: 18px;
+  box-shadow:
+    inset 0 4px 12px rgba(0,0,0,0.9),
+    0 2px 3px rgba(255,255,255,0.06);
+  border: 1px solid #222;
+}
+
+/* ===== LCD SCREEN ===== */
+.screen {
+  background: #c8d8bc;
+  height: 92px;
+  border-radius: 4px;
+  box-shadow:
+    inset 0 2px 6px rgba(0,0,0,0.35),
+    inset 0 0 2px rgba(0,0,0,0.2);
+  padding: 4px 8px 4px;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Courier New', Courier, monospace;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Status bar row */
+.screen-indicators {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  font-size: 9px;
+  font-weight: bold;
+  color: #1a2e1a;
+  height: 14px;
+  align-items: center;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.indicator {
+  display: none;
+}
+.indicator.active {
+  display: inline-block;
+}
+.indicator-icon {
+  background: #1a2e1a;
+  color: #c8d8bc;
+  padding: 0 2px;
+  border-radius: 1px;
+  font-size: 8px;
+  font-weight: bold;
+}
+#ind-angle {
+  color: #1a2e1a;
+  font-size: 9px;
+  font-weight: bold;
+}
+
+/* Main screen content area */
+.screen-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-top: 2px;
+}
+
+/* Input / expression row */
+.screen-input-wrapper {
+  display: flex;
+  align-items: flex-start;
+  min-height: 28px;
+  position: relative;
+}
+
+.screen-input-display {
+  font-size: 17px;
+  color: #0a1a0a;
+  line-height: 1.3;
+  word-break: break-all;
+  flex: 1;
+}
+
+/* Cursor */
+.cursor-blink {
+  display: inline-block;
+  width: 1px;
+  height: 16px;
+  background: #0a1a0a;
+  animation: blink 1s step-end infinite;
+  vertical-align: middle;
+  margin-left: 1px;
+}
+.cursor-blink.overwrite {
+  width: 8px;
+  height: 2px;
+  vertical-align: bottom;
+  margin-bottom: 2px;
+  background: #0a1a0a;
+}
+.cursor-blink.warning {
+  width: 9px;
+  height: 16px;
+  background: #0a1a0a;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* Output / result row */
+.screen-output {
+  text-align: right;
+  font-weight: bold;
+  font-size: 22px;
+  color: #0a1a0a;
+  min-height: 26px;
+  line-height: 1.1;
+  word-break: break-all;
+}
+.screen-output.small {
+  font-size: 14px;
+}
+
+/* Math templates rendering styling */
+.math-template {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.template-integral {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.integral-limits {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 8px;
+  height: 26px;
+  margin-right: 1px;
+}
+
+.limit-upper, .limit-lower {
+  min-width: 6px;
+  height: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.integral-symbol {
+  font-size: 20px;
+  line-height: 1;
+  font-weight: normal;
+  margin-right: 1px;
+}
+
+.integral-body {
+  display: inline-flex;
+  align-items: center;
+}
+
+.template-box {
+  min-width: 8px;
+  min-height: 12px;
+  border: 1px dashed #5a6e5a;
+  padding: 0 1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1px;
+  background: rgba(0,0,0,0.01);
+  margin: 0 1px;
+}
+
+.template-box.active {
+  border: 1px solid #0a1a0a;
+  background: rgba(0,0,0,0.05);
+}
+
+/* Derivative template */
+.template-derivative {
+  display: inline-flex;
+  align-items: center;
+}
+
+.derivative-fraction {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 9px;
+  margin-right: 2px;
+}
+
+.derivative-top {
+  border-bottom: 1px solid #0a1a0a;
+  padding-bottom: 1px;
+  margin-bottom: 1px;
+  line-height: 1;
+}
+
+.derivative-bottom {
+  padding-top: 1px;
+  line-height: 1;
+}
+
+/* Fraction templates */
+.template-fraction, .template-mixed-fraction {
+  display: inline-flex;
+  align-items: center;
+}
+
+.mixed-whole {
+  margin-right: 2px;
+}
+
+.fraction-col {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 14px;
+}
+
+.fraction-top {
+  border-bottom: 1px solid #0a1a0a;
+  padding: 1px 2px;
+  line-height: 1;
+}
+
+.fraction-bottom {
+  padding: 1px 2px;
+  line-height: 1;
+}
+
+.derivative-eval {
+  display: inline-flex;
+  align-items: center;
+}
+
+.derivative-eval-bar {
+  font-size: 20px;
+  font-weight: 100;
+  margin: 0 1px;
+}
+
+.derivative-eval-point {
+  font-size: 8px;
+  margin-top: 8px;
+}
+
+/* Summation template */
+.template-summation {
+  display: inline-flex;
+  align-items: center;
+}
+
+.summation-left {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 2px;
+}
+
+.summation-upper {
+  font-size: 8px;
+  min-height: 9px;
+}
+
+.summation-symbol {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.summation-lower {
+  font-size: 8px;
+  min-height: 9px;
+}
+
+/* Error screen */
+.error-screen {
+  position: absolute;
+  inset: 0;
+  background: #c8d8bc;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 6px 10px;
+  font-size: 15px;
+  color: #0a1a0a;
+  z-index: 10;
+  display: none;
+}
+.error-screen.active { display: flex; }
+.error-title { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
+.error-hint { font-size: 10px; }
+
+/* ===== MENU SCREEN OVERLAY (Casio ClassWiz 2-Row Paginated Matrix) ===== */
+.menu-screen {
+  position: absolute;
+  inset: 0;
+  background: #c8d8bc;
+  display: none;
+  flex-direction: column;
+  padding: 1px 6px 3px 6px;
+  z-index: 20;
+  box-sizing: border-box;
+}
+.menu-screen.active { display: flex; }
+
+.menu-header-row {
+  height: 8px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding-right: 6px;
+}
+.menu-scroll-ind {
+  font-size: 8px;
+  font-weight: 900;
+  color: #142214;
+  line-height: 1;
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 0;
+  flex: 1;
+  border-top: 1px solid #142214;
+  border-bottom: 1px solid #142214;
+}
+
+.menu-cell {
+  position: relative;
+  border-right: 1px solid #142214;
+  border-bottom: 1px solid #142214;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 1px 2px;
+  user-select: none;
+  background: #c8d8bc;
+  color: #142214;
+  box-sizing: border-box;
+}
+.menu-cell:nth-child(4n) {
+  border-right: none;
+}
+.menu-cell:nth-child(n+5) {
+  border-bottom: none;
+}
+.menu-cell.selected {
+  background: #142214;
+  color: #c8d8bc;
+}
+
+.menu-cell-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding-bottom: 2px;
+}
+.menu-cell-icon svg {
+  display: block;
+}
+
+.menu-cell-key {
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  font-size: 8.5px;
+  font-weight: 900;
+  font-family: 'Courier New', Courier, monospace;
+  line-height: 1;
+}
+.menu-cell-key.letter-badge {
+  font-size: 7.5px;
+  font-weight: 900;
+  padding: 0 1.5px;
+  border: 1px solid currentColor;
+  border-radius: 1px;
+  line-height: 1;
+}
+
+.casio-mode-math-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.5px;
+}
+.casio-mode-math-icon .math-top {
+  font-size: 10px;
+  font-weight: 900;
+}
+.casio-mode-math-icon .math-bot {
+  font-size: 8.5px;
+  font-weight: 900;
+}
+
+.menu-status-bar {
+  font-size: 13.5px;
+  font-weight: bold;
+  color: #142214;
+  font-family: 'Courier New', Courier, monospace;
+  letter-spacing: 0.2px;
+  padding: 2px 2px 0 2px;
+  height: 16px;
+  line-height: 16px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* ===== MODE 9 (EQUATION / FUNC) OVERLAY ===== */
+.mode9-screen {
+  position: absolute;
+  inset: 0;
+  background: #c8d8bc;
+  display: none;
+  flex-direction: column;
+  padding: 3px 6px;
+  z-index: 25;
+  box-sizing: border-box;
+  font-family: 'Courier New', Courier, monospace;
+  color: #142214;
+  user-select: none;
+}
+.mode9-screen.active {
+  display: flex;
+}
+
+/* Sub-screen: Branch selection */
+.m9-branch-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 4px;
+}
+.m9-branch-item {
+  font-size: 12.5px;
+  font-weight: bold;
+  padding: 3px 6px;
+  border-radius: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+.m9-branch-item:hover, .m9-branch-item.selected {
+  background: #142214;
+  color: #c8d8bc;
+}
+
+/* Sub-screen: Dimension selection */
+.m9-dim-select {
+  display: flex;
+  flex-direction: column;
+  padding-top: 2px;
+  gap: 4px;
+}
+.m9-dim-title {
+  font-size: 13px;
+  font-weight: bold;
+}
+.m9-dim-subtitle {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+.m9-dim-options {
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin-top: 6px;
+  padding: 2px 4px;
+}
+
+/* Sub-screen: Polynomial input */
+.m9-poly-input {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+.m9-poly-header {
+  font-size: 11.5px;
+  font-weight: bold;
+  border-bottom: 1px solid #142214;
+  padding-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.m9-poly-coeffs-preview {
+  display: flex;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 2px 0;
+}
+.m9-poly-coeff-tag {
+  padding: 1px 3px;
+  border: 1px solid #142214;
+  border-radius: 2px;
+}
+.m9-poly-coeff-tag.active {
+  background: #142214;
+  color: #c8d8bc;
+}
+.m9-input-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: bold;
+  margin-top: auto;
+  padding-top: 3px;
+}
+
+/* Sub-screen: Simultaneous Matrix grid */
+.m9-matrix-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
+}
+.m9-matrix-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: 1px solid #142214;
+  padding: 1px;
+  background: rgba(20, 34, 20, 0.05);
+}
+.m9-matrix-row {
+  display: flex;
+  gap: 1px;
+}
+.m9-matrix-cell {
+  flex: 1;
+  text-align: right;
+  padding: 1px 3px;
+  font-size: 10px;
+  font-weight: bold;
+  border: 1px solid rgba(20, 34, 20, 0.2);
+  background: #c8d8bc;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.m9-matrix-cell.active {
+  background: #142214;
+  color: #c8d8bc;
+}
+
+/* Sub-screen: Result Browser */
+.m9-result-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
+  padding: 1px 2px;
+}
+.m9-result-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: bold;
+  border-bottom: 1px solid #142214;
+  padding-bottom: 2px;
+}
+.m9-result-nav-ind {
+  font-size: 9px;
+  font-weight: 900;
+}
+.m9-result-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+  padding: 4px 0;
+}
+.m9-result-val {
+  font-size: 15.5px;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+}
+.m9-result-bottom-hint {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9.5px;
+  color: #142214;
+  opacity: 0.85;
+}
+
+/* Natural fraction display inside LCD */
+.lcd-frac-box {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: middle;
+  padding: 0 2px;
+  font-size: 12.5px;
+  line-height: 1.1;
+}
+.lcd-frac-num {
+  border-bottom: 1.5px solid currentColor;
+  padding: 0 2px;
+  text-align: center;
+}
+.lcd-frac-den {
+  padding: 0 2px;
+  text-align: center;
+}
+
+/* ===== MODE A (INEQUALITY) OVERLAY ===== */
+.modeA-screen {
+  position: absolute;
+  inset: 0;
+  background: #c8d8bc;
+  display: none;
+  flex-direction: column;
+  padding: 3px 6px;
+  z-index: 25;
+  box-sizing: border-box;
+  font-family: 'Courier New', Courier, monospace;
+  color: #142214;
+  user-select: none;
+}
+.modeA-screen.active {
+  display: flex;
+}
+
+/* Sub-screen: Degree selection (Image 1 match) */
+.mA-degree-select {
+  display: flex;
+  flex-direction: column;
+  padding-top: 2px;
+  gap: 2px;
+}
+.mA-deg-title {
+  font-size: 14px;
+  font-weight: bold;
+}
+.mA-deg-sub {
+  font-size: 14px;
+  font-weight: bold;
+}
+.mA-deg-options {
+  font-size: 14px;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+/* Sub-screen: Type selection (4 inequality types) */
+.mA-type-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 1px;
+}
+.mA-type-item {
+  font-size: 12px;
+  font-weight: bold;
+  padding: 2px 4px;
+  border-radius: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.mA-type-item:hover, .mA-type-item.selected {
+  background: #142214;
+  color: #c8d8bc;
+}
+
+/* Sub-screen: Polynomial input */
+.mA-poly-input {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+.mA-poly-header {
+  font-size: 11.5px;
+  font-weight: bold;
+  border-bottom: 1px solid #142214;
+  padding-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mA-poly-coeffs-preview {
+  display: flex;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 2px 0;
+  overflow-x: auto;
+}
+.mA-poly-coeff-tag {
+  padding: 1px 3px;
+  border: 1px solid #142214;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+.mA-poly-coeff-tag.active {
+  background: #142214;
+  color: #c8d8bc;
+}
+.mA-input-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: bold;
+  margin-top: auto;
+  padding-top: 3px;
+}
+
+/* Sub-screen: Result View (Image 2 match) */
+.mA-result-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
+  padding: 1px 2px;
+}
+.mA-result-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: bold;
+}
+.mA-result-main {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: flex-end;
+  padding: 4px 2px 2px 0;
+  overflow-x: auto;
+}
+.mA-result-val {
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+.mA-result-bottom-hint {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9.5px;
+  color: #142214;
+  opacity: 0.85;
+}
+
+/* ===== KEYPAD WRAPPER ===== */
+.keypad {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  user-select: none;
+}
+
+/* ===== TOP CONTROLS ROW ===== */
+.top-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 10px;
+  padding: 0 2px;
+}
+
+.round-btn-group {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.btn-label-yellow { color: #dcb343; font-size: 9px; font-weight: bold; line-height: 1; }
+.btn-label-red    { color: #c44f57; font-size: 9px; font-weight: bold; line-height: 1; }
+.btn-label-white  { color: #ccc;    font-size: 8px;  font-weight: bold; line-height: 1.2; text-align: center; }
+
+.btn-round {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #7a7a7a, #444 90%);
+  border: none;
+  box-shadow: 0 4px 0 #1a1a1a, 0 5px 6px rgba(0,0,0,0.6);
+  cursor: pointer;
+  outline: none;
+  transition: transform 0.05s, box-shadow 0.05s;
+}
+.btn-round:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #1a1a1a, 0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* ===== D-PAD ===== */
+.dpad-container {
+  width: 100px;
+  height: 72px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.dpad {
+  position: relative;
+  width: 96px;
+  height: 66px;
+  background: radial-gradient(ellipse at center, #666 0%, #3a3a3a 100%);
+  clip-path: polygon(28% 0%, 72% 0%, 100% 28%, 100% 72%, 72% 100%, 28% 100%, 0% 72%, 0% 28%);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.dpad-inner {
+  width: 80px;
+  height: 54px;
+  background: radial-gradient(ellipse at center, #404040 0%, #282828 100%);
+  clip-path: polygon(28% 0%, 72% 0%, 100% 28%, 100% 72%, 72% 100%, 28% 100%, 0% 72%, 0% 28%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.dpad-center {
+  width: 36px;
+  height: 24px;
+  background: radial-gradient(ellipse, #202020, #111);
+  border-radius: 50%;
+  z-index: 2;
+}
+
+.dpad-btn {
+  position: absolute;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  outline: none;
+  z-index: 3;
+}
+.dpad-up    { top: 0;    left: 50%; transform: translateX(-50%); width: 32px; height: 18px; }
+.dpad-down  { bottom: 0; left: 50%; transform: translateX(-50%); width: 32px; height: 18px; }
+.dpad-left  { left: 0;   top: 50%;  transform: translateY(-50%); width: 18px; height: 28px; }
+.dpad-right { right: 0;  top: 50%;  transform: translateY(-50%); width: 18px; height: 28px; }
+
+/* ===== FUNCTION ROW (2+2 flanking D-Pad) ===== */
+.func-row-dpad {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 0 2px;
+}
+
+.func-mini-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* ===== SHARED BUTTON WRAPPER ===== */
+.f-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  padding-top: 12px; /* space for labels */
+}
+
+.lbl-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  line-height: 1;
+}
+.lbl-y { color: #dcb343; font-size: 8px; font-weight: bold; }
+.lbl-r { color: #c44f57; font-size: 8px; font-weight: bold; }
+.lbl-only-y { color: #dcb343; font-size: 8px; font-weight: bold; width: 100%; text-align: left; }
+.lbl-only-r { color: #c44f57; font-size: 8px; font-weight: bold; width: 100%; text-align: right; }
+
+/* ===== FUNCTION BUTTONS (main body, dark) ===== */
+.func-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px 5px;
+  margin-bottom: 12px;
+  padding: 0 0;
+}
+
+.f-btn {
+  width: 100%;
+  height: 26px;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #232323 0%, #181818 100%);
+  color: #eeeeee;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  box-shadow: 0 3px 0 #080808, 0 4px 4px rgba(0,0,0,0.6);
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  outline: none;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: transform 0.05s, box-shadow 0.05s, filter 0.05s;
+}
+.f-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 #080808, 0 1px 2px rgba(0,0,0,0.5);
+  filter: brightness(1.3);
+}
+
+.f-btn-wide {
+  font-size: 12px;
+  height: 28px;
+}
+
+/* ===== NUMERIC KEYPAD ===== */
+.num-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px 5px;
+  padding: 0;
+}
+
+.n-btn {
+  width: 100%;
+  height: 36px;
+  border-radius: 7px;
+  background: linear-gradient(180deg, #d0d5d8 0%, #b8bec2 100%);
+  color: #111;
+  border: none;
+  font-size: 18px;
+  font-family: 'Arial', sans-serif;
+  font-weight: 700;
+  box-shadow: 0 4px 0 #8a9099, 0 5px 6px rgba(0,0,0,0.45);
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  outline: none;
+  transition: transform 0.05s, box-shadow 0.05s;
+}
+.n-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #8a9099, 0 1px 2px rgba(0,0,0,0.4);
+}
+
+.n-btn.op-gray {
+  background: linear-gradient(180deg, #82878b 0%, #6a6f73 100%);
+  color: #fff;
+  box-shadow: 0 4px 0 #404448, 0 5px 6px rgba(0,0,0,0.45);
+}
+.n-btn.op-gray:active {
+  box-shadow: 0 0 0 #404448, 0 1px 2px rgba(0,0,0,0.4);
+}
+
+.n-btn.ac-blue {
+  background: linear-gradient(180deg, #4d7de0 0%, #3660c4 100%);
+  color: #fff;
+  box-shadow: 0 4px 0 #1e3e8a, 0 5px 6px rgba(0,0,0,0.45);
+}
+.n-btn.ac-blue:active {
+  box-shadow: 0 0 0 #1e3e8a, 0 1px 2px rgba(0,0,0,0.4);
+}
+
+/* ===== FITZGERALD KEY COLOR CODING (EyeAssist gaze-first overlay) =====
+   Mã màu theo nhóm chức năng giúp định vị vùng phím bằng mắt trong phiên dài.
+   Lớp overlay tint + viền màu phủ TRÊN màu nhựa gốc, không thay đổi thân máy:
+   số = amber (vàng cát) · phép toán = xanh lá · DEL/AC = đất nung ấm · = = than ấm.
+   Hàm (f-btn) giữ nhựa tối; nhóm được nhận diện qua badge xanh dương ở nhãn shift. */
+.n-btn {
+  background-image: linear-gradient(180deg, rgba(232, 184, 75, 0.5) 0%, rgba(232, 184, 75, 0.32) 100%),
+    linear-gradient(180deg, #d0d5d8 0%, #b8bec2 100%);
+  border: 1px solid rgba(232, 184, 75, 0.55);
+}
+.n-btn.op-gray {
+  background-image: linear-gradient(180deg, rgba(147, 196, 125, 0.42) 0%, rgba(147, 196, 125, 0.28) 100%),
+    linear-gradient(180deg, #82878b 0%, #6a6f73 100%);
+  border-color: rgba(147, 196, 125, 0.55);
+}
+.n-btn.ac-blue {
+  background-image: linear-gradient(180deg, rgba(217, 138, 112, 0.48) 0%, rgba(217, 138, 112, 0.3) 100%),
+    linear-gradient(180deg, #4d7de0 0%, #3660c4 100%);
+  border-color: rgba(217, 138, 112, 0.6);
+}
+.n-btn[data-key="EQUALS"] {
+  background-image: linear-gradient(180deg, rgba(232, 184, 75, 0.28) 0%, rgba(232, 184, 75, 0.16) 100%),
+    linear-gradient(180deg, #82878b 0%, #6a6f73 100%);
+  border-color: rgba(232, 184, 75, 0.6);
+}
+.f-btn {
+  border: 1px solid rgba(122, 167, 217, 0.4);
+}
+/* Nhóm hàm: badge xanh dương trên nhãn shift vàng (ký hiệu nhóm, Fitzgerald: ngữ pháp) */
+.f-wrap .lbl-y::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #7aa7d9;
+  margin-right: 2px;
+  vertical-align: 1px;
+}
+/* Hàng số và phép toán: badge nhóm đặt ở góc phải nhãn trên */
+.num-grid .f-wrap .lbl-top::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--fk-group, transparent);
+}
+.num-grid .f-wrap:has(.n-btn:not(.op-gray):not(.ac-blue)) { --fk-group: rgba(232, 184, 75, 0.9); }
+.num-grid .f-wrap:has(.n-btn.op-gray) { --fk-group: rgba(147, 196, 125, 0.9); }
+.num-grid .f-wrap:has(.n-btn.ac-blue) { --fk-group: rgba(217, 138, 112, 0.9); }
+.num-grid .f-wrap .lbl-top { position: absolute; }
+
+/* ===== ACTIVE SHIFT/ALPHA glow on body ===== */
+.calculator.shift-active .btn-label-yellow { color: #ffe066; text-shadow: 0 0 6px #ffe066; }
+.calculator.alpha-active  .btn-label-red   { color: #ff7070; text-shadow: 0 0 6px #ff7070; }
+
+/* ===== OPTN MENU OVERLAY ===== */
+.optn-screen {
+  position: absolute;
+  inset: 0;
+  background: #c8d8bc;
+  display: none;
+  flex-direction: column;
+  padding: 6px 10px;
+  z-index: 25;
+  font-family: 'Courier New', Courier, monospace;
+  color: #0a1a0a;
+}
+.optn-screen.active {
+  display: flex;
+}
+.optn-title {
+  font-size: 11px;
+  font-weight: bold;
+  border-bottom: 1px solid #1a2e1a;
+  padding-bottom: 2px;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+.optn-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.optn-item {
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 2px;
+  transition: background 0.1s, color 0.1s;
+}
+.optn-item:hover {
+  background: #1a2e1a;
+  color: #c8d8bc;
+}
+
+/* ===== SOLVE SCREEN OVERLAY ===== */
+.solve-screen {
+  position: absolute;
+  inset: 0;
+  background: #c8d8bc;
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 6px 10px;
+  z-index: 30;
+  font-family: 'Courier New', Courier, monospace;
+  color: #0a1a0a;
+}
+.solve-screen.active {
+  display: flex;
+}
+.solve-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.solve-border {
+  border-top: 1px dotted #1a2e1a;
+  border-bottom: 1px dotted #1a2e1a;
+  padding: 2px 0;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 420px) {
+  .calculator { width: 100vw; border-radius: 0; }
+  .calculator-wrapper { border-radius: 0; padding: 0; }
+}
