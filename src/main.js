@@ -185,31 +185,46 @@ const dom = {
 };
 
 // ============ APP INIT ============
+let _sensorsStarted = false;
+
+async function startSensorsAfterLogin() {
+  if (_sensorsStarted) return;
+  _sensorsStarted = true;
+
+  try {
+    // 1. Khởi động webcam (yêu cầu quyền Camera)
+    await initWebcam();
+
+    // 2. Bắt đầu vòng lặp theo dõi ánh mắt
+    startGazeLoop();
+
+    // 3. Bắt đầu nhận diện giọng nói (yêu cầu quyền Micro)
+    voice.start();
+  } catch (err) {
+    console.warn('Sensors start error:', err);
+  }
+}
+
 async function init() {
   try {
-    updateLoading(10, 'Đang tải MediaPipe...');
+    updateLoading(20, 'Đang tải MediaPipe...');
     await initMediaPipe();
     
-    updateLoading(40, 'Đang khởi động webcam...');
-    await initWebcam();
-    
-    updateLoading(70, 'Đang khởi tạo modules...');
+    updateLoading(50, 'Đang khởi tạo modules...');
     initModules();
     
-    updateLoading(85, 'Đang tải profile...');
+    updateLoading(80, 'Đang tải profile...');
     await loadProfile();
     
-    updateLoading(95, 'Hoàn tất...');
+    updateLoading(100, 'Hoàn tất...');
     
     // Show the app
     setTimeout(() => {
       if (dom.loading) dom.loading.classList.add('hidden');
       if (dom.app) dom.app.style.display = 'grid';
-      moveNavPill(false); // snap pill vào tab active ngay khi app hiện (không animate lần đầu)
-      startGazeLoop();
-      voice.start();
+      moveNavPill(false); // snap pill vào tab active ngay khi app hiện
       scaleCalculator();
-    }, 500);
+    }, 400);
   } catch (err) {
     console.error('Init error:', err);
     if (dom.loadingStatus) dom.loadingStatus.textContent = `Lỗi: ${err.message}. Vui lòng reload.`;
@@ -1767,6 +1782,8 @@ function initAuthUI() {
         }
       }
       closeModal();
+      // Kích hoạt Camera và Micro sau khi đăng nhập thành công
+      startSensorsAfterLogin();
     } else {
       isAuthed = false;
       if (btnOpenLogin) btnOpenLogin.style.display = 'flex';
