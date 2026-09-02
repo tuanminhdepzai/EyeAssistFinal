@@ -1737,10 +1737,18 @@ function initAuthUI() {
       if (userName) userName.textContent = displayName;
 
       if (userAvatar) {
+        const initial = (displayName.charAt(0) || 'U').toUpperCase();
         if (user.photoURL) {
-          userAvatar.innerHTML = `<img src="${user.photoURL}" alt="${displayName}" />`;
+          userAvatar.innerHTML = `
+            <img src="${user.photoURL}" alt="${displayName}" referrerpolicy="no-referrer" crossorigin="anonymous" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+            <span class="auth-fallback-initial" style="display:none;">${initial}</span>
+          `;
         } else {
-          userAvatar.innerHTML = `<span id="nav-user-initial">${displayName.charAt(0).toUpperCase()}</span>`;
+          const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=e8b84b&color=1a1608&bold=true&size=128`;
+          userAvatar.innerHTML = `
+            <img src="${avatarUrl}" alt="${displayName}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+            <span class="auth-fallback-initial" style="display:none;">${initial}</span>
+          `;
         }
       }
     } else {

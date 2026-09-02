@@ -21,25 +21,39 @@
 }
 
 .auth-user-avatar {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  background: rgba(232, 184, 75, 0.15);
-  border: 1.5px solid var(--accent-amber);
+  background: linear-gradient(135deg, rgba(232, 184, 75, 0.25), rgba(232, 184, 75, 0.1));
+  border: 2px solid var(--accent-amber);
   color: var(--accent-amber-hi);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  font-size: 14px;
+  font-weight: 800;
+  font-size: 15px;
   flex-shrink: 0;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .auth-user-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
+}
+
+.auth-fallback-initial {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e8b84b 0%, #c89524 100%);
+  color: #1a1608;
+  font-weight: 800;
+  font-size: 16px;
 }
 
 .auth-user-info {
