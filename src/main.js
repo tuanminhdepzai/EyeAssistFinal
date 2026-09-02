@@ -1,5 +1,5 @@
 /**
- * EyeAssist STEM — Main application entry point
+ * EyeAssist — Main application entry point
  *
  * Bootstraps all subsystems:
  *   - MediaPipe Face Mesh + Webcam
@@ -8,7 +8,7 @@
  *   - Fusion Engine (multi-modal input fusion)
  *   - Casio App (fx-580VN X simulation)
  *   - Hand Module 3D (Three.js simulation)
- *   - Physics App (STEM problem generator & simulation)
+ *   - Physics App (Problem generator & simulation)
  *   - Calibration Flow (9-Point Grid & Lissajous Pursuit)
  *   - Analytics & Audio Feedback
  */
@@ -32,8 +32,6 @@ import { EARCalculator } from './engine/EARCalculator.js';
 import { BlinkProgressBar } from './modules/BlinkProgressBar.js';
 import { HandModule3D } from './modules/HandModule3D.js';
 import { GazeSelect } from './modules/GazeSelect.js';
-import { initAuth, onAuthReady } from './auth/auth.js';
-import { saveCalibrationCloud, loadCalibrationCloud } from './auth/cloudProfile.js';
 
 // ============ GLOBAL STATE ============
 const state = {
@@ -84,14 +82,11 @@ const blinkProgress = new BlinkProgressBar({
 const DWELL_INTENTIONAL_MS = 450;   // nhắm đủ mức này → xác nhận
 const DWELL_MIN_START_MS = 120;     // dưới mức này = chớp thường, chưa hiện ring
 let dwellData = null;               // realtime state của vòng hiện tại
-// Khóa chống bấm liên tục: sau khi ring confirm/cancel, KHÔNG cho ring mới khởi
-// động cho tới khi mắt MỞ LẠI (blinkDetector về OPEN). Nếu không, giữ mắt nhắm
-// sẽ tái khởi động ring mỗi frame (closedMs vẫn tính từ cùng _blinkStart) và
-// sinh ra vòng lặp click vô hạn.
-let dwellLocked = false;
+let dwellLocked = false;            // Khóa chống bấm lặp trong cùng lần nhắm
+let blinkHandledThisCycle = false;  // Cờ đánh dấu nháy mắt chu kỳ này đã kích hoạt click
 
 blinkDetector.on('onCloseFrame', ({ closedMs }) => {
-  if (dwellLocked) return;
+  if (dwellLocked || blinkHandledThisCycle) return;
   if (closedMs < DWELL_MIN_START_MS) return;
 
   if (!dwellData) {
@@ -461,8 +456,11 @@ function onFaceResults(results) {
     return; // Skip gesture, adaptive learner, snap, hit test
   }
 
-  // FIX: Dwell lock — khi mắt MỞ LẠI (state === 'OPEN'), mở khóa để cho phép dwell tiếp theo
-  if (dwellLocked) dwellLocked = false;
+  // FIX: Khi mắt đã OPEN trở lại (kết thúc chu kỳ nháy), reset cờ và mở khóa cho lần nháy tiếp theo
+  if (blinkDetector.state === 'OPEN') {
+    dwellLocked = false;
+    blinkHandledThisCycle = false;
+  }
 
   // Save last good gaze (only when eyes are OPEN)
   lastGoodGaze = { x: gazeNorm.x, y: gazeNorm.y };
@@ -491,9 +489,15 @@ function onFaceResults(results) {
     lastActionMs: performance.now() - lastActionTime
   });
   
-  // 9. Snap gaze to nearest key (magnetic effect)
+  // 9. Snap gaze to nearest key/button (magnetic effect)
   if (state.currentTab === 'casio') {
     const snap = casioKeys.snapToNearest(vp.x, vp.y);
+    if (snap) {
+      vp.x = snap.cx;
+      vp.y = snap.cy;
+    }
+  } else if (state.currentTab === 'hand' && handModule.snapToNearest) {
+    const snap = handModule.snapToNearest(vp.x, vp.y);
     if (snap) {
       vp.x = snap.cx;
       vp.y = snap.cy;
@@ -580,9 +584,14 @@ function enableMouseFallback() {
       const keyId = casioKeys.hitTest(mx, my);
       casioKeys.setGazeHover(keyId);
       fusion.lastGazeTarget = keyId;
-    }
-
-    if (state.currentTab === 'hand') {
+    } else if (state.currentTab === 'hand') {
+      if (handModule.snapToNearest) {
+        const snap = handModule.snapToNearest(mx, my);
+        if (snap) {
+          mx = snap.cx;
+          my = snap.cy;
+        }
+      }
       const handTarget = handModule.updateGazeHover(mx, my, performance.now());
       fusion.lastGazeTarget = handTarget ? 'hand_element' : null;
     }
@@ -592,6 +601,7 @@ function enableMouseFallback() {
   });
   
   document.addEventListener('click', (e) => {
+    if (e.target.closest('#casio-app')) return; // Nút Casio đã tự xử lý sự kiện riêng
     blinkProgress.start(e.clientX, e.clientY, {
       subtype: 'short',
       duration: 300,
@@ -664,15 +674,21 @@ blinkDetector.on('onClassified', (classification) => {
 });
 
 // Nháy chủ đích → realtime dwell ring đã xử lý phần lớn trường hợp (nhắm đủ lâu).
-// Handler này chỉ còn cho double-blink upgrade (2 nháy chủ đích liên tiếp).
+// Handler này chỉ còn cho double-blink upgrade hoặc nháy ngắn không kịp chạy onCloseFrame.
 blinkDetector.on('onIntentional', (blinkData) => {
-  if (blinkProgress.isActive) {
-    blinkProgress.upgradeToDouble(blinkData);
+  // Nếu chu kỳ nháy này đã được kích hoạt click xong (từ onCloseFrame dwell) → BỎ QUA, không bấm lặp!
+  if (blinkHandledThisCycle || dwellLocked) {
     return;
   }
 
-  // Nếu realtime ring chưa kịp chạy (nháy rất nhanh nhưng vẫn được phân loại
-  // chủ đích), khởi tạo ring tại chỗ với confirmMs rút gọn
+  if (blinkProgress.isActive) {
+    if (blinkData.type === 'double') {
+      blinkProgress.upgradeToDouble(blinkData);
+    }
+    return;
+  }
+
+  // Nếu realtime ring chưa kịp chạy (nháy rất nhanh nhưng vẫn được phân loại chủ đích)
   let cx = 0, cy = 0;
   const rect = dom.gazeCursor ? dom.gazeCursor.getBoundingClientRect() : null;
   if (rect && rect.width > 0 && rect.height > 0) {
@@ -684,11 +700,14 @@ blinkDetector.on('onIntentional', (blinkData) => {
   }
 
   blinkProgress.start(cx, cy, blinkData, {
-    target: fusion.lastGazeTarget
+    target: fusion.lastGazeTarget,
+    confirmMs: 250
   });
 });
 
 blinkDetector.on('onWink', (side, duration) => {
+  if (blinkHandledThisCycle || dwellLocked) return;
+
   let cx = 0, cy = 0;
   const rect = dom.gazeCursor ? dom.gazeCursor.getBoundingClientRect() : null;
   if (rect && rect.width > 0 && rect.height > 0) {
@@ -717,6 +736,7 @@ blinkDetector.on('onNatural', (blinkData) => {
     blinkProgress.cancel('natural_blink');
   }
   dwellData = null;
+  blinkHandledThisCycle = false;
 
   updateBlinkStatsUI();
 });
@@ -725,6 +745,7 @@ blinkDetector.on('onNatural', (blinkData) => {
 blinkProgress.on('onConfirm', (data) => {
   dwellData = null;   // ring hoàn tất → reset realtime state
   dwellLocked = true; // khóa đến khi mở mắt lại — chống vòng lặp click
+  blinkHandledThisCycle = true; // Đánh dấu nháy mắt này đã kích hoạt click thành công
   const blink = data.blink;
   lastActionTime = performance.now();
 
@@ -883,43 +904,127 @@ fusion.on('onGazeHover', (gazeData) => {
   // Update analytics if needed
 });
 
-// ============ VOICE HANDLER ============
-voice.on('onResult', (command, raw) => {
-  const text = raw.toLowerCase().trim();
-  if (text === 'hãy mở bàn tay 3d' || text === 'hãy mở bàn tay ba đê' || text === 'hãy mở bàn tay 3 d') {
-    if (state.currentTab !== 'hand') {
-      switchTab('hand');
-    }
-    if (dom.voiceFeedback) dom.voiceFeedback.classList.remove('visible', 'listening');
-    return;
+// ============ VOICE HANDLER (STRICT FILTER) ============
+function parseAllowedVoiceCommand(rawText) {
+  if (!rawText) return null;
+  const t = rawText.toLowerCase().trim().replace(/[.,?!]/g, '');
+
+  // 1. Chuyển qua bàn tay 3D
+  if (
+    t.includes('chuyển qua bàn tay 3d') ||
+    t.includes('chuyển sang bàn tay 3d') ||
+    t.includes('chuyển qua bàn tay ba đê') ||
+    t.includes('chuyển sang bàn tay ba đê') ||
+    t.includes('bàn tay 3d') ||
+    t.includes('bàn tay ba đê') ||
+    t.includes('mở bàn tay 3d') ||
+    t.includes('mở bàn tay ba đê') ||
+    t === 'hãy mở bàn tay 3d'
+  ) {
+    return { type: 'switch_tab', target: 'hand', display: 'chuyển qua bàn tay 3D' };
   }
-  if (text === 'hãy mở casio ảo') {
-    if (state.currentTab !== 'casio') {
-      switchTab('casio');
-    }
+
+  // 2. Chuyển qua Casio ảo
+  if (
+    t.includes('chuyển qua casio ảo') ||
+    t.includes('chuyển sang casio ảo') ||
+    t.includes('chuyển qua casio') ||
+    t.includes('chuyển sang casio') ||
+    t.includes('casio ảo') ||
+    t.includes('mở casio ảo') ||
+    t === 'hãy mở casio ảo'
+  ) {
+    return { type: 'switch_tab', target: 'casio', display: 'chuyển qua Casio ảo' };
+  }
+
+  // 3. Chuyển sang hiệu chỉnh
+  if (
+    t.includes('chuyển sang hiệu chỉnh') ||
+    t.includes('chuyển qua hiệu chỉnh') ||
+    t.includes('hiệu chỉnh') ||
+    t.includes('mở hiệu chỉnh')
+  ) {
+    return { type: 'switch_tab', target: 'calibration', display: 'chuyển sang hiệu chỉnh' };
+  }
+
+  // 4. Ở mục bàn tay 3D: Xoay bàn tay
+  if (
+    t.includes('xoay bàn tay') ||
+    t.includes('xoay tay') ||
+    t.includes('bật xoay') ||
+    t.includes('tắt xoay') ||
+    t.includes('tự động xoay')
+  ) {
+    return { type: 'hand_control', action: 'rotate', display: 'Xoay bàn tay' };
+  }
+
+  // 5. Ở mục bàn tay 3D: Reset camera / góc nhìn
+  if (
+    t.includes('reset camera') ||
+    t.includes('reset góc nhìn') ||
+    t.includes('đặt lại camera') ||
+    t.includes('đặt lại góc nhìn') ||
+    t.includes('quay về gốc') ||
+    t.includes('về góc nhìn gốc') ||
+    t.includes('về vị trí gốc') ||
+    t === 'reset'
+  ) {
+    return { type: 'hand_control', action: 'reset_cam', display: 'Reset góc nhìn' };
+  }
+
+  // 6. Ở mục bàn tay 3D: Bật/tắt mũi tên Vectơ
+  if (
+    t.includes('mũi tên') ||
+    t.includes('vectơ') ||
+    t.includes('vecto') ||
+    t.includes('bật vectơ') ||
+    t.includes('tắt vectơ')
+  ) {
+    return { type: 'hand_control', action: 'toggle_arrows', display: 'Mũi tên Vectơ' };
+  }
+
+  return null;
+}
+
+voice.on('onResult', (command, raw) => {
+  const match = parseAllowedVoiceCommand(raw);
+  if (!match) {
     if (dom.voiceFeedback) dom.voiceFeedback.classList.remove('visible', 'listening');
     return;
   }
 
-  // Show voice feedback
+  // Hiển thị sub ở dưới
   if (dom.voiceFeedback) {
-    dom.voiceFeedback.textContent = `🎤 "${raw}"`;
+    dom.voiceFeedback.textContent = `🎤 "${match.display}"`;
     dom.voiceFeedback.classList.add('visible', 'listening');
-    setTimeout(() => dom.voiceFeedback.classList.remove('listening'), 2000);
+    setTimeout(() => dom.voiceFeedback.classList.remove('listening'), 2500);
   }
-  
-  fusion.handleVoice(command);
+
+  // Thực thi lệnh tương ứng
+  if (match.type === 'switch_tab') {
+    if (state.currentTab !== match.target) {
+      switchTab(match.target);
+    }
+  } else if (match.type === 'hand_control') {
+    if (state.currentTab === 'hand') {
+      if (match.action === 'rotate') {
+        handModule.toggleRot();
+      } else if (match.action === 'reset_cam') {
+        handModule.resetCam();
+      } else if (match.action === 'toggle_arrows') {
+        handModule.toggleArrows();
+      }
+    }
+  }
 });
 
 voice.on('onInterim', (text) => {
-  const t = text.toLowerCase().trim();
-  if (t === 'hãy mở bàn tay 3d' || t === 'hãy mở bàn tay ba đê' || t === 'hãy mở bàn tay 3 d' || t === 'hãy mở casio ảo') {
-    if (dom.voiceFeedback) dom.voiceFeedback.classList.remove('visible');
-    return;
-  }
-  if (dom.voiceFeedback) {
-    dom.voiceFeedback.textContent = `🎤 ${text}`;
+  const match = parseAllowedVoiceCommand(text);
+  if (match && dom.voiceFeedback) {
+    dom.voiceFeedback.textContent = `🎤 ${match.display}`;
     dom.voiceFeedback.classList.add('visible');
+  } else if (dom.voiceFeedback) {
+    dom.voiceFeedback.classList.remove('visible');
   }
 });
 
@@ -981,7 +1086,189 @@ function moveNavPill(animate) {
   }
 }
 
+// ============ PIN PROTECTION FOR CALIBRATION ============
+const CALIBRATION_PIN = '0709';
+let isCalibrationUnlocked = false;
+let currentPin = '';
+let pinSuccessCallback = null;
+
+function getPinElements() {
+  return {
+    modal: document.getElementById('pin-modal'),
+    card: document.getElementById('pin-modal-card'),
+    dots: document.querySelectorAll('#pin-dots .pin-dot'),
+    errorMsg: document.getElementById('pin-error-msg'),
+    hiddenInput: document.getElementById('pin-hidden-input'),
+    btnClose: document.getElementById('btn-pin-close'),
+    btnClear: document.getElementById('btn-pin-clear'),
+    btnCancel: document.getElementById('btn-pin-cancel'),
+    keypadBtns: document.querySelectorAll('.pin-key[data-digit]'),
+  };
+}
+
+function updatePinDisplay(stateClass = null) {
+  const { dots } = getPinElements();
+  dots.forEach((dot, idx) => {
+    dot.className = 'pin-dot';
+    if (stateClass) {
+      dot.classList.add(stateClass);
+    } else if (idx < currentPin.length) {
+      dot.classList.add('filled');
+    }
+  });
+}
+
+function openPinModal(onSuccess) {
+  pinSuccessCallback = onSuccess;
+  currentPin = '';
+  const { modal, card, errorMsg, hiddenInput } = getPinElements();
+  if (errorMsg) errorMsg.textContent = '';
+  updatePinDisplay();
+  if (modal) modal.style.display = 'flex';
+  if (card) card.classList.remove('shake');
+  if (hiddenInput) {
+    hiddenInput.value = '';
+    hiddenInput.focus();
+  }
+}
+
+function closePinModal() {
+  const { modal, errorMsg } = getPinElements();
+  if (modal) modal.style.display = 'none';
+  currentPin = '';
+  if (errorMsg) errorMsg.textContent = '';
+  updatePinDisplay();
+  pinSuccessCallback = null;
+}
+
+function handlePinDigit(digit) {
+  if (currentPin.length >= 4) return;
+  currentPin += digit;
+  const { errorMsg } = getPinElements();
+  if (errorMsg) errorMsg.textContent = '';
+  updatePinDisplay();
+
+  if (currentPin.length === 4) {
+    verifyPin();
+  }
+}
+
+function handlePinBackspace() {
+  if (currentPin.length > 0) {
+    currentPin = currentPin.slice(0, -1);
+    const { errorMsg } = getPinElements();
+    if (errorMsg) errorMsg.textContent = '';
+    updatePinDisplay();
+  }
+}
+
+function verifyPin() {
+  const { card, errorMsg } = getPinElements();
+  if (currentPin === CALIBRATION_PIN) {
+    updatePinDisplay('success');
+    audio.playCalibrationSuccess && audio.playCalibrationSuccess();
+    isCalibrationUnlocked = true;
+    setTimeout(() => {
+      closePinModal();
+      if (pinSuccessCallback) {
+        pinSuccessCallback();
+      } else {
+        switchTab('calibration');
+      }
+    }, 280);
+  } else {
+    updatePinDisplay('error');
+    if (card) {
+      card.classList.remove('shake');
+      void card.offsetWidth;
+      card.classList.add('shake');
+    }
+    if (errorMsg) errorMsg.textContent = 'Mã PIN không đúng. Vui lòng thử lại!';
+    audio.playError && audio.playError();
+    setTimeout(() => {
+      currentPin = '';
+      updatePinDisplay();
+    }, 550);
+  }
+}
+
+// Initialize PIN keypad listeners
+document.addEventListener('DOMContentLoaded', () => {
+  initPinListeners();
+});
+setTimeout(() => initPinListeners(), 500);
+
+function initPinListeners() {
+  const { modal, btnClose, btnClear, btnCancel, keypadBtns, hiddenInput } = getPinElements();
+  
+  keypadBtns.forEach(btn => {
+    if (!btn._hasPinListener) {
+      btn._hasPinListener = true;
+      btn.addEventListener('click', () => handlePinDigit(btn.dataset.digit));
+    }
+  });
+
+  if (btnClear && !btnClear._hasPinListener) {
+    btnClear._hasPinListener = true;
+    btnClear.addEventListener('click', () => {
+      currentPin = '';
+      const { errorMsg } = getPinElements();
+      if (errorMsg) errorMsg.textContent = '';
+      updatePinDisplay();
+    });
+  }
+
+  if (btnCancel && !btnCancel._hasPinListener) {
+    btnCancel._hasPinListener = true;
+    btnCancel.addEventListener('click', closePinModal);
+  }
+
+  if (btnClose && !btnClose._hasPinListener) {
+    btnClose._hasPinListener = true;
+    btnClose.addEventListener('click', closePinModal);
+  }
+
+  if (modal && !modal._hasPinListener) {
+    modal._hasPinListener = true;
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closePinModal();
+    });
+  }
+
+  if (hiddenInput && !hiddenInput._hasPinListener) {
+    hiddenInput._hasPinListener = true;
+    hiddenInput.addEventListener('input', (e) => {
+      const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+      currentPin = val;
+      updatePinDisplay();
+      if (currentPin.length === 4) verifyPin();
+    });
+  }
+}
+
+window.addEventListener('keydown', (e) => {
+  const { modal } = getPinElements();
+  if (!modal || modal.style.display === 'none') return;
+
+  if (e.key >= '0' && e.key <= '9') {
+    e.preventDefault();
+    handlePinDigit(e.key);
+  } else if (e.key === 'Backspace') {
+    e.preventDefault();
+    handlePinBackspace();
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    closePinModal();
+  }
+});
+
 function switchTab(tabId) {
+  // Check PIN protection for calibration
+  if (tabId === 'calibration' && !isCalibrationUnlocked) {
+    openPinModal(() => switchTab('calibration'));
+    return;
+  }
+
   // Clear hand hover when leaving hand tab
   if (state.currentTab === 'hand' && tabId !== 'hand') {
     handModule.clearHover();
@@ -1107,9 +1394,6 @@ async function startCalibration() {
       adaptiveState: adaptiveLearner.serialize(),
     };
     profileManager.save(calProfile);
-    saveCalibrationCloud(calProfile).catch((e) =>
-      console.warn('[Cloud] Không lưu được calibration:', e.message)
-    );
   };
 
   const getGaze = () => state.gazePosition;
@@ -1171,14 +1455,9 @@ function applyCalibration() {
 // ============ PROFILE ============
 async function loadProfile() {
   try {
-    // Ưu tiên dữ liệu hiệu chỉnh trên Firestore của user; fallback về IndexedDB local
-    let profile = await loadCalibrationCloud().catch((e) => {
-      console.warn('[Cloud] Không tải được calibration:', e.message);
-      return null;
-    });
-    if (!profile) profile = await profileManager.get('default');
+    const profile = await profileManager.get('default');
 
-    if (profile.gazeCalibrated && profile.accuracy > 0) {
+    if (profile && profile.gazeCalibrated && profile.accuracy > 0) {
       state.isCalibrated = true;
       
       if (profile.adaptiveState) {
@@ -1218,9 +1497,11 @@ function scaleCalculator() {
   const tab = document.getElementById('tab-casio');
   if (!casioApp || !wrapper || !tab) return;
 
+  const stage = document.querySelector('.casio-center-stage');
   const naturalW = 370;   // .calculator width in px (from casio/style.css)
   const naturalH = 650;   // approximate full height
-  const availW = tab.clientWidth - 40;   // 20px padding each side
+  const stageW = stage && stage.clientWidth > 0 ? stage.clientWidth : 380;
+  const availW = Math.max(naturalW, stageW);
   const availH = tab.clientHeight - 40;
 
   if (availW <= 0 || availH <= 0) return;
@@ -1332,13 +1613,7 @@ setInterval(() => {
 
 // ============ START ============
 function bootstrap() {
-  // Auth gate: khởi tạo UI đăng nhập trước; chỉ boot hệ thống khi có user
-  initAuth();
-  onAuthReady((user) => {
-    console.log('[Auth] User:', user.email || user.uid);
-    if (dom.loading) dom.loading.classList.remove('hidden'); // hiện lại thanh tiến trình trong lúc tải module
-    init();
-  });
+  init();
 
   // Physics canvas resize on window resize
   window.addEventListener('resize', () => {

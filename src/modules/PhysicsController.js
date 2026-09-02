@@ -21,7 +21,7 @@ export class PhysicsController {
     this.onScoreUpdate = () => {};
 
     // Rotation step per blink (radians)
-    this.rotationStep = 0.2618; // ~15 degrees
+    this.rotationStep = 0.5236; // ~30 degrees (increased speed)
   }
 
   /**

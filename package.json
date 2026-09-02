@@ -1,9 +1,9 @@
 {
-  "name": "eyeassist-stem",
+  "name": "eyeassist",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "EyeAssist STEM - Hệ thống hỗ trợ học tập bằng ánh mắt và giọng nói",
+  "description": "EyeAssist - Hệ thống hỗ trợ học tập bằng ánh mắt và giọng nói",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

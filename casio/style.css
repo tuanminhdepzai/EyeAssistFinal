@@ -375,57 +375,478 @@
 .error-title { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
 .error-hint { font-size: 10px; }
 
-/* Menu screen overlay */
+/* ===== MENU SCREEN OVERLAY (Casio ClassWiz 2-Row Paginated Matrix) ===== */
 .menu-screen {
   position: absolute;
   inset: 0;
   background: #c8d8bc;
   display: none;
   flex-direction: column;
-  padding: 4px 6px;
+  padding: 1px 6px 3px 6px;
   z-index: 20;
+  box-sizing: border-box;
 }
 .menu-screen.active { display: flex; }
-.menu-title-bar {
-  font-size: 9px;
-  font-weight: bold;
-  color: #0a1a0a;
-  text-align: center;
-  margin-bottom: 3px;
+
+.menu-header-row {
+  height: 8px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding-right: 6px;
 }
+.menu-scroll-ind {
+  font-size: 8px;
+  font-weight: 900;
+  color: #142214;
+  line-height: 1;
+}
+
 .menu-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 2px;
+  grid-template-rows: repeat(2, 1fr);
+  gap: 0;
   flex: 1;
+  border-top: 1px solid #142214;
+  border-bottom: 1px solid #142214;
 }
+
 .menu-cell {
-  border: 1px solid #1a2e1a;
+  position: relative;
+  border-right: 1px solid #142214;
+  border-bottom: 1px solid #142214;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 1px 2px;
+  user-select: none;
+  background: #c8d8bc;
+  color: #142214;
+  box-sizing: border-box;
+}
+.menu-cell:nth-child(4n) {
+  border-right: none;
+}
+.menu-cell:nth-child(n+5) {
+  border-bottom: none;
+}
+.menu-cell.selected {
+  background: #142214;
+  color: #c8d8bc;
+}
+
+.menu-cell-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding-bottom: 2px;
+}
+.menu-cell-icon svg {
+  display: block;
+}
+
+.menu-cell-key {
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  font-size: 8.5px;
+  font-weight: 900;
+  font-family: 'Courier New', Courier, monospace;
+  line-height: 1;
+}
+.menu-cell-key.letter-badge {
+  font-size: 7.5px;
+  font-weight: 900;
+  padding: 0 1.5px;
+  border: 1px solid currentColor;
   border-radius: 1px;
+  line-height: 1;
+}
+
+.casio-mode-math-icon {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 7px;
-  color: #0a1a0a;
-  cursor: pointer;
-  padding: 2px 1px;
-  line-height: 1.2;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.5px;
 }
-.menu-cell.selected {
-  background: #1a2e1a;
+.casio-mode-math-icon .math-top {
+  font-size: 10px;
+  font-weight: 900;
+}
+.casio-mode-math-icon .math-bot {
+  font-size: 8.5px;
+  font-weight: 900;
+}
+
+.menu-status-bar {
+  font-size: 13.5px;
+  font-weight: bold;
+  color: #142214;
+  font-family: 'Courier New', Courier, monospace;
+  letter-spacing: 0.2px;
+  padding: 2px 2px 0 2px;
+  height: 16px;
+  line-height: 16px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* ===== MODE 9 (EQUATION / FUNC) OVERLAY ===== */
+.mode9-screen {
+  position: absolute;
+  inset: 0;
+  background: #c8d8bc;
+  display: none;
+  flex-direction: column;
+  padding: 3px 6px;
+  z-index: 25;
+  box-sizing: border-box;
+  font-family: 'Courier New', Courier, monospace;
+  color: #142214;
+  user-select: none;
+}
+.mode9-screen.active {
+  display: flex;
+}
+
+/* Sub-screen: Branch selection */
+.m9-branch-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 4px;
+}
+.m9-branch-item {
+  font-size: 12.5px;
+  font-weight: bold;
+  padding: 3px 6px;
+  border-radius: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+.m9-branch-item:hover, .m9-branch-item.selected {
+  background: #142214;
   color: #c8d8bc;
 }
-.menu-cell-num { font-weight: bold; font-size: 8px; }
-.menu-cell-icon { font-size: 12px; margin-bottom: 1px; }
-.menu-cell-name { font-size: 6.5px; text-align: center; }
-.menu-status-bar {
-  font-size: 10px;
-  color: #0a1a0a;
-  text-align: center;
-  margin-top: 2px;
+
+/* Sub-screen: Dimension selection */
+.m9-dim-select {
+  display: flex;
+  flex-direction: column;
+  padding-top: 2px;
+  gap: 4px;
+}
+.m9-dim-title {
+  font-size: 13px;
   font-weight: bold;
-  height: 12px;
+}
+.m9-dim-subtitle {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+.m9-dim-options {
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin-top: 6px;
+  padding: 2px 4px;
+}
+
+/* Sub-screen: Polynomial input */
+.m9-poly-input {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+.m9-poly-header {
+  font-size: 11.5px;
+  font-weight: bold;
+  border-bottom: 1px solid #142214;
+  padding-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.m9-poly-coeffs-preview {
+  display: flex;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 2px 0;
+}
+.m9-poly-coeff-tag {
+  padding: 1px 3px;
+  border: 1px solid #142214;
+  border-radius: 2px;
+}
+.m9-poly-coeff-tag.active {
+  background: #142214;
+  color: #c8d8bc;
+}
+.m9-input-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: bold;
+  margin-top: auto;
+  padding-top: 3px;
+}
+
+/* Sub-screen: Simultaneous Matrix grid */
+.m9-matrix-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
+}
+.m9-matrix-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: 1px solid #142214;
+  padding: 1px;
+  background: rgba(20, 34, 20, 0.05);
+}
+.m9-matrix-row {
+  display: flex;
+  gap: 1px;
+}
+.m9-matrix-cell {
+  flex: 1;
+  text-align: right;
+  padding: 1px 3px;
+  font-size: 10px;
+  font-weight: bold;
+  border: 1px solid rgba(20, 34, 20, 0.2);
+  background: #c8d8bc;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.m9-matrix-cell.active {
+  background: #142214;
+  color: #c8d8bc;
+}
+
+/* Sub-screen: Result Browser */
+.m9-result-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
+  padding: 1px 2px;
+}
+.m9-result-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: bold;
+  border-bottom: 1px solid #142214;
+  padding-bottom: 2px;
+}
+.m9-result-nav-ind {
+  font-size: 9px;
+  font-weight: 900;
+}
+.m9-result-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+  padding: 4px 0;
+}
+.m9-result-val {
+  font-size: 15.5px;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+}
+.m9-result-bottom-hint {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9.5px;
+  color: #142214;
+  opacity: 0.85;
+}
+
+/* Natural fraction display inside LCD */
+.lcd-frac-box {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: middle;
+  padding: 0 2px;
+  font-size: 12.5px;
+  line-height: 1.1;
+}
+.lcd-frac-num {
+  border-bottom: 1.5px solid currentColor;
+  padding: 0 2px;
+  text-align: center;
+}
+.lcd-frac-den {
+  padding: 0 2px;
+  text-align: center;
+}
+
+/* ===== MODE A (INEQUALITY) OVERLAY ===== */
+.modeA-screen {
+  position: absolute;
+  inset: 0;
+  background: #c8d8bc;
+  display: none;
+  flex-direction: column;
+  padding: 3px 6px;
+  z-index: 25;
+  box-sizing: border-box;
+  font-family: 'Courier New', Courier, monospace;
+  color: #142214;
+  user-select: none;
+}
+.modeA-screen.active {
+  display: flex;
+}
+
+/* Sub-screen: Degree selection (Image 1 match) */
+.mA-degree-select {
+  display: flex;
+  flex-direction: column;
+  padding-top: 2px;
+  gap: 2px;
+}
+.mA-deg-title {
+  font-size: 14px;
+  font-weight: bold;
+}
+.mA-deg-sub {
+  font-size: 14px;
+  font-weight: bold;
+}
+.mA-deg-options {
+  font-size: 14px;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+/* Sub-screen: Type selection (4 inequality types) */
+.mA-type-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 1px;
+}
+.mA-type-item {
+  font-size: 12px;
+  font-weight: bold;
+  padding: 2px 4px;
+  border-radius: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.mA-type-item:hover, .mA-type-item.selected {
+  background: #142214;
+  color: #c8d8bc;
+}
+
+/* Sub-screen: Polynomial input */
+.mA-poly-input {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+.mA-poly-header {
+  font-size: 11.5px;
+  font-weight: bold;
+  border-bottom: 1px solid #142214;
+  padding-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mA-poly-coeffs-preview {
+  display: flex;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 2px 0;
+  overflow-x: auto;
+}
+.mA-poly-coeff-tag {
+  padding: 1px 3px;
+  border: 1px solid #142214;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+.mA-poly-coeff-tag.active {
+  background: #142214;
+  color: #c8d8bc;
+}
+.mA-input-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: bold;
+  margin-top: auto;
+  padding-top: 3px;
+}
+
+/* Sub-screen: Result View (Image 2 match) */
+.mA-result-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
+  padding: 1px 2px;
+}
+.mA-result-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: bold;
+}
+.mA-result-main {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: flex-end;
+  padding: 4px 2px 2px 0;
+  overflow-x: auto;
+}
+.mA-result-val {
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+.mA-result-bottom-hint {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9.5px;
+  color: #142214;
+  opacity: 0.85;
 }
 
 /* ===== KEYPAD WRAPPER ===== */

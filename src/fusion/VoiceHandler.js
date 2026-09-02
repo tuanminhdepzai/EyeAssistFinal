@@ -2,7 +2,7 @@
  * VoiceHandler — Web Speech API wrapper for Vietnamese (Enhanced)
  *
  * Continuous speech recognition with auto-restart, noise filtering,
- * exponential backoff, and expanded STEM vocabulary.
+ * exponential backoff, and expanded vocabulary.
  * Uses VoiceNormalizer for input preprocessing.
  */
 import { VoiceNormalizer } from './VoiceNormalizer.js';

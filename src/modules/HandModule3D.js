@@ -2,7 +2,7 @@
  * HandModule3D — Three.js 3D Hand Physics module
  *
  * Trích xuất từ handmodule.html, tái cấu trúc thành ES Module để
- * tích hợp vào hệ thống eyeassist_stem chạy chung localhost.
+ * tích hợp vào hệ thống eyeassist chạy chung localhost.
  *
  * Eye Tracking được cung cấp bởi main.js (dùng BlinkDetector,
  * GazeFilter, FusionEngine đầy đủ) — không có inline eye tracking cũ.
@@ -106,6 +106,12 @@ export class HandModule3D {
     this._dwellStart = 0;
     this.DWELL_TIME_MS = 1400;
 
+    // Magnetic snapping state for gaze tracking (same as Casio)
+    this._snapEl = null;
+    this._snapCx = 0;
+    this._snapCy = 0;
+    this._snapHysteresis = 12; // px
+
     // Expose for gaze engine
     this.onLog = null; // optional callback: (msg, type) => {}
 
@@ -142,6 +148,56 @@ export class HandModule3D {
     }
     this._scene = null;
     this._renderer = null;
+  }
+
+  /**
+   * Snap viewport coords to nearest interactive element center within radius (magnetic effect)
+   * @param {number} x - viewport X
+   * @param {number} y - viewport Y
+   * @param {number} [radius=70] - snap radius in pixels
+   * @returns {{ element: HTMLElement, cx: number, cy: number }|null}
+   */
+  snapToNearest(x, y, radius = 70) {
+    if (!this._containerEl) return null;
+
+    const selector = '.th-card, .btn-next, .btn-prev, .quiz-opt, .stem-select, .hand-tab, .tb, #btn-restart, .gaze-select-trigger, .gaze-option, button, [role="button"]';
+    const elements = this._containerEl.querySelectorAll(selector);
+
+    let best = null;
+    let bestDist = Infinity;
+
+    for (const el of elements) {
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) continue;
+
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const d = Math.hypot(x - cx, y - cy);
+      if (d < bestDist && d < radius) {
+        bestDist = d;
+        best = { element: el, cx, cy };
+      }
+    }
+
+    // Hysteresis: don't switch snap target if still within threshold of current snap center
+    if (best && this._snapEl) {
+      if (best.element !== this._snapEl) {
+        const distFromCurrent = Math.hypot(x - this._snapCx, y - this._snapCy);
+        if (distFromCurrent < this._snapHysteresis) {
+          return { element: this._snapEl, cx: this._snapCx, cy: this._snapCy };
+        }
+      }
+    }
+
+    if (best) {
+      this._snapEl = best.element;
+      this._snapCx = best.cx;
+      this._snapCy = best.cy;
+    } else {
+      this._snapEl = null;
+    }
+
+    return best;
   }
 
   // ─────────────────────────────────────────
@@ -222,7 +278,9 @@ export class HandModule3D {
 
     this._orbit = new OrbitControls(this._camera, this._renderer.domElement);
     this._orbit.enableDamping = true;
-    this._orbit.dampingFactor = 0.06;
+    this._orbit.dampingFactor = 0.08;
+    this._orbit.rotateSpeed = 2.0;
+    this._orbit.autoRotateSpeed = 4.0;
     this._orbit.minDistance = 0.12;
     this._orbit.maxDistance = 3;
     this._orbit.target.set(0, 0.05, 0);
@@ -859,7 +917,7 @@ export class HandModule3D {
 
   toggleRot() {
     this._orbit.autoRotate = !this._orbit.autoRotate;
-    this._orbit.autoRotateSpeed = 1.5;
+    this._orbit.autoRotateSpeed = 4.0;
     document.getElementById('hand-tb-rot').classList.toggle('on', this._orbit.autoRotate);
     this._log(`🔄 Tự động xoay: ${this._orbit.autoRotate ? 'BẬT' : 'TẮT'}`, 'info');
   }

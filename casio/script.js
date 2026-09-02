@@ -326,24 +326,110 @@ const dom = {
   get lcd() { return document.getElementById('lcd'); },
   get optnScreen() { return document.getElementById('optn-screen'); },
   get solveScreen() { return document.getElementById('solve-screen'); },
+  get mode9Screen() { return document.getElementById('mode9-screen'); },
+  get modeAScreen() { return document.getElementById('modeA-screen'); },
 };
 
 // ============================================================
 // 4. MENU DEFINITIONS
 // ============================================================
 const MODES = [
-  { id: 1, key: '1', icon: '🔢', name: 'Calculate', short: 'COMP' },
-  { id: 2, key: '2', icon: 'ℂ', name: 'Complex', short: 'CMPLX' },
-  { id: 3, key: '3', icon: '01', name: 'Base-N', short: 'BASE-N' },
-  { id: 4, key: '4', icon: '[]', name: 'Matrix', short: 'MAT' },
-  { id: 5, key: '5', icon: '↗', name: 'Vector', short: 'VCT' },
-  { id: 6, key: '6', icon: 'σ', name: 'Statistics', short: 'STAT' },
-  { id: 7, key: '7', icon: '∫', name: 'Distribution', short: 'DIST' },
-  { id: 8, key: '8', icon: '📊', name: 'Spreadsheet', short: 'SHEET' },
-  { id: 9, key: '9', icon: 'f()', name: 'Table', short: 'TABLE' },
-  { id: 10, key: 'A', icon: 'ax=b', name: 'Equation', short: 'EQN' },
-  { id: 11, key: 'B', icon: 'ax>b', name: 'Inequality', short: 'INEQ' },
-  { id: 12, key: 'C', icon: 'a:b', name: 'Ratio', short: 'RATIO' },
+  {
+    id: 1,
+    key: '1',
+    isLetter: false,
+    name: 'Calculate',
+    short: 'COMP',
+    iconHTML: `<svg viewBox="0 0 24 16" width="22" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square"><path d="M4 8h6M7 5v6M14 6h6M14 10h6"/></svg>`
+  },
+  {
+    id: 2,
+    key: '2',
+    isLetter: false,
+    name: 'Complex',
+    short: 'CMPLX',
+    iconHTML: `<div class="casio-mode-math-icon"><div class="math-top">a+bi</div><div class="math-bot">i</div></div>`
+  },
+  {
+    id: 3,
+    key: '3',
+    isLetter: false,
+    name: 'Base-N',
+    short: 'BASE-N',
+    iconHTML: `<div class="casio-mode-math-icon"><div class="math-top">01</div><div class="math-bot">HEX</div></div>`
+  },
+  {
+    id: 4,
+    key: '4',
+    isLetter: false,
+    name: 'Matrix',
+    short: 'MAT',
+    iconHTML: `<svg viewBox="0 0 24 16" width="22" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2H2v12h2M20 2h2v12h-2"/><rect x="6" y="4" width="3" height="3" fill="currentColor"/><rect x="15" y="4" width="3" height="3" fill="currentColor"/><rect x="6" y="9" width="3" height="3" fill="currentColor"/><rect x="15" y="9" width="3" height="3" fill="currentColor"/></svg>`
+  },
+  {
+    id: 5,
+    key: '5',
+    isLetter: false,
+    name: 'Vector',
+    short: 'VCT',
+    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14L6 4M6 4L3 7M6 4L9 7"/><path d="M6 14L18 3M18 3L13 4M18 3L17 9"/></svg>`
+  },
+  {
+    id: 6,
+    key: '6',
+    isLetter: false,
+    name: 'Statistics',
+    short: 'STAT',
+    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 14h20"/><rect x="4" y="6" width="3.5" height="8" fill="currentColor"/><rect x="10.5" y="2" width="3.5" height="12" fill="currentColor"/><rect x="17" y="9" width="3.5" height="5" fill="currentColor"/></svg>`
+  },
+  {
+    id: 7,
+    key: '7',
+    isLetter: false,
+    name: 'Distribution',
+    short: 'DIST',
+    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 14h20"/><path d="M3 14c3 0 5-1 7-7 1-3 2-4 2-4s1 1 2 4c2 6 4 7 7 7" stroke-width="1.8"/></svg>`
+  },
+  {
+    id: 8,
+    key: '8',
+    isLetter: false,
+    name: 'Spreadsheet',
+    short: 'SHEET',
+    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="1" width="18" height="14" rx="1"/><path d="M3 6h18M12 1v14"/></svg>`
+  },
+  {
+    id: 9,
+    key: '9',
+    isLetter: false,
+    name: 'Equation/Func',
+    short: 'EQN',
+    iconHTML: `<div class="casio-mode-math-icon"><div class="math-top">xy</div><div class="math-bot">= 0</div></div>`
+  },
+  {
+    id: 10,
+    key: 'A',
+    isLetter: true,
+    name: 'Inequality',
+    short: 'INEQ',
+    iconHTML: `<div class="casio-mode-math-icon"><div class="math-top">xy</div><div class="math-bot">&gt; 0</div></div>`
+  },
+  {
+    id: 11,
+    key: 'B',
+    isLetter: true,
+    name: 'Ratio',
+    short: 'RATIO',
+    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M12 2v12M8 14h8"/><path d="M4 5l8-1 8 1"/><path d="M4 5l-2 5h4zM20 5l-2 5h4z" fill="currentColor"/></svg>`
+  },
+  {
+    id: 12,
+    key: 'C',
+    isLetter: true,
+    name: 'Table',
+    short: 'TABLE',
+    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="7" height="8"/><circle cx="12" cy="6.5" r="1" fill="currentColor"/><circle cx="12" cy="9.5" r="1" fill="currentColor"/><rect x="14" y="4" width="7" height="8"/></svg>`
+  }
 ];
 
 // ============================================================
@@ -357,6 +443,27 @@ function renderAll() {
   if (dom.lcd) dom.lcd.style.opacity = '1';
 
   renderStatusBar();
+
+  // Mode 9 overlay handling
+  if (dom.mode9Screen) {
+    const isMode9Active = (State.mode === 9 && !State.inMenu);
+    dom.mode9Screen.classList.toggle('active', isMode9Active);
+    if (isMode9Active) {
+      renderMode9Screen();
+      return;
+    }
+  }
+
+  // Mode A (Inequality) overlay handling
+  if (dom.modeAScreen) {
+    const isModeAActive = (State.mode === 10 && !State.inMenu);
+    dom.modeAScreen.classList.toggle('active', isModeAActive);
+    if (isModeAActive) {
+      renderModeAScreen();
+      return;
+    }
+  }
+
   if (dom.optnScreen) {
     dom.optnScreen.classList.toggle('active', !!State.inOptnMenu);
     if (State.inOptnMenu) {
@@ -626,17 +733,38 @@ function renderMenuScreen() {
   dom.menuScreen.classList.add('active');
   dom.errorScreen.classList.remove('active');
   dom.menuGrid.innerHTML = '';
-  MODES.forEach((m, idx) => {
+
+  // 2-row paginated view (4 items per row, 8 items visible)
+  // Row 0: Modes 1..4 (0..3)
+  // Row 1: Modes 5..8 (4..7)
+  // Row 2: Modes 9..C (8..11)
+  const isScrolledDown = State.menuCursor >= 8;
+  const startIdx = isScrolledDown ? 4 : 0;
+  const endIdx = startIdx + 8;
+
+  const scrollInd = document.getElementById('menu-scroll-ind');
+  if (scrollInd) {
+    scrollInd.textContent = isScrolledDown ? '▲' : '▼';
+  }
+
+  for (let i = startIdx; i < endIdx; i++) {
+    const m = MODES[i];
+    if (!m) continue;
+    const isSelected = (i === State.menuCursor);
     const cell = document.createElement('div');
-    cell.className = 'menu-cell' + (idx === State.menuCursor ? ' selected' : '');
-    cell.innerHTML =
-      `<div class="menu-cell-num">${m.key}</div>` +
-      `<div class="menu-cell-icon">${m.icon}</div>` +
-      `<div class="menu-cell-name">${m.short}</div>`;
-    cell.addEventListener('click', () => { selectMode(idx); });
+    cell.className = 'menu-cell' + (isSelected ? ' selected' : '');
+    cell.innerHTML = `
+      <div class="menu-cell-icon">${m.iconHTML}</div>
+      <div class="menu-cell-key ${m.isLetter ? 'letter-badge' : ''}">${m.key}</div>
+    `;
+    cell.addEventListener('click', () => { selectMode(i); });
     dom.menuGrid.appendChild(cell);
-  });
-  dom.menuStatusBar.textContent = MODES[State.menuCursor].id + ':' + MODES[State.menuCursor].name;
+  }
+
+  const selectedMode = MODES[State.menuCursor];
+  if (selectedMode) {
+    dom.menuStatusBar.textContent = `${selectedMode.key}:${selectedMode.name}`;
+  }
 }
 
 // ============================================================
@@ -1678,6 +1806,83 @@ function convertRadianToAngle(v) {
   return v;
 }
 
+function numberToFraction(val, maxDenom = 1000, tol = 1e-8) {
+  if (val === null || val === undefined || isNaN(val) || !isFinite(val)) return null;
+  if (Number.isInteger(val)) return { n: val, d: 1, isInt: true };
+
+  const isNeg = val < 0;
+  const absVal = Math.abs(val);
+
+  let h1 = 1, h2 = 0, k1 = 0, k2 = 1, b = absVal;
+  let iter = 0;
+  while (iter < 12) {
+    iter++;
+    const a = Math.floor(b);
+    const auxH = a * h1 + h2;
+    const auxK = a * k1 + k2;
+    if (auxK > maxDenom) break;
+    [h1, h2] = [auxH, h1];
+    [k1, k2] = [auxK, k1];
+    const diff = absVal - h1 / k1;
+    if (Math.abs(diff) < tol) break;
+    if (Math.abs(b - a) < 1e-12) break;
+    b = 1 / (b - a);
+  }
+
+  if (k1 <= maxDenom && Math.abs(absVal - h1 / k1) < 1e-7) {
+    return { n: isNeg ? -h1 : h1, d: k1, isInt: k1 === 1 };
+  }
+  return null;
+}
+
+function formatSingleValAsFraction(num) {
+  if (num === null || num === undefined) return '';
+  if (Number.isInteger(num)) return String(num);
+  const frac = numberToFraction(num);
+  if (frac && !frac.isInt && frac.d <= 9999) {
+    return `${frac.n}/${frac.d}`;
+  }
+  return formatRealNumber(num);
+}
+
+function formatValueAutoFraction(val) {
+  if (val === null || val === undefined) return '';
+  if (typeof val === 'string') return val;
+
+  if (val instanceof Complex || (val && typeof val === 'object' && 're' in val && 'im' in val)) {
+    const z = toComplex(val);
+    const isImZero = Math.abs(z.im) < 1e-9;
+    const isReZero = Math.abs(z.re) < 1e-9;
+
+    if (isImZero && isReZero) return '0';
+    if (isImZero) return formatSingleValAsFraction(z.re);
+
+    const reStr = isReZero ? '' : formatSingleValAsFraction(z.re);
+    let imStr = '';
+    const absIm = Math.abs(z.im);
+    const fracIm = numberToFraction(absIm);
+
+    if (Math.abs(absIm - 1) < 1e-9) {
+      imStr = 'i';
+    } else if (fracIm && !fracIm.isInt && fracIm.d <= 9999) {
+      imStr = `${fracIm.n}/${fracIm.d}i`;
+    } else {
+      imStr = `${formatRealNumber(absIm)}i`;
+    }
+
+    if (isReZero) {
+      return z.im < 0 ? `-${imStr}` : imStr;
+    }
+    const sign = z.im < 0 ? ' - ' : ' + ';
+    return `${reStr}${sign}${imStr}`;
+  }
+
+  if (typeof val === 'number') {
+    return formatSingleValAsFraction(val);
+  }
+  return String(val);
+}
+
 function formatResult(val) {
   if (State.mode === 3) {
     const base = State.baseSystem || 'DEC';
@@ -1703,13 +1908,11 @@ function formatResult(val) {
     }
   }
 
-  if (val instanceof Complex || (val && typeof val === 'object' && 're' in val && 'im' in val)) {
-    return formatComplex(val);
+  if (State.sdDisplayOverride) {
+    return State.sdDisplayOverride;
   }
-  if (typeof val === 'number') {
-    return formatRealNumber(val);
-  }
-  return String(val);
+
+  return formatValueAutoFraction(val);
 }
 
 function formatRealNumber(val) {
@@ -2133,6 +2336,20 @@ function handleKey(key) {
 
   if (State.inMenu) {
     handleMenuKey(key);
+    renderAll();
+    return;
+  }
+
+  // --- Mode 9 Equation / Function intercept ---
+  if (State.mode === 9) {
+    handleMode9Key(key);
+    renderAll();
+    return;
+  }
+
+  // --- Mode A (10) Inequality intercept ---
+  if (State.mode === 10) {
+    handleModeAKey(key);
     renderAll();
     return;
   }
@@ -3391,28 +3608,23 @@ function handleMenuKey(key) {
 
   switch (key) {
     case 'RIGHT':
-      const col = State.menuCursor % cols;
-      const nextIdx = State.menuCursor + 1;
-      if (col < cols - 1 && nextIdx < total) {
-        State.menuCursor = nextIdx;
+      if (State.menuCursor < total - 1) {
+        State.menuCursor++;
       }
       break;
     case 'LEFT':
-      const col2 = State.menuCursor % cols;
-      if (col2 > 0) {
+      if (State.menuCursor > 0) {
         State.menuCursor--;
       }
       break;
     case 'DOWN':
-      const nextIdx2 = State.menuCursor + cols;
-      if (nextIdx2 < total) {
-        State.menuCursor = nextIdx2;
+      if (State.menuCursor + cols < total) {
+        State.menuCursor += cols;
       }
       break;
     case 'UP':
-      const nextIdx3 = State.menuCursor - cols;
-      if (nextIdx3 >= 0) {
-        State.menuCursor = nextIdx3;
+      if (State.menuCursor - cols >= 0) {
+        State.menuCursor -= cols;
       }
       break;
     case 'EQUALS':
@@ -3435,12 +3647,21 @@ function handleMenuKey(key) {
       selectMode(parseInt(key) - 1);
       return;
     case 'ALPHA_NEGATION':
+    case 'NEGATION':
+    case 'A':
+    case 'a':
       selectMode(9);
       return;
     case 'ALPHA_DEGREE':
+    case 'DEGREE':
+    case 'B':
+    case 'b':
       selectMode(10);
       return;
     case 'ALPHA_INVERSE':
+    case 'INVERSE':
+    case 'C':
+    case 'c':
       selectMode(11);
       return;
   }
@@ -3452,7 +3673,1252 @@ function selectMode(idx) {
   clearAll();
   if (State.mode === 3) {
     State.baseSystem = 'DEC';
+  } else if (State.mode === 9) {
+    initMode9();
+  } else if (State.mode === 10) {
+    initModeA();
   }
+}
+
+// ============================================================
+// MODE 9: EQUATION / FUNCTION SOLVER (Simul & Polynomial)
+// ============================================================
+
+State.mode9 = {
+  step: 'type_select', // 'type_select' | 'dim_select' | 'input' | 'result'
+  type: 'poly',        // 'simul' | 'poly'
+  dim: 2,              // 2, 3, 4
+  coeffs: [0, 0, 0],   // 1D array for poly, 2D array for simul
+  cursorRow: 0,
+  cursorCol: 0,
+  inputStr: '',
+  results: [],
+  resultIndex: 0,
+  sdMode: 'frac'       // 'frac' | 'dec'
+};
+
+function initMode9() {
+  State.mode9 = {
+    step: 'type_select',
+    type: 'poly',
+    dim: 2,
+    coeffs: [0, 0, 0],
+    cursorRow: 0,
+    cursorCol: 0,
+    inputStr: '',
+    results: [],
+    resultIndex: 0,
+    sdMode: 'frac'
+  };
+}
+
+function setupMode9Dimension(type, dim) {
+  State.mode9.type = type;
+  State.mode9.dim = dim;
+  State.mode9.step = 'input';
+  State.mode9.cursorRow = 0;
+  State.mode9.cursorCol = 0;
+  State.mode9.inputStr = '';
+  State.mode9.results = [];
+  State.mode9.resultIndex = 0;
+  State.mode9.sdMode = 'frac';
+
+  if (type === 'simul') {
+    State.mode9.coeffs = Array.from({ length: dim }, () => Array(dim + 1).fill(0));
+  } else {
+    State.mode9.coeffs = Array(dim + 1).fill(0);
+  }
+}
+
+function parseSimpleNumeric(str) {
+  if (!str) return 0;
+  str = String(str).trim();
+  if (str.includes('/')) {
+    const parts = str.split('/');
+    if (parts.length === 2) {
+      const n = parseFloat(parts[0]);
+      const d = parseFloat(parts[1]);
+      if (!isNaN(n) && !isNaN(d) && d !== 0) return n / d;
+    }
+  }
+  const val = parseFloat(str);
+  return isNaN(val) ? 0 : val;
+}
+
+function commitMode9Input() {
+  const m9 = State.mode9;
+  if (m9.inputStr !== '') {
+    const val = parseSimpleNumeric(m9.inputStr);
+    if (m9.type === 'poly') {
+      m9.coeffs[m9.cursorCol] = val;
+    } else {
+      m9.coeffs[m9.cursorRow][m9.cursorCol] = val;
+    }
+    m9.inputStr = '';
+  }
+}
+
+function advanceMode9Cursor() {
+  const m9 = State.mode9;
+  if (m9.type === 'poly') {
+    if (m9.cursorCol < m9.dim) {
+      m9.cursorCol++;
+    } else {
+      solveMode9();
+    }
+  } else {
+    const maxCols = m9.dim + 1;
+    if (m9.cursorCol < maxCols - 1) {
+      m9.cursorCol++;
+    } else if (m9.cursorRow < m9.dim - 1) {
+      m9.cursorRow++;
+      m9.cursorCol = 0;
+    } else {
+      solveMode9();
+    }
+  }
+}
+
+function renderMode9Screen() {
+  const el = dom.mode9Screen;
+  if (!el) return;
+
+  const m9 = State.mode9;
+
+  if (m9.step === 'type_select') {
+    el.innerHTML = `
+      <div class="m9-branch-menu">
+        <div class="m9-branch-item" data-type="simul">1:Simul Equation</div>
+        <div class="m9-branch-item" data-type="poly">2:Polynomial</div>
+      </div>
+    `;
+    const bSimul = el.querySelector('[data-type="simul"]');
+    const bPoly = el.querySelector('[data-type="poly"]');
+    if (bSimul) {
+      bSimul.addEventListener('click', () => {
+        m9.type = 'simul';
+        m9.step = 'dim_select';
+        renderAll();
+      });
+    }
+    if (bPoly) {
+      bPoly.addEventListener('click', () => {
+        m9.type = 'poly';
+        m9.step = 'dim_select';
+        renderAll();
+      });
+    }
+    return;
+  }
+
+  if (m9.step === 'dim_select') {
+    const isSimul = m9.type === 'simul';
+    el.innerHTML = `
+      <div class="m9-dim-select">
+        <div class="m9-dim-title">${isSimul ? 'Simul Equation' : 'Polynomial'}</div>
+        <div class="m9-dim-subtitle">${isSimul ? 'Unknowns?' : 'Degree?'}</div>
+        <div class="m9-dim-options">2 ~ 4</div>
+      </div>
+    `;
+    return;
+  }
+
+  if (m9.step === 'input') {
+    if (m9.type === 'poly') {
+      const deg = m9.dim;
+      const names = ['a', 'b', 'c', 'd', 'e'];
+      let headerFormula = '';
+      if (deg === 2) headerFormula = 'aX² + bX + c = 0';
+      else if (deg === 3) headerFormula = 'aX³ + bX² + cX + d = 0';
+      else if (deg === 4) headerFormula = 'aX⁴ + bX³ + cX² + dX + e = 0';
+
+      const curName = names[m9.cursorCol] || 'a';
+      const curVal = m9.inputStr !== '' ? m9.inputStr : formatValueAutoFraction(m9.coeffs[m9.cursorCol]);
+
+      let previewTags = '';
+      for (let i = 0; i <= deg; i++) {
+        const isActive = (i === m9.cursorCol);
+        const valDisp = isActive && m9.inputStr !== '' ? m9.inputStr : formatValueAutoFraction(m9.coeffs[i]);
+        previewTags += `<div class="m9-poly-coeff-tag ${isActive ? 'active' : ''}">${names[i]}=${valDisp}</div>`;
+      }
+
+      el.innerHTML = `
+        <div class="m9-poly-input">
+          <div class="m9-poly-header">${headerFormula}</div>
+          <div class="m9-poly-coeffs-preview">${previewTags}</div>
+          <div class="m9-input-line">
+            <span>${curName} =</span>
+            <span>${curVal}<span class="cursor-blink"></span></span>
+          </div>
+        </div>
+      `;
+    } else {
+      const rows = m9.dim;
+      const cols = m9.dim + 1;
+      const varNames = ['x', 'y', 'z', 't'];
+
+      let gridHTML = '';
+      for (let r = 0; r < rows; r++) {
+        gridHTML += '<div class="m9-matrix-row">';
+        for (let c = 0; c < cols; c++) {
+          const isActive = (r === m9.cursorRow && c === m9.cursorCol);
+          const cellVal = isActive && m9.inputStr !== '' ? m9.inputStr : formatValueAutoFraction(m9.coeffs[r][c]);
+          gridHTML += `<div class="m9-matrix-cell ${isActive ? 'active' : ''}">${cellVal}</div>`;
+        }
+        gridHTML += '</div>';
+      }
+
+      let curLabel = '';
+      if (m9.cursorCol < m9.dim) {
+        curLabel = `${varNames[m9.cursorCol]}${m9.cursorRow + 1} =`;
+      } else {
+        curLabel = `const${m9.cursorRow + 1} =`;
+      }
+      const curVal = m9.inputStr !== '' ? m9.inputStr : formatValueAutoFraction(m9.coeffs[m9.cursorRow][m9.cursorCol]);
+
+      el.innerHTML = `
+        <div class="m9-matrix-wrap">
+          <div class="m9-matrix-grid">${gridHTML}</div>
+          <div class="m9-input-line">
+            <span>${curLabel}</span>
+            <span>${curVal}<span class="cursor-blink"></span></span>
+          </div>
+        </div>
+      `;
+    }
+    return;
+  }
+
+  if (m9.step === 'result') {
+    const resItem = m9.results[m9.resultIndex];
+    if (!resItem) {
+      el.innerHTML = '<div class="m9-result-screen"><div>Không có nghiệm</div></div>';
+      return;
+    }
+
+    const hasPrev = m9.resultIndex > 0;
+    const hasNext = m9.resultIndex < m9.results.length - 1;
+    const navArrow = (hasPrev ? '▲' : '') + (hasNext ? '▼' : '');
+
+    let valDisplay = '';
+    if (resItem.isMsg) {
+      valDisplay = `<div class="m9-result-val" style="font-size: 13.5px; text-align: center;">${resItem.val}</div>`;
+    } else {
+      let formattedVal = '';
+      if (m9.sdMode === 'dec') {
+        if (resItem.val instanceof Complex || (typeof resItem.val === 'object' && 're' in resItem.val)) {
+          formattedVal = formatComplex(resItem.val);
+        } else {
+          formattedVal = formatRealNumber(resItem.val);
+        }
+      } else {
+        formattedVal = formatValueAutoFraction(resItem.val);
+      }
+      valDisplay = `<div class="m9-result-val">${formattedVal}</div>`;
+    }
+
+    el.innerHTML = `
+      <div class="m9-result-screen">
+        <div class="m9-result-top">
+          <span>${resItem.label}</span>
+          <span class="m9-result-nav-ind">${navArrow}</span>
+        </div>
+        <div class="m9-result-main">${valDisplay}</div>
+        <div class="m9-result-bottom-hint">
+          <span>[=] Tiếp theo</span>
+          <span>[S⇔D] Phân số</span>
+          <span>[AC] Sửa</span>
+        </div>
+      </div>
+    `;
+    return;
+  }
+}
+
+function handleMode9Key(key) {
+  const m9 = State.mode9;
+
+  if (key === 'ON' || key === 'MENU') {
+    State.mode = 1;
+    State.inMenu = (key === 'MENU');
+    clearAll();
+    return;
+  }
+
+  if (m9.step === 'type_select') {
+    if (key === '1') {
+      m9.type = 'simul';
+      m9.step = 'dim_select';
+    } else if (key === '2') {
+      m9.type = 'poly';
+      m9.step = 'dim_select';
+    } else if (key === 'AC') {
+      State.mode = 1;
+      clearAll();
+    }
+    return;
+  }
+
+  if (m9.step === 'dim_select') {
+    if (key === '2' || key === '3' || key === '4') {
+      setupMode9Dimension(m9.type, parseInt(key, 10));
+    } else if (key === 'AC') {
+      m9.step = 'type_select';
+    }
+    return;
+  }
+
+  if (m9.step === 'input') {
+    if (/^[0-9]$/.test(key)) {
+      m9.inputStr += key;
+      return;
+    }
+    if (key === 'DOT') {
+      if (!m9.inputStr.includes('.')) m9.inputStr += '.';
+      return;
+    }
+    if (key === 'MINUS' || key === 'NEGATION' || key === 'ALPHA_NEGATION') {
+      if (m9.inputStr === '') m9.inputStr = '-';
+      else if (!m9.inputStr.startsWith('-')) m9.inputStr = '-' + m9.inputStr;
+      else m9.inputStr = m9.inputStr.substring(1);
+      return;
+    }
+    if (key === 'FRAC') {
+      if (m9.inputStr !== '' && !m9.inputStr.includes('/')) {
+        m9.inputStr += '/';
+      }
+      return;
+    }
+    if (key === 'DEL') {
+      if (m9.inputStr.length > 0) {
+        m9.inputStr = m9.inputStr.slice(0, -1);
+      }
+      return;
+    }
+    if (key === 'AC') {
+      if (m9.inputStr !== '') {
+        m9.inputStr = '';
+      } else {
+        if (m9.type === 'poly') {
+          m9.coeffs = Array(m9.dim + 1).fill(0);
+        } else {
+          m9.coeffs = Array.from({ length: m9.dim }, () => Array(m9.dim + 1).fill(0));
+        }
+        m9.cursorCol = 0;
+        m9.cursorRow = 0;
+      }
+      return;
+    }
+    if (key === 'EQUALS') {
+      commitMode9Input();
+      advanceMode9Cursor();
+      return;
+    }
+    // Arrow navigation
+    if (key === 'RIGHT') {
+      commitMode9Input();
+      if (m9.type === 'poly') {
+        if (m9.cursorCol < m9.dim) m9.cursorCol++;
+      } else {
+        if (m9.cursorCol < m9.dim) m9.cursorCol++;
+      }
+      return;
+    }
+    if (key === 'LEFT') {
+      commitMode9Input();
+      if (m9.cursorCol > 0) m9.cursorCol--;
+      return;
+    }
+    if (key === 'DOWN') {
+      commitMode9Input();
+      if (m9.type === 'simul') {
+        if (m9.cursorRow < m9.dim - 1) m9.cursorRow++;
+      }
+      return;
+    }
+    if (key === 'UP') {
+      commitMode9Input();
+      if (m9.type === 'simul') {
+        if (m9.cursorRow > 0) m9.cursorRow--;
+      }
+      return;
+    }
+    return;
+  }
+
+  if (m9.step === 'result') {
+    if (key === 'EQUALS' || key === 'DOWN') {
+      if (m9.resultIndex < m9.results.length - 1) {
+        m9.resultIndex++;
+      }
+      return;
+    }
+    if (key === 'UP') {
+      if (m9.resultIndex > 0) {
+        m9.resultIndex--;
+      }
+      return;
+    }
+    if (key === 'SD') {
+      m9.sdMode = (m9.sdMode === 'frac' ? 'dec' : 'frac');
+      return;
+    }
+    if (key === 'AC') {
+      m9.step = 'input';
+      m9.inputStr = '';
+      if (m9.type === 'poly') {
+        m9.coeffs = Array(m9.dim + 1).fill(0);
+      } else {
+        m9.coeffs = Array.from({ length: m9.dim }, () => Array(m9.dim + 1).fill(0));
+      }
+      m9.cursorCol = 0;
+      m9.cursorRow = 0;
+      return;
+    }
+  }
+}
+
+function solveMode9() {
+  const m9 = State.mode9;
+  m9.results = [];
+  m9.resultIndex = 0;
+  m9.sdMode = 'frac';
+
+  if (m9.type === 'simul') {
+    m9.results = solveSimul(m9.coeffs);
+  } else {
+    m9.results = solvePolynomial(m9.coeffs);
+  }
+  m9.step = 'result';
+}
+
+function solveSimul(aug) {
+  const n = aug.length;
+  const A = aug.map(row => row.slice());
+
+  for (let i = 0; i < n; i++) {
+    let maxRow = i;
+    for (let k = i + 1; k < n; k++) {
+      if (Math.abs(A[k][i]) > Math.abs(A[maxRow][i])) {
+        maxRow = k;
+      }
+    }
+    if (Math.abs(A[maxRow][i]) > 1e-12) {
+      [A[i], A[maxRow]] = [A[maxRow], A[i]];
+      const pivot = A[i][i];
+      for (let j = i; j <= n; j++) {
+        A[i][j] /= pivot;
+      }
+      for (let k = 0; k < n; k++) {
+        if (k !== i) {
+          const factor = A[k][i];
+          for (let j = i; j <= n; j++) {
+            A[k][j] -= factor * A[i][j];
+          }
+        }
+      }
+    }
+  }
+
+  for (let i = 0; i < n; i++) {
+    let allZero = true;
+    for (let j = 0; j < n; j++) {
+      if (Math.abs(A[i][j]) > 1e-9) {
+        allZero = false;
+        break;
+      }
+    }
+    if (allZero) {
+      if (Math.abs(A[i][n]) > 1e-7) {
+        return [{ label: 'Kết quả', val: 'No Solution', isMsg: true }];
+      } else {
+        return [{ label: 'Kết quả', val: 'Infinite Solutions', isMsg: true }];
+      }
+    }
+  }
+
+  const varNames = ['x', 'y', 'z', 't'];
+  const res = [];
+  for (let i = 0; i < n; i++) {
+    const val = Math.abs(A[i][n]) < 1e-12 ? 0 : A[i][n];
+    res.push({ label: `${varNames[i]} =`, val: val });
+  }
+  return res;
+}
+
+function solvePolynomial(coeffs) {
+  const deg = coeffs.length - 1;
+  if (deg === 2) {
+    return solveQuadratic(coeffs[0], coeffs[1], coeffs[2]);
+  } else if (deg === 3) {
+    return solveCubic(coeffs[0], coeffs[1], coeffs[2], coeffs[3]);
+  } else if (deg === 4) {
+    return solveQuartic(coeffs[0], coeffs[1], coeffs[2], coeffs[3], coeffs[4]);
+  }
+  return [];
+}
+
+function solveQuadratic(a, b, c) {
+  if (Math.abs(a) < 1e-12) {
+    if (Math.abs(b) < 1e-12) {
+      return [{ label: 'Kết quả', val: Math.abs(c) < 1e-12 ? 'Infinite Solutions' : 'No Solution', isMsg: true }];
+    }
+    return [{ label: 'x =', val: -c / b }];
+  }
+
+  const delta = b * b - 4 * a * c;
+  const res = [];
+
+  if (delta > 1e-11) {
+    const sqrtD = Math.sqrt(delta);
+    const x1 = (-b + sqrtD) / (2 * a);
+    const x2 = (-b - sqrtD) / (2 * a);
+    res.push({ label: 'x1 =', val: x1 });
+    res.push({ label: 'x2 =', val: x2 });
+  } else if (Math.abs(delta) <= 1e-11) {
+    const x = -b / (2 * a);
+    res.push({ label: 'x =', val: x });
+  } else {
+    const re = -b / (2 * a);
+    const im = Math.sqrt(-delta) / Math.abs(2 * a);
+    res.push({ label: 'x1 =', val: new Complex(re, im) });
+    res.push({ label: 'x2 =', val: new Complex(re, -im) });
+  }
+
+  // Extrema: Vertex of parabola
+  const xv = -b / (2 * a);
+  const yv = c - (b * b) / (4 * a);
+  if (a > 0) {
+    res.push({ label: 'X-Value Minimum =', val: xv });
+    res.push({ label: 'Y-Value Minimum =', val: yv });
+  } else {
+    res.push({ label: 'X-Value Maximum =', val: xv });
+    res.push({ label: 'Y-Value Maximum =', val: yv });
+  }
+
+  return res;
+}
+
+function solveCubic(a, b, c, d) {
+  if (Math.abs(a) < 1e-12) return solveQuadratic(b, c, d);
+
+  const a1 = b / a;
+  const a2 = c / a;
+  const a3 = d / a;
+
+  const Q = (3 * a2 - a1 * a1) / 9;
+  const R = (9 * a1 * a2 - 27 * a3 - 2 * a1 * a1 * a1) / 54;
+  const D = Q * Q * Q + R * R;
+
+  const res = [];
+
+  if (D < -1e-11) {
+    const theta = Math.acos(Math.max(-1, Math.min(1, R / Math.sqrt(-Q * Q * Q))));
+    const sqrtQ = 2 * Math.sqrt(-Q);
+    const x1 = sqrtQ * Math.cos(theta / 3) - a1 / 3;
+    const x2 = sqrtQ * Math.cos((theta + 2 * Math.PI) / 3) - a1 / 3;
+    const x3 = sqrtQ * Math.cos((theta + 4 * Math.PI) / 3) - a1 / 3;
+    const sorted = [x1, x2, x3].sort((m, n) => n - m);
+    res.push({ label: 'x1 =', val: sorted[0] });
+    res.push({ label: 'x2 =', val: sorted[1] });
+    res.push({ label: 'x3 =', val: sorted[2] });
+  } else if (Math.abs(D) <= 1e-11) {
+    const S = Math.cbrt(R);
+    const x1 = 2 * S - a1 / 3;
+    const x2 = -S - a1 / 3;
+    res.push({ label: 'x1 =', val: x1 });
+    res.push({ label: 'x2 =', val: x2 });
+  } else {
+    const sqrtD = Math.sqrt(D);
+    const S = Math.cbrt(R + sqrtD);
+    const T = Math.cbrt(R - sqrtD);
+    const x1 = (S + T) - a1 / 3;
+    const re = -(S + T) / 2 - a1 / 3;
+    const im = Math.abs((Math.sqrt(3) / 2) * (S - T));
+    res.push({ label: 'x1 =', val: x1 });
+    res.push({ label: 'x2 =', val: new Complex(re, im) });
+    res.push({ label: 'x3 =', val: new Complex(re, -im) });
+  }
+
+  // Extrema: derivative 3ax^2 + 2bx + c = 0
+  const dDelta = 4 * b * b - 12 * a * c;
+  if (dDelta > 1e-10) {
+    const sqrtDD = Math.sqrt(dDelta);
+    const r1 = (-2 * b + sqrtDD) / (6 * a);
+    const r2 = (-2 * b - sqrtDD) / (6 * a);
+    const evalY = (x) => a * x * x * x + b * x * x + c * x + d;
+    const y1 = evalY(r1);
+    const y2 = evalY(r2);
+
+    let maxPt = { x: r1, y: y1 };
+    let minPt = { x: r2, y: y2 };
+    if (a > 0) {
+      if (r1 > r2) {
+        maxPt = { x: r2, y: y2 };
+        minPt = { x: r1, y: y1 };
+      }
+    } else {
+      if (r1 < r2) {
+        maxPt = { x: r2, y: y2 };
+        minPt = { x: r1, y: y1 };
+      }
+    }
+    res.push({ label: 'x-Value Local Max =', val: maxPt.x });
+    res.push({ label: 'y-Value Local Max =', val: maxPt.y });
+    res.push({ label: 'x-Value Local Min =', val: minPt.x });
+    res.push({ label: 'y-Value Local Min =', val: minPt.y });
+  }
+
+  return res;
+}
+
+function solveQuartic(a, b, c, d, e) {
+  if (Math.abs(a) < 1e-12) return solveCubic(b, c, d, e);
+
+  const p = [e / a, d / a, c / a, b / a, 1];
+  let roots = [
+    new Complex(0.4, 0.9),
+    new Complex(-0.7, 0.8),
+    new Complex(-0.5, -0.6),
+    new Complex(0.8, -0.7)
+  ];
+
+  const evalPoly = (z) => {
+    let res = new Complex(p[4], 0);
+    for (let i = 3; i >= 0; i--) {
+      res = res.mul(z).add(new Complex(p[i], 0));
+    }
+    return res;
+  };
+
+  for (let iter = 0; iter < 120; iter++) {
+    for (let i = 0; i < 4; i++) {
+      let denom = new Complex(1, 0);
+      for (let j = 0; j < 4; j++) {
+        if (i !== j) {
+          denom = denom.mul(roots[i].sub(roots[j]));
+        }
+      }
+      if (denom.abs() > 1e-14) {
+        const num = evalPoly(roots[i]);
+        roots[i] = roots[i].sub(num.div(denom));
+      }
+    }
+  }
+
+  const res = [];
+  roots.forEach((z, idx) => {
+    const cleanRe = Math.abs(z.re) < 1e-10 ? 0 : z.re;
+    const cleanIm = Math.abs(z.im) < 1e-7 ? 0 : z.im;
+    if (cleanIm === 0) {
+      res.push({ label: `x${idx + 1} =`, val: cleanRe });
+    } else {
+      res.push({ label: `x${idx + 1} =`, val: new Complex(cleanRe, cleanIm) });
+    }
+  });
+
+  return res;
+}
+
+// ============================================================
+// MODE A: INEQUALITY SOLVER (Polynomial Degree 2, 3, 4)
+// ============================================================
+
+State.modeA = {
+  step: 'degree_select', // 'degree_select' | 'type_select' | 'input' | 'result'
+  degree: 2,             // 2, 3, 4
+  type: 1,               // 1: > 0, 2: < 0, 3: >= 0, 4: <= 0
+  coeffs: [0, 0, 0],
+  cursorCol: 0,
+  inputStr: '',
+  resultSummary: '',
+  resultFormattedFrac: '',
+  resultFormattedDec: '',
+  sdMode: 'frac'
+};
+
+function initModeA() {
+  State.modeA = {
+    step: 'degree_select',
+    degree: 2,
+    type: 1,
+    coeffs: [0, 0, 0],
+    cursorCol: 0,
+    inputStr: '',
+    resultSummary: '',
+    resultFormattedFrac: '',
+    resultFormattedDec: '',
+    sdMode: 'frac'
+  };
+}
+
+function setupModeADegree(deg) {
+  State.modeA.degree = deg;
+  State.modeA.coeffs = Array(deg + 1).fill(0);
+  State.modeA.cursorCol = 0;
+  State.modeA.inputStr = '';
+  State.modeA.step = 'type_select';
+}
+
+function commitModeAInput() {
+  const mA = State.modeA;
+  if (mA.inputStr !== '') {
+    const val = parseSimpleNumeric(mA.inputStr);
+    mA.coeffs[mA.cursorCol] = val;
+    mA.inputStr = '';
+  }
+}
+
+function advanceModeACursor() {
+  const mA = State.modeA;
+  if (mA.cursorCol < mA.degree) {
+    mA.cursorCol++;
+  } else {
+    solveModeA();
+  }
+}
+
+function formatInequalityFormula(deg, type) {
+  const opMap = { 1: ' > 0', 2: ' < 0', 3: ' ≥ 0', 4: ' ≤ 0' };
+  const op = opMap[type] || ' > 0';
+  if (deg === 2) return `aX² + bX + c${op}`;
+  if (deg === 3) return `aX³ + bX² + cX + d${op}`;
+  if (deg === 4) return `aX⁴ + bX³ + cX² + dX + e${op}`;
+  return `aXⁿ + ...${op}`;
+}
+
+function renderModeAScreen() {
+  const el = dom.modeAScreen;
+  if (!el) return;
+
+  const mA = State.modeA;
+
+  if (mA.step === 'degree_select') {
+    el.innerHTML = `
+      <div class="mA-degree-select">
+        <div class="mA-deg-title">Polynomial</div>
+        <div class="mA-deg-sub">Degree?</div>
+        <div class="mA-deg-options">Select 2~4</div>
+      </div>
+    `;
+    return;
+  }
+
+  if (mA.step === 'type_select') {
+    const deg = mA.degree;
+    let listHTML = '';
+    for (let t = 1; t <= 4; t++) {
+      const isSelected = (mA.type === t);
+      listHTML += `<div class="mA-type-item ${isSelected ? 'selected' : ''}" data-type="${t}">${t}: ${formatInequalityFormula(deg, t)}</div>`;
+    }
+    el.innerHTML = `
+      <div class="mA-type-list">
+        ${listHTML}
+      </div>
+    `;
+    el.querySelectorAll('.mA-type-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const t = parseInt(item.dataset.type, 10);
+        mA.type = t;
+        mA.step = 'input';
+        mA.cursorCol = 0;
+        renderAll();
+      });
+    });
+    return;
+  }
+
+  if (mA.step === 'input') {
+    const deg = mA.degree;
+    const names = ['a', 'b', 'c', 'd', 'e'];
+    const curName = names[mA.cursorCol] || 'a';
+    const curVal = mA.inputStr !== '' ? mA.inputStr : formatValueAutoFraction(mA.coeffs[mA.cursorCol]);
+
+    let previewTags = '';
+    for (let i = 0; i <= deg; i++) {
+      const isActive = (i === mA.cursorCol);
+      const valDisp = isActive && mA.inputStr !== '' ? mA.inputStr : formatValueAutoFraction(mA.coeffs[i]);
+      previewTags += `<div class="mA-poly-coeff-tag ${isActive ? 'active' : ''}">${names[i]}=${valDisp}</div>`;
+    }
+
+    el.innerHTML = `
+      <div class="mA-poly-input">
+        <div class="mA-poly-header">${formatInequalityFormula(deg, mA.type)}</div>
+        <div class="mA-poly-coeffs-preview">${previewTags}</div>
+        <div class="mA-input-line">
+          <span>${curName} =</span>
+          <span>${curVal}<span class="cursor-blink"></span></span>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if (mA.step === 'result') {
+    const dispVal = (mA.sdMode === 'dec' ? mA.resultFormattedDec : mA.resultFormattedFrac) || 'No Solution';
+
+    el.innerHTML = `
+      <div class="mA-result-screen">
+        <div class="mA-result-top">
+          <span>${mA.resultSummary}</span>
+        </div>
+        <div class="mA-result-main">
+          <div class="mA-result-val">${dispVal}</div>
+        </div>
+        <div class="mA-result-bottom-hint">
+          <span>[AC] Sửa</span>
+          <span>[OPTN] Dấu</span>
+          <span>[S⇔D] Phân số</span>
+        </div>
+      </div>
+    `;
+    return;
+  }
+}
+
+function handleModeAKey(key) {
+  const mA = State.modeA;
+
+  if (key === 'ON' || key === 'MENU') {
+    State.mode = 1;
+    State.inMenu = (key === 'MENU');
+    clearAll();
+    return;
+  }
+
+  if (mA.step === 'degree_select') {
+    if (key === '2' || key === '3' || key === '4') {
+      setupModeADegree(parseInt(key, 10));
+    } else if (key === 'AC') {
+      State.mode = 1;
+      clearAll();
+    }
+    return;
+  }
+
+  if (mA.step === 'type_select') {
+    if (key === '1' || key === '2' || key === '3' || key === '4') {
+      mA.type = parseInt(key, 10);
+      mA.step = 'input';
+      mA.cursorCol = 0;
+    } else if (key === 'AC') {
+      mA.step = 'degree_select';
+    }
+    return;
+  }
+
+  if (mA.step === 'input') {
+    if (/^[0-9]$/.test(key)) {
+      mA.inputStr += key;
+      return;
+    }
+    if (key === 'DOT') {
+      if (!mA.inputStr.includes('.')) mA.inputStr += '.';
+      return;
+    }
+    if (key === 'MINUS' || key === 'NEGATION' || key === 'ALPHA_NEGATION') {
+      if (mA.inputStr === '') mA.inputStr = '-';
+      else if (!mA.inputStr.startsWith('-')) mA.inputStr = '-' + mA.inputStr;
+      else mA.inputStr = mA.inputStr.substring(1);
+      return;
+    }
+    if (key === 'FRAC') {
+      if (mA.inputStr !== '' && !mA.inputStr.includes('/')) {
+        mA.inputStr += '/';
+      }
+      return;
+    }
+    if (key === 'DEL') {
+      if (mA.inputStr.length > 0) {
+        mA.inputStr = mA.inputStr.slice(0, -1);
+      }
+      return;
+    }
+    if (key === 'AC') {
+      if (mA.inputStr !== '') {
+        mA.inputStr = '';
+      } else {
+        mA.coeffs = Array(mA.degree + 1).fill(0);
+        mA.cursorCol = 0;
+      }
+      return;
+    }
+    if (key === 'EQUALS') {
+      commitModeAInput();
+      advanceModeACursor();
+      return;
+    }
+    if (key === 'OPTN') {
+      commitModeAInput();
+      mA.step = 'type_select';
+      return;
+    }
+    if (key === 'RIGHT') {
+      commitModeAInput();
+      if (mA.cursorCol < mA.degree) mA.cursorCol++;
+      return;
+    }
+    if (key === 'LEFT') {
+      commitModeAInput();
+      if (mA.cursorCol > 0) mA.cursorCol--;
+      return;
+    }
+    if (key === 'UP' || key === 'DOWN') {
+      commitModeAInput();
+      return;
+    }
+    return;
+  }
+
+  if (mA.step === 'result') {
+    if (key === 'AC') {
+      mA.step = 'input';
+      mA.inputStr = '';
+      mA.coeffs = Array(mA.degree + 1).fill(0);
+      mA.cursorCol = 0;
+      return;
+    }
+    if (key === 'OPTN') {
+      mA.step = 'type_select';
+      return;
+    }
+    if (key === 'SD') {
+      mA.sdMode = (mA.sdMode === 'frac' ? 'dec' : 'frac');
+      return;
+    }
+    if (key === 'EQUALS' || key === 'DOWN') {
+      mA.step = 'input';
+      mA.inputStr = '';
+      return;
+    }
+  }
+}
+
+function solveModeA() {
+  const mA = State.modeA;
+  const res = solveInequalityEngine(mA.degree, mA.type, mA.coeffs);
+  mA.resultSummary = res.summary;
+  mA.resultFormattedFrac = res.valFrac;
+  mA.resultFormattedDec = res.valDec;
+  mA.sdMode = 'frac';
+  mA.step = 'result';
+}
+
+function formatNumFracHTMLModeA(val) {
+  if (Math.abs(val) < 1e-12) return '0';
+  const frac = numberToFraction(val);
+  if (frac) {
+    if (frac.isInt) return String(frac.n);
+    const sign = frac.n < 0 ? '-' : '';
+    const absN = Math.abs(frac.n);
+    return `${sign}<span class="lcd-frac-box"><span class="lcd-frac-num">${absN}</span><span class="lcd-frac-den">${frac.d}</span></span>`;
+  }
+  return val.toFixed(4).replace(/\.?0+$/, '');
+}
+
+function formatNumDecModeA(val) {
+  if (Math.abs(val) < 1e-12) return '0';
+  return val.toFixed(6).replace(/\.?0+$/, '');
+}
+
+function evalPolyModeA(coeffs, x) {
+  let res = coeffs[0];
+  for (let i = 1; i < coeffs.length; i++) {
+    res = res * x + coeffs[i];
+  }
+  return res;
+}
+
+function solvePolyRootsModeA(coeffs) {
+  let c = coeffs.slice();
+  while (c.length > 1 && Math.abs(c[0]) < 1e-12) {
+    c.shift();
+  }
+  const deg = c.length - 1;
+  if (deg <= 0) return [];
+
+  if (deg === 1) {
+    return [-c[1] / c[0]];
+  }
+
+  if (deg === 2) {
+    const [a, b, d] = c;
+    const delta = b * b - 4 * a * d;
+    if (delta > 1e-11) {
+      const sqrtD = Math.sqrt(delta);
+      const r1 = (-b - sqrtD) / (2 * a);
+      const r2 = (-b + sqrtD) / (2 * a);
+      return [r1, r2].sort((x, y) => x - y);
+    } else if (Math.abs(delta) <= 1e-11) {
+      return [-b / (2 * a)];
+    }
+    return [];
+  }
+
+  if (deg === 3) {
+    const [a, b, d, e] = c;
+    const a1 = b / a, a2 = d / a, a3 = e / a;
+    const Q = (3 * a2 - a1 * a1) / 9;
+    const R = (9 * a1 * a2 - 27 * a3 - 2 * a1 * a1 * a1) / 54;
+    const D = Q * Q * Q + R * R;
+    const roots = [];
+    if (D < -1e-11) {
+      const theta = Math.acos(Math.max(-1, Math.min(1, R / Math.sqrt(-Q * Q * Q))));
+      const sqrtQ = 2 * Math.sqrt(-Q);
+      roots.push(sqrtQ * Math.cos(theta / 3) - a1 / 3);
+      roots.push(sqrtQ * Math.cos((theta + 2 * Math.PI) / 3) - a1 / 3);
+      roots.push(sqrtQ * Math.cos((theta + 4 * Math.PI) / 3) - a1 / 3);
+    } else if (Math.abs(D) <= 1e-11) {
+      const S = Math.cbrt(R);
+      roots.push(2 * S - a1 / 3);
+      roots.push(-S - a1 / 3);
+    } else {
+      const sqrtD = Math.sqrt(D);
+      const S = Math.cbrt(R + sqrtD);
+      const T = Math.cbrt(R - sqrtD);
+      roots.push((S + T) - a1 / 3);
+    }
+    return roots.sort((x, y) => x - y);
+  }
+
+  if (deg === 4) {
+    const [a, b, d, e, f] = c;
+    const p = [f / a, e / a, d / a, b / a, 1];
+    let roots = [
+      { re: 0.4, im: 0.9 },
+      { re: -0.7, im: 0.8 },
+      { re: -0.5, im: -0.6 },
+      { re: 0.8, im: -0.7 }
+    ];
+
+    const cMul = (u, v) => ({ re: u.re * v.re - u.im * v.im, im: u.re * v.im + u.im * v.re });
+    const cAdd = (u, v) => ({ re: u.re + v.re, im: u.im + v.im });
+    const cSub = (u, v) => ({ re: u.re - v.re, im: u.im - v.im });
+    const cDiv = (u, v) => {
+      const denom = v.re * v.re + v.im * v.im;
+      return { re: (u.re * v.re + u.im * v.im) / denom, im: (u.im * v.re - u.re * v.im) / denom };
+    };
+    const cAbs = (u) => Math.hypot(u.re, u.im);
+
+    const evalP = (z) => {
+      let res = { re: p[4], im: 0 };
+      for (let i = 3; i >= 0; i--) {
+        res = cAdd(cMul(res, z), { re: p[i], im: 0 });
+      }
+      return res;
+    };
+
+    for (let iter = 0; iter < 120; iter++) {
+      for (let i = 0; i < 4; i++) {
+        let denom = { re: 1, im: 0 };
+        for (let j = 0; j < 4; j++) {
+          if (i !== j) {
+            denom = cMul(denom, cSub(roots[i], roots[j]));
+          }
+        }
+        if (cAbs(denom) > 1e-14) {
+          const num = evalP(roots[i]);
+          roots[i] = cSub(roots[i], cDiv(num, denom));
+        }
+      }
+    }
+
+    const realRoots = [];
+    for (const z of roots) {
+      if (Math.abs(z.im) < 1e-5) {
+        let r = z.re;
+        for (let n = 0; n < 10; n++) {
+          const val = evalPolyModeA(c, r);
+          const dVal = 4 * a * r * r * r + 3 * b * r * r + 2 * d * r + e;
+          if (Math.abs(dVal) > 1e-12) {
+            r -= val / dVal;
+          }
+        }
+        realRoots.push(r);
+      }
+    }
+    return realRoots.sort((x, y) => x - y);
+  }
+
+  return [];
+}
+
+function cleanRootsModeA(rawRoots) {
+  if (!rawRoots || rawRoots.length === 0) return [];
+  const sorted = rawRoots.slice().sort((a, b) => a - b);
+  const unique = [];
+  for (const r of sorted) {
+    if (unique.length === 0 || Math.abs(r - unique[unique.length - 1]) > 1e-6) {
+      unique.push(Math.abs(r) < 1e-10 ? 0 : r);
+    }
+  }
+  return unique;
+}
+
+function solveInequalityEngine(degree, type, coeffs) {
+  // type: 1: > 0, 2: < 0, 3: >= 0, 4: <= 0
+  const isStrict = (type === 1 || type === 2);
+  const opSymbol = isStrict ? '<' : '≤';
+
+  let allZero = coeffs.every(v => Math.abs(v) < 1e-12);
+  if (allZero) {
+    if (type === 3 || type === 4) {
+      return {
+        summary: 'All Real Numbers',
+        valFrac: 'All Real Numbers',
+        valDec: 'All Real Numbers'
+      };
+    } else {
+      return {
+        summary: 'No Solution',
+        valFrac: 'No Solution',
+        valDec: 'No Solution'
+      };
+    }
+  }
+
+  const roots = cleanRootsModeA(solvePolyRootsModeA(coeffs));
+  const k = roots.length;
+
+  const intervalsValid = [];
+  for (let j = 0; j <= k; j++) {
+    let testX = 0;
+    if (k === 0) {
+      testX = 0;
+    } else if (j === 0) {
+      testX = roots[0] - 1;
+    } else if (j === k) {
+      testX = roots[k - 1] + 1;
+    } else {
+      testX = (roots[j - 1] + roots[j]) / 2;
+    }
+    const val = evalPolyModeA(coeffs, testX);
+    let ok = false;
+    if (type === 1) ok = (val > 1e-9);
+    else if (type === 2) ok = (val < -1e-9);
+    else if (type === 3) ok = (val >= -1e-9);
+    else if (type === 4) ok = (val <= 1e-9);
+    intervalsValid.push(ok);
+  }
+
+  const rootsValid = [];
+  for (let i = 0; i < k; i++) {
+    if (type === 1 || type === 2) rootsValid.push(false);
+    else rootsValid.push(true);
+  }
+
+  const allIntervalsOk = intervalsValid.every(Boolean);
+  const allRootsOk = (k === 0) || rootsValid.every(Boolean);
+  if (allIntervalsOk && allRootsOk) {
+    return {
+      summary: 'All Real Numbers',
+      valFrac: 'All Real Numbers',
+      valDec: 'All Real Numbers'
+    };
+  }
+
+  const noIntervalsOk = intervalsValid.every(v => !v);
+  const noRootsOk = rootsValid.every(v => !v);
+  if (noIntervalsOk && noRootsOk) {
+    return {
+      summary: 'No Solution',
+      valFrac: 'No Solution',
+      valDec: 'No Solution'
+    };
+  }
+
+  // Build raw list of valid intervals:
+  const rawIntervals = [];
+  for (let j = 0; j <= k; j++) {
+    if (intervalsValid[j]) {
+      const left = j === 0 ? null : roots[j - 1];
+      const right = j === k ? null : roots[j];
+      rawIntervals.push({ left, right, leftIdx: j - 1, rightIdx: j });
+    }
+  }
+
+  // Merge adjacent intervals only if boundary root is valid
+  const mergedIntervals = [];
+  for (let idx = 0; idx < rawIntervals.length; idx++) {
+    const cur = rawIntervals[idx];
+    if (mergedIntervals.length === 0) {
+      mergedIntervals.push({ left: cur.left, right: cur.right, leftIdx: cur.leftIdx, rightIdx: cur.rightIdx });
+    } else {
+      const prev = mergedIntervals[mergedIntervals.length - 1];
+      if (prev.rightIdx === cur.leftIdx && prev.rightIdx !== null && rootsValid[prev.rightIdx] === true) {
+        prev.right = cur.right;
+        prev.rightIdx = cur.rightIdx;
+      } else {
+        mergedIntervals.push({ left: cur.left, right: cur.right, leftIdx: cur.leftIdx, rightIdx: cur.rightIdx });
+      }
+    }
+  }
+
+  // Add isolated valid root points
+  const pieces = mergedIntervals.map(it => ({ ...it, isPoint: false }));
+  for (let i = 0; i < k; i++) {
+    if (rootsValid[i]) {
+      const leftIntOk = intervalsValid[i];
+      const rightIntOk = intervalsValid[i + 1];
+      if (!leftIntOk && !rightIntOk) {
+        pieces.push({ left: roots[i], right: roots[i], isPoint: true });
+      }
+    }
+  }
+
+  // Sort pieces
+  pieces.sort((p1, p2) => {
+    const v1 = p1.left !== null ? p1.left : -Infinity;
+    const v2 = p2.left !== null ? p2.left : -Infinity;
+    return v1 - v2;
+  });
+
+  // Check if pieces form a punctured line: e.g. x < a and a < x
+  if (pieces.length === 2 && pieces[0].left === null && pieces[1].right === null && pieces[0].right === pieces[1].left && isStrict) {
+    const a = pieces[0].right;
+    const summary = `x < a , a < x`;
+    const valFrac = `x < ${formatNumFracHTMLModeA(a)} , ${formatNumFracHTMLModeA(a)} < x`;
+    const valDec = `x < ${formatNumDecModeA(a)} , ${formatNumDecModeA(a)} < x`;
+    return { summary, valFrac, valDec };
+  }
+
+  const summaryParts = [];
+  const fracParts = [];
+  const decParts = [];
+
+  const letterNames = ['a', 'b', 'c', 'd', 'e'];
+  let lIdx = 0;
+
+  for (const piece of pieces) {
+    if (piece.isPoint) {
+      const a = letterNames[lIdx++];
+      summaryParts.push(`x = ${a}`);
+      fracParts.push(`x = ${formatNumFracHTMLModeA(piece.left)}`);
+      decParts.push(`x = ${formatNumDecModeA(piece.left)}`);
+    } else if (piece.left === null && piece.right !== null) {
+      const a = letterNames[lIdx++];
+      summaryParts.push(`x ${opSymbol} ${a}`);
+      fracParts.push(`x ${opSymbol} ${formatNumFracHTMLModeA(piece.right)}`);
+      decParts.push(`x ${opSymbol} ${formatNumDecModeA(piece.right)}`);
+    } else if (piece.left !== null && piece.right === null) {
+      const a = letterNames[lIdx++];
+      summaryParts.push(`${a} ${opSymbol} x`);
+      fracParts.push(`${formatNumFracHTMLModeA(piece.left)} ${opSymbol} x`);
+      decParts.push(`${formatNumDecModeA(piece.left)} ${opSymbol} x`);
+    } else if (piece.left !== null && piece.right !== null) {
+      const a = letterNames[lIdx++];
+      const b = letterNames[lIdx++];
+      summaryParts.push(`${a} ${opSymbol} x ${opSymbol} ${b}`);
+      fracParts.push(`${formatNumFracHTMLModeA(piece.left)} ${opSymbol} x ${opSymbol} ${formatNumFracHTMLModeA(piece.right)}`);
+      decParts.push(`${formatNumDecModeA(piece.left)} ${opSymbol} x ${opSymbol} ${formatNumDecModeA(piece.right)}`);
+    }
+  }
+
+  return {
+    summary: summaryParts.join(' , '),
+    valFrac: fracParts.join(' , '),
+    valDec: decParts.join(' , ')
+  };
 }
 
 // ============================================================

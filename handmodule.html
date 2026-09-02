@@ -1710,7 +1710,7 @@
     };
 
     /* ══════════════════════════════════════════
-       STEM PHYSICS V2 & 3D ARROW OVERLAY SYSTEM
+       PHYSICS V2 & 3D ARROW OVERLAY SYSTEM
        ══════════════════════════════════════════ */
     const DIRECTIONS = {
       LEFT:        { label: "Sang trái (←)",               vector: [-1, 0, 0] },
@@ -1999,7 +1999,7 @@
         </span>
       `;
 
-      logDebug(`⚡ STEM V2: ${missingLabel} = ${res.resultLabel} | ${palmHint.replace(/<[^>]+>/g,'')}`, 'success');
+      logDebug(`⚡ PHYSICS V2: ${missingLabel} = ${res.resultLabel} | ${palmHint.replace(/<[^>]+>/g,'')}`, 'success');
 
       // Auto switch active hand tab
       setHandTab(res.handType === 'RIGHT_HAND' ? 'right' : 'left');

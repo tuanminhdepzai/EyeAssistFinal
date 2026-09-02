@@ -14,6 +14,8 @@ export class CasioKeyMatrix {
     this._snapCx = 0;              // center X of current snap target
     this._snapCy = 0;              // center Y of current snap target
     this._snapHysteresis = 10;     // px — must move this far from center before re-snap
+    this._lastKey = null;
+    this._lastPressTime = 0;
   }
 
   /** No-op: the real Casio HTML is already in the page */
@@ -91,6 +93,13 @@ export class CasioKeyMatrix {
    */
   pressKey(keyId) {
     if (!keyId) return;
+    const now = performance.now();
+    if (this._lastKey === keyId && (now - this._lastPressTime < 280)) {
+      return; // Chống lặp phím trùng trong thời gian ngắn
+    }
+    this._lastKey = keyId;
+    this._lastPressTime = now;
+
     // Call the real Casio engine
     if (window.handleKey) {
       window.handleKey(keyId);

@@ -3,69 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EyeAssist STEM</title>
+  <title>EyeAssist</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/styles/base.css" />
-  <link rel="stylesheet" href="/src/styles/auth.css" />
   <link rel="stylesheet" href="/src/styles/calibration.css" />
   <link rel="stylesheet" href="/src/styles/physics.css" />
   <link rel="stylesheet" href="/casio/style.css" />
 </head>
 <body>
-  <!-- Auth Screen: đăng nhập / đăng ký (email+password, Google) -->
-  <div id="auth-screen">
-    <div class="auth-card">
-      <div class="auth-brand">
-        <span class="auth-logo" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="22" height="22"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg>
-        </span>
-        <span class="auth-brand-name">EyeAssist STEM</span>
-      </div>
-
-      <h1 id="auth-title">Đăng nhập</h1>
-
-      <form id="auth-form" data-mode="login" novalidate>
-        <div class="auth-field" id="auth-name-field" hidden>
-          <label for="auth-name">Họ tên</label>
-          <input type="text" id="auth-name" autocomplete="name" placeholder="Nguyễn Văn A" />
-        </div>
-        <div class="auth-field">
-          <label for="auth-email">Email</label>
-          <input type="email" id="auth-email" autocomplete="email" placeholder="ban@email.com" required />
-        </div>
-        <div class="auth-field">
-          <label for="auth-password">Mật khẩu</label>
-          <input type="password" id="auth-password" autocomplete="current-password" minlength="6" placeholder="Tối thiểu 6 ký tự" required />
-        </div>
-        <div class="auth-actions">
-          <button type="submit" id="auth-submit" class="btn-primary">Đăng nhập</button>
-          <div class="auth-divider">hoặc</div>
-          <button type="button" id="auth-google" class="btn-secondary">
-            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.2-2 3.7-5 3.7-8.6z"/><path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.2 0-5.9-2.1-6.8-5.1l-3.9 3C3.3 21.2 7.3 24 12 24z"/><path fill="#FBBC05" d="M5.2 14.3c-.2-.7-.4-1.5-.4-2.3s.1-1.6.4-2.3l-3.9-3C.5 8.3 0 10.1 0 12s.5 3.7 1.3 5.3l3.9-3z"/><path fill="#EA4335" d="M12 4.6c2.3 0 3.8 1 4.7 1.8l3.3-3.2C18 1.2 15.2 0 12 0 7.3 0 3.3 2.8 1.3 6.7l3.9 3c.9-3 3.6-5.1 6.8-5.1z"/></svg>
-            Tiếp tục với Google
-          </button>
-        </div>
-      </form>
-
-      <div id="auth-error" role="alert" hidden>
-        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>
-        <span id="auth-error-text"></span>
-      </div>
-
-      <div id="auth-switch-hint"></div>
-    </div>
-  </div>
-
   <!-- Loading Screen -->
   <div id="loading-screen">
     <div class="loading-content">
       <div class="loading-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" width="56" height="56"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg>
       </div>
-      <h1>EyeAssist STEM</h1>
+      <h1>EyeAssist</h1>
       <p class="loading-subtitle">Đang khởi động hệ thống...</p>
       <div class="loading-bar">
         <div class="loading-fill" id="loading-fill"></div>
@@ -82,7 +37,7 @@
         <span class="nav-logo" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="24" height="24"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg>
         </span>
-        <span class="nav-title">EyeAssist STEM</span>
+        <span class="nav-title">EyeAssist</span>
       </div>
       <div class="nav-tabs">
         <span class="nav-tabs-pill" aria-hidden="true"></span>
@@ -102,7 +57,7 @@
           <span class="tab-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
           </span>
-          <span class="tab-label">Hiệu chỉnh</span>
+          <span class="tab-label">Hiệu chỉnh <span class="tab-lock-badge" title="Được bảo vệ bằng mã PIN">🔒</span></span>
         </button>
       </div>
       <div class="nav-status" aria-label="Trạng thái hệ thống">
@@ -127,14 +82,6 @@
           </span>
           <span class="mic-label">Ra lệnh giọng nói</span>
         </button>
-        <!-- Tài khoản: avatar + tên + đăng xuất -->
-        <div class="user-chip" id="user-chip" hidden>
-          <span class="user-avatar" id="user-avatar" aria-hidden="true"></span>
-          <span class="user-name" id="user-name"></span>
-          <button id="btn-logout" title="Đăng xuất" aria-label="Đăng xuất">
-            <svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-          </button>
-        </div>
       </div>
     </nav>
 
@@ -287,327 +234,518 @@
 
     <!-- Casio Tab -->
     <div id="tab-casio" class="tab-content active">
-      <div id="casio-app">
+      <div class="casio-workspace">
 
-<div class="calculator-wrapper">
-<div class="calculator" id="calculator">
+        <!-- Cột Hướng Dẫn Trái: Điều Khiển Bằng Mắt & Giọng Nói -->
+        <aside class="casio-guide-col guide-left">
+          
+          <!-- Card 1: Điều khiển bằng ánh mắt -->
+          <div class="casio-guide-card">
+            <div class="guide-card-header">
+              <div class="guide-icon-badge amber">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="guide-card-title">Điều Khiển Bằng Mắt</h3>
+                <span class="guide-card-sub">Eye-Tracking &amp; Dwell Snap</span>
+              </div>
+            </div>
 
-  <!-- ===== BRANDING ===== -->
-  <div class="brand-section">
-    <div class="logo-casio">CASIO</div>
-    <div class="model-name">fx-580VN X</div>
-    <div class="logo-classwiz">CLASSWIZ</div>
-  </div>
+            <div class="guide-card-body">
+              <div class="guide-step-item">
+                <span class="guide-bullet">1</span>
+                <div>
+                  <strong>Hút dính từ tính (Magnetic Snap)</strong>
+                  <p>Nhìn vào bàn phím, con trỏ vàng hổ phách tự động hút dính chuẩn xác vào tâm phím gần nhất.</p>
+                </div>
+              </div>
 
-  <!-- ===== LCD SCREEN ===== -->
-  <div class="screen-bezel">
-    <div class="screen" id="lcd">
-      <!-- Status indicators -->
-      <div class="screen-indicators">
-        <span class="indicator" id="ind-shift"><span class="indicator-icon">S</span></span>
-        <span class="indicator" id="ind-alpha"><span class="indicator-icon">A</span></span>
-        <span class="indicator" id="ind-m"><span class="indicator-icon">M</span></span>
-        <span class="indicator" id="ind-complex"><span class="indicator-icon">i</span></span>
-        <span class="indicator active" id="ind-angle">D</span>
-        <span class="indicator" id="ind-fix"></span>
-        <span class="indicator" id="ind-disp">Disp</span>
-        <span class="indicator" id="ind-arrow-up">▲</span>
-        <span class="indicator" id="ind-arrow-dn">▼</span>
-        <span class="indicator" id="ind-base" style="margin-left: auto;">d</span>
-      </div>
+              <div class="guide-step-item">
+                <span class="guide-bullet">2</span>
+                <div>
+                  <strong>Nhìn dừng (Dwell ~0.45s)</strong>
+                  <p>Giữ ánh mắt trên phím, vòng tiến trình sẽ lấp đầy và tự động kích hoạt bấm phím.</p>
+                </div>
+              </div>
 
-      <!-- Main content -->
-      <div class="screen-content">
-        <div class="screen-input-wrapper">
-          <div class="screen-input-display" id="screen-input">
-            <span id="expr-before-cursor"></span><span id="cursor-el" class="cursor-blink"></span><span id="expr-after-cursor"></span>
+              <div class="guide-step-item">
+                <span class="guide-bullet">3</span>
+                <div>
+                  <strong>Nháy mắt (Blink Click)</strong>
+                  <p>Nháy mắt dứt khoát 1 lần khi nhìn vào phím để nhập dữ liệu tức thì.</p>
+                </div>
+              </div>
+
+              <div class="guide-tip-box">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                <span>Khoảng cách chuẩn: <strong>45 - 60cm</strong>, giữ đầu thẳng trước camera.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Khẩu lệnh giọng nói -->
+          <div class="casio-guide-card">
+            <div class="guide-card-header">
+              <div class="guide-icon-badge green">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="2" width="6" height="12" rx="3"/>
+                  <path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="guide-card-title">Khẩu Lệnh Giọng Nói</h3>
+                <span class="guide-card-sub">Các Lệnh Được Hỗ Trợ</span>
+              </div>
+            </div>
+
+            <div class="guide-card-body">
+              <p class="guide-desc-text">Bật mic ở menu trái, sau đó đọc các khẩu lệnh chuyển ứng dụng &amp; tương tác:</p>
+
+              <div class="guide-voice-grid" style="grid-template-columns: 1fr;">
+                <div class="voice-cmd-row">
+                  <span class="voice-tag">"Mở bàn tay 3D"</span>
+                  <span class="voice-action">Sang Tab 3D</span>
+                </div>
+                <div class="voice-cmd-row">
+                  <span class="voice-tag">"Mở Casio ảo"</span>
+                  <span class="voice-action">Sang Tab Casio</span>
+                </div>
+                <div class="voice-cmd-row">
+                  <span class="voice-tag">"Xoay bàn tay"</span>
+                  <span class="voice-action">Xoay Mô Hình 3D</span>
+                </div>
+                <div class="voice-cmd-row">
+                  <span class="voice-tag">"Reset camera"</span>
+                  <span class="voice-action">Đặt Lại Góc Nhìn</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </aside>
+
+        <!-- Sân Khấu Chính: Máy Tính Casio fx-580VN X -->
+        <div class="casio-center-stage">
+          <div id="casio-app">
+
+            <div class="calculator-wrapper">
+              <div class="calculator" id="calculator">
+
+                <!-- ===== BRANDING ===== -->
+                <div class="brand-section">
+                  <div class="logo-casio">CASIO</div>
+                  <div class="model-name">fx-580VN X</div>
+                  <div class="logo-classwiz">CLASSWIZ</div>
+                </div>
+
+                <!-- ===== LCD SCREEN ===== -->
+                <div class="screen-bezel">
+                  <div class="screen" id="lcd">
+                    <!-- Status indicators -->
+                    <div class="screen-indicators">
+                      <span class="indicator" id="ind-shift"><span class="indicator-icon">S</span></span>
+                      <span class="indicator" id="ind-alpha"><span class="indicator-icon">A</span></span>
+                      <span class="indicator" id="ind-m"><span class="indicator-icon">M</span></span>
+                      <span class="indicator" id="ind-complex"><span class="indicator-icon">i</span></span>
+                      <span class="indicator active" id="ind-angle">D</span>
+                      <span class="indicator" id="ind-fix"></span>
+                      <span class="indicator" id="ind-disp">Disp</span>
+                      <span class="indicator" id="ind-arrow-up">▲</span>
+                      <span class="indicator" id="ind-arrow-dn">▼</span>
+                      <span class="indicator" id="ind-base" style="margin-left: auto;">d</span>
+                    </div>
+
+                    <!-- Main content -->
+                    <div class="screen-content">
+                      <div class="screen-input-wrapper">
+                        <div class="screen-input-display" id="screen-input">
+                          <span id="expr-before-cursor"></span><span id="cursor-el" class="cursor-blink"></span><span id="expr-after-cursor"></span>
+                        </div>
+                      </div>
+                      <div class="screen-output" id="screen-output"></div>
+                    </div>
+
+                    <!-- Error overlay -->
+                    <div class="error-screen" id="error-screen">
+                      <div class="error-title" id="error-title">Math ERROR</div>
+                      <div class="error-hint">Press AC or ◄► to edit</div>
+                    </div>
+
+                    <!-- Menu overlay -->
+                    <div class="menu-screen" id="menu-screen">
+                      <div class="menu-header-row">
+                        <span class="menu-scroll-ind" id="menu-scroll-ind">▼</span>
+                      </div>
+                      <div class="menu-grid" id="menu-grid"></div>
+                      <div class="menu-status-bar" id="menu-status-bar"></div>
+                    </div>
+
+                    <!-- Mode 9 Equation / Function overlay -->
+                    <div class="mode9-screen" id="mode9-screen"></div>
+
+                    <!-- Mode A Inequality overlay -->
+                    <div class="modeA-screen" id="modeA-screen"></div>
+
+                    <!-- OPTN Menu overlay -->
+                    <div class="optn-screen" id="optn-screen">
+                      <div class="optn-title">CMPLX Option</div>
+                      <div class="optn-list">
+                        <div class="optn-item" data-optn="1">1: Argument</div>
+                        <div class="optn-item" data-optn="2">2: Conjugate</div>
+                        <div class="optn-item" data-optn="3">3: Real Part</div>
+                        <div class="optn-item" data-optn="4">4: Imaginary Part</div>
+                      </div>
+                    </div>
+
+                    <!-- Solve overlay -->
+                    <div class="solve-screen" id="solve-screen">
+                      <div id="solve-eq" style="word-break: break-all; min-height: 20px; font-size: 13px;"></div>
+                      <div class="solve-row solve-border">
+                        <span>X=</span>
+                        <span id="solve-val" style="font-weight: bold; font-size: 16px;"></span>
+                      </div>
+                      <div class="solve-row">
+                        <span>L - R=</span>
+                        <span id="solve-diff"></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- ===== KEYPAD ===== -->
+                <div class="keypad">
+
+                  <!-- Row 0: Shift, Alpha, [D-Pad], Menu, ON -->
+                  <div class="top-controls">
+                    <div class="round-btn-group">
+                      <div class="btn-container">
+                        <div class="btn-label-yellow">SHIFT</div>
+                        <button class="btn-round" id="btn-SHIFT" data-key="SHIFT"></button>
+                      </div>
+                      <div class="btn-container">
+                        <div class="btn-label-red">ALPHA</div>
+                        <button class="btn-round" id="btn-ALPHA" data-key="ALPHA"></button>
+                      </div>
+                    </div>
+
+                    <div class="dpad-container">
+                      <div class="dpad">
+                        <div class="dpad-inner">
+                          <div class="dpad-center"></div>
+                          <button class="dpad-btn dpad-up"    data-key="UP"></button>
+                          <button class="dpad-btn dpad-down"  data-key="DOWN"></button>
+                          <button class="dpad-btn dpad-left"  data-key="LEFT"></button>
+                          <button class="dpad-btn dpad-right" data-key="RIGHT"></button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="round-btn-group">
+                      <div class="btn-container">
+                        <div class="btn-label-white">MENU<br><span style="color:#dcb343;font-size:7px">SET UP</span></div>
+                        <button class="btn-round" data-key="MENU"></button>
+                      </div>
+                      <div class="btn-container">
+                        <div class="btn-label-white">ON</div>
+                        <button class="btn-round" data-key="ON"></button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Row 1: OPTN/CALC + INTEGRAL/X_VAR -->
+                  <div class="func-row-dpad">
+                    <div class="func-mini-group">
+                      <div class="f-wrap">
+                        <div class="lbl-top"><span class="lbl-y">SOLVE=</span></div>
+                        <button class="f-btn f-btn-wide" data-key="OPTN">OPTN</button>
+                      </div>
+                      <div class="f-wrap">
+                        <div class="lbl-top"><span class="lbl-y">SOLVE</span><span class="lbl-r">=</span></div>
+                        <button class="f-btn f-btn-wide" data-key="CALC">CALC</button>
+                      </div>
+                    </div>
+                    <div class="func-mini-group">
+                      <div class="f-wrap">
+                        <div class="lbl-top"><span class="lbl-y">d/dx</span><span class="lbl-r">Σ</span></div>
+                        <button class="f-btn f-btn-wide" data-key="INTEGRAL">∫dx</button>
+                      </div>
+                      <div class="f-wrap">
+                        <div class="lbl-top"><span class="lbl-y">Σ</span><span class="lbl-r">#</span></div>
+                        <button class="f-btn f-btn-wide" data-key="X_VAR">𝑥</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Row 2: Function grid 6-col -->
+                  <div class="func-grid">
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">▪/▪</span><span class="lbl-r">÷R</span></div>
+                      <button class="f-btn" data-key="FRAC">▪/▪</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">³√</span><span class="lbl-r">■</span></div>
+                      <button class="f-btn" data-key="SQRT">√</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">x³</span><span class="lbl-r">DEC</span></div>
+                      <button class="f-btn" data-key="SQUARE">x²</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">x√</span><span class="lbl-r">HEX</span></div>
+                      <button class="f-btn" data-key="POWER">x<sup>■</sup></button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">10<sup>■</sup></span><span class="lbl-r">BIN</span></div>
+                      <button class="f-btn" data-key="LOG_BASE">log□</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">e<sup>■</sup></span><span class="lbl-r">OCT</span></div>
+                      <button class="f-btn" data-key="LN">ln</button>
+                    </div>
+
+                    <!-- Row 3 -->
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">log</span><span class="lbl-r">A</span></div>
+                      <button class="f-btn" data-key="NEGATION">(-)</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">FACT</span><span class="lbl-r">B</span></div>
+                      <button class="f-btn" data-key="DEGREE">°'"</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">x!</span><span class="lbl-r">C</span></div>
+                      <button class="f-btn" data-key="INVERSE">x⁻¹</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">sin⁻¹</span><span class="lbl-r">D</span></div>
+                      <button class="f-btn" data-key="SIN">sin</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">cos⁻¹</span><span class="lbl-r">E</span></div>
+                      <button class="f-btn" data-key="COS">cos</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">tan⁻¹</span><span class="lbl-r">F</span></div>
+                      <button class="f-btn" data-key="TAN">tan</button>
+                    </div>
+
+                    <!-- Row 4: STO, ENG, (, ), S⇔D, M+ -->
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">RECALL</span></div>
+                      <button class="f-btn" data-key="STO">STO</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">←</span><span class="lbl-r">i</span></div>
+                      <button class="f-btn" data-key="ENG">ENG</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">Abs</span><span class="lbl-r">x</span></div>
+                      <button class="f-btn" data-key="LPAREN">(</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">,</span><span class="lbl-r">y</span></div>
+                      <button class="f-btn" data-key="RPAREN">)</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">a b/c</span><span class="lbl-r">z</span></div>
+                      <button class="f-btn" data-key="SD">S⇔D</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">M-</span><span class="lbl-r">M</span></div>
+                      <button class="f-btn" data-key="MPLUS">M+</button>
+                    </div>
+                  </div>
+
+                  <!-- Numeric grid: 5 cols -->
+                  <div class="num-grid">
+                    <!-- 7 8 9 DEL AC -->
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">CONST</span></div>
+                      <button class="n-btn" data-key="7">7</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">CONV</span></div>
+                      <button class="n-btn" data-key="8">8</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">RESET</span></div>
+                      <button class="n-btn" data-key="9">9</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">INS</span><span class="lbl-r">UNDO</span></div>
+                      <button class="n-btn ac-blue" data-key="DEL">DEL</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">OFF</span></div>
+                      <button class="n-btn ac-blue" data-key="AC">AC</button>
+                    </div>
+
+                    <!-- 4 5 6 × ÷ -->
+                    <div class="f-wrap">
+                      <div class="lbl-top"></div>
+                      <button class="n-btn" data-key="4">4</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"></div>
+                      <button class="n-btn" data-key="5">5</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"></div>
+                      <button class="n-btn" data-key="6">6</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">nPr</span><span class="lbl-r">GCD</span></div>
+                      <button class="n-btn op-gray" data-key="MULTIPLY">×</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">nCr</span><span class="lbl-r">LCM</span></div>
+                      <button class="n-btn op-gray" data-key="DIVIDE">÷</button>
+                    </div>
+
+                    <!-- 1 2 3 + − -->
+                    <div class="f-wrap">
+                      <div class="lbl-top"></div>
+                      <button class="n-btn" data-key="1">1</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"></div>
+                      <button class="n-btn" data-key="2">2</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"></div>
+                      <button class="n-btn" data-key="3">3</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">Pol</span><span class="lbl-r">Int</span></div>
+                      <button class="n-btn op-gray" data-key="PLUS">+</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">Rec</span><span class="lbl-r">Intg</span></div>
+                      <button class="n-btn op-gray" data-key="MINUS">−</button>
+                    </div>
+
+                    <!-- 0 . ×10ˣ Ans = -->
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">Rnd</span></div>
+                      <button class="n-btn" data-key="0">0</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">Ran#</span><span class="lbl-r">RanInt</span></div>
+                      <button class="n-btn" data-key="DOT">•</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">π</span><span class="lbl-r">e</span></div>
+                      <button class="n-btn" style="font-size:13px" data-key="EXP">×10<sup style="font-size:10px">x</sup></button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">%</span><span class="lbl-r">PreAns</span></div>
+                      <button class="n-btn" style="font-size:14px" data-key="ANS">Ans</button>
+                    </div>
+                    <div class="f-wrap">
+                      <div class="lbl-top"><span class="lbl-y">≈</span></div>
+                      <button class="n-btn op-gray" data-key="EQUALS">=</button>
+                    </div>
+                  </div>
+                </div><!-- end .keypad -->
+
+              </div><!-- end .calculator -->
+            </div><!-- end .calculator-wrapper -->
+
+            <!-- Gaze Preview Overlay -->
+            <div id="gaze-overlay">
+              <div id="gaze-cursor">●</div>
+            </div>
           </div>
         </div>
-        <div class="screen-output" id="screen-output"></div>
-      </div>
 
-      <!-- Error overlay -->
-      <div class="error-screen" id="error-screen">
-        <div class="error-title" id="error-title">Math ERROR</div>
-        <div class="error-hint">Press AC or ◄► to edit</div>
-      </div>
+        <!-- Cột Hướng Dẫn Phải: Phím Chức Năng & Kỹ Năng Casio -->
+        <aside class="casio-guide-col guide-right">
 
-      <!-- Menu overlay -->
-      <div class="menu-screen" id="menu-screen">
-        <div class="menu-title-bar">Mode</div>
-        <div class="menu-grid" id="menu-grid"></div>
-        <div class="menu-status-bar" id="menu-status-bar"></div>
-      </div>
+          <!-- Card 3: Phím chức năng nâng cao -->
+          <div class="casio-guide-card">
+            <div class="guide-card-header">
+              <div class="guide-icon-badge blue">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="4" y="2" width="16" height="20" rx="2"/>
+                  <line x1="8" y1="6" x2="16" y2="6"/>
+                  <line x1="16" y1="14" x2="16" y2="18"/>
+                  <line x1="8" y1="10" x2="8.01" y2="10"/>
+                  <line x1="12" y1="10" x2="12.01" y2="10"/>
+                  <line x1="16" y1="10" x2="16.01" y2="10"/>
+                  <line x1="8" y1="14" x2="8.01" y2="14"/>
+                  <line x1="12" y1="14" x2="12.01" y2="14"/>
+                  <line x1="8" y1="18" x2="8.01" y2="18"/>
+                  <line x1="12" y1="18" x2="12.01" y2="18"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="guide-card-title">Phím Chức Năng Casio</h3>
+                <span class="guide-card-sub">fx-580VN X Pro Tips</span>
+              </div>
+            </div>
 
-      <!-- OPTN Menu overlay -->
-      <div class="optn-screen" id="optn-screen">
-        <div class="optn-title">CMPLX Option</div>
-        <div class="optn-list">
-          <div class="optn-item" data-optn="1">1: Argument</div>
-          <div class="optn-item" data-optn="2">2: Conjugate</div>
-          <div class="optn-item" data-optn="3">3: Real Part</div>
-          <div class="optn-item" data-optn="4">4: Imaginary Part</div>
-        </div>
-      </div>
+            <div class="guide-card-body">
+              <div class="guide-feature-row">
+                <span class="kbd-badge yellow">SHIFT</span>
+                <div>
+                  <strong>Chức năng chữ vàng</strong>
+                  <p>Bấm SHIFT rồi bấm phím để gọi chức năng phía trên (vd: x³, ³√, π, OFF, CONST...).</p>
+                </div>
+              </div>
 
-      <!-- Solve overlay -->
-      <div class="solve-screen" id="solve-screen">
-        <div id="solve-eq" style="word-break: break-all; min-height: 20px; font-size: 13px;"></div>
-        <div class="solve-row solve-border">
-          <span>X=</span>
-          <span id="solve-val" style="font-weight: bold; font-size: 16px;"></span>
-        </div>
-        <div class="solve-row">
-          <span>L - R=</span>
-          <span id="solve-diff"></span>
-        </div>
-      </div>
-    </div>
-  </div>
+              <div class="guide-feature-row">
+                <span class="kbd-badge red">ALPHA</span>
+                <div>
+                  <strong>Biến số &amp; Chữ đỏ</strong>
+                  <p>Gọi các biến nhớ A, B, C, D, E, F, X, Y, M hoặc dấu bằng "=" trong phương trình.</p>
+                </div>
+              </div>
 
-  <!-- ===== KEYPAD ===== -->
-  <div class="keypad">
+              <div class="guide-feature-row">
+                <span class="kbd-badge cyan">S ⇔ D</span>
+                <div>
+                  <strong>Chuyển đổi kết quả</strong>
+                  <p>Đổi nhanh giữa <em>Phân số ⇔ Số thập phân ⇔ Căn thức</em> chỉ với 1 nháy mắt.</p>
+                </div>
+              </div>
 
-    <!-- Row 0: Shift, Alpha, [D-Pad], Menu, ON -->
-    <div class="top-controls">
-      <div class="round-btn-group">
-        <div class="btn-container">
-          <div class="btn-label-yellow">SHIFT</div>
-          <button class="btn-round" id="btn-SHIFT" data-key="SHIFT"></button>
-        </div>
-        <div class="btn-container">
-          <div class="btn-label-red">ALPHA</div>
-          <button class="btn-round" id="btn-ALPHA" data-key="ALPHA"></button>
-        </div>
-      </div>
-
-      <div class="dpad-container">
-        <div class="dpad">
-          <div class="dpad-inner">
-            <div class="dpad-center"></div>
-            <button class="dpad-btn dpad-up"    data-key="UP"></button>
-            <button class="dpad-btn dpad-down"  data-key="DOWN"></button>
-            <button class="dpad-btn dpad-left"  data-key="LEFT"></button>
-            <button class="dpad-btn dpad-right" data-key="RIGHT"></button>
+              <div class="guide-feature-row">
+                <span class="kbd-badge purple">MENU</span>
+                <div>
+                  <strong>Chọn chế độ tính (Mode)</strong>
+                  <p><strong>1</strong>: Chuẩn · <strong>2</strong>: Số phức · <strong>9</strong>: Giải hệ PT / bậc 2, 3, 4.</p>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div class="round-btn-group">
-        <div class="btn-container">
-          <div class="btn-label-white">MENU<br><span style="color:#dcb343;font-size:7px">SET UP</span></div>
-          <button class="btn-round" data-key="MENU"></button>
-        </div>
-        <div class="btn-container">
-          <div class="btn-label-white">ON</div>
-          <button class="btn-round" data-key="ON"></button>
-        </div>
-      </div>
-    </div>
+          <!-- Card 4: Author Credits -->
+          <div class="casio-guide-card">
+            <div class="guide-card-header">
+              <div class="guide-icon-badge amber">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </div>
+              <div>
+                <h3 class="guide-card-title">Made by Nguyễn Tuấn Minh</h3>
+                <span class="guide-card-sub">EyeAssist & Casio fx-580VN X</span>
+              </div>
+            </div>
 
-    <!-- Row 1: OPTN/CALC + INTEGRAL/X_VAR -->
-    <div class="func-row-dpad">
-      <div class="func-mini-group">
-        <div class="f-wrap">
-          <div class="lbl-top"><span class="lbl-y">SOLVE=</span></div>
-          <button class="f-btn f-btn-wide" data-key="OPTN">OPTN</button>
-        </div>
-        <div class="f-wrap">
-          <div class="lbl-top"><span class="lbl-y">SOLVE</span><span class="lbl-r">=</span></div>
-          <button class="f-btn f-btn-wide" data-key="CALC">CALC</button>
-        </div>
-      </div>
-      <div class="func-mini-group">
-        <div class="f-wrap">
-          <div class="lbl-top"><span class="lbl-y">d/dx</span><span class="lbl-r">Σ</span></div>
-          <button class="f-btn f-btn-wide" data-key="INTEGRAL">∫dx</button>
-        </div>
-        <div class="f-wrap">
-          <div class="lbl-top"><span class="lbl-y">Σ</span><span class="lbl-r">#</span></div>
-          <button class="f-btn f-btn-wide" data-key="X_VAR">𝑥</button>
-        </div>
-      </div>
-    </div>
+            <div class="guide-card-body">
+              <div style="font-size: 12.5px; color: var(--text-secondary, #94a3b8); line-height: 1.6; padding: 4px 0;">
+                <p style="margin: 0;">Dự án hỗ trợ học tập & giả lập máy tính Casio fx-580VN X tương tác bằng ánh mắt và cử chỉ.</p>
+              </div>
+            </div>
+          </div>
 
-    <!-- Row 2: Function grid 6-col -->
-    <div class="func-grid">
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">▪/▪</span><span class="lbl-r">÷R</span></div>
-        <button class="f-btn" data-key="FRAC">▪/▪</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">³√</span><span class="lbl-r">■</span></div>
-        <button class="f-btn" data-key="SQRT">√</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">x³</span><span class="lbl-r">DEC</span></div>
-        <button class="f-btn" data-key="SQUARE">x²</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">x√</span><span class="lbl-r">HEX</span></div>
-        <button class="f-btn" data-key="POWER">x<sup>■</sup></button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">10<sup>■</sup></span><span class="lbl-r">BIN</span></div>
-        <button class="f-btn" data-key="LOG_BASE">log□</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">e<sup>■</sup></span><span class="lbl-r">OCT</span></div>
-        <button class="f-btn" data-key="LN">ln</button>
-      </div>
+        </aside>
 
-      <!-- Row 3 -->
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">log</span><span class="lbl-r">A</span></div>
-        <button class="f-btn" data-key="NEGATION">(-)</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">FACT</span><span class="lbl-r">B</span></div>
-        <button class="f-btn" data-key="DEGREE">°'"</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">x!</span><span class="lbl-r">C</span></div>
-        <button class="f-btn" data-key="INVERSE">x⁻¹</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">sin⁻¹</span><span class="lbl-r">D</span></div>
-        <button class="f-btn" data-key="SIN">sin</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">cos⁻¹</span><span class="lbl-r">E</span></div>
-        <button class="f-btn" data-key="COS">cos</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">tan⁻¹</span><span class="lbl-r">F</span></div>
-        <button class="f-btn" data-key="TAN">tan</button>
-      </div>
-
-      <!-- Row 4: STO, ENG, (, ), S⇔D, M+ -->
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">RECALL</span></div>
-        <button class="f-btn" data-key="STO">STO</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">←</span><span class="lbl-r">i</span></div>
-        <button class="f-btn" data-key="ENG">ENG</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">Abs</span><span class="lbl-r">x</span></div>
-        <button class="f-btn" data-key="LPAREN">(</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">,</span><span class="lbl-r">y</span></div>
-        <button class="f-btn" data-key="RPAREN">)</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">a b/c</span><span class="lbl-r">z</span></div>
-        <button class="f-btn" data-key="SD">S⇔D</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">M-</span><span class="lbl-r">M</span></div>
-        <button class="f-btn" data-key="MPLUS">M+</button>
-      </div>
-    </div>
-
-    <!-- Numeric grid: 5 cols -->
-    <div class="num-grid">
-      <!-- 7 8 9 DEL AC -->
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">CONST</span></div>
-        <button class="n-btn" data-key="7">7</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">CONV</span></div>
-        <button class="n-btn" data-key="8">8</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">RESET</span></div>
-        <button class="n-btn" data-key="9">9</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">INS</span><span class="lbl-r">UNDO</span></div>
-        <button class="n-btn ac-blue" data-key="DEL">DEL</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">OFF</span></div>
-        <button class="n-btn ac-blue" data-key="AC">AC</button>
-      </div>
-
-      <!-- 4 5 6 × ÷ -->
-      <div class="f-wrap">
-        <div class="lbl-top"></div>
-        <button class="n-btn" data-key="4">4</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"></div>
-        <button class="n-btn" data-key="5">5</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"></div>
-        <button class="n-btn" data-key="6">6</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">nPr</span><span class="lbl-r">GCD</span></div>
-        <button class="n-btn op-gray" data-key="MULTIPLY">×</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">nCr</span><span class="lbl-r">LCM</span></div>
-        <button class="n-btn op-gray" data-key="DIVIDE">÷</button>
-      </div>
-
-      <!-- 1 2 3 + − -->
-      <div class="f-wrap">
-        <div class="lbl-top"></div>
-        <button class="n-btn" data-key="1">1</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"></div>
-        <button class="n-btn" data-key="2">2</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"></div>
-        <button class="n-btn" data-key="3">3</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">Pol</span><span class="lbl-r">Int</span></div>
-        <button class="n-btn op-gray" data-key="PLUS">+</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">Rec</span><span class="lbl-r">Intg</span></div>
-        <button class="n-btn op-gray" data-key="MINUS">−</button>
-      </div>
-
-      <!-- 0 . ×10ˣ Ans = -->
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">Rnd</span></div>
-        <button class="n-btn" data-key="0">0</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">Ran#</span><span class="lbl-r">RanInt</span></div>
-        <button class="n-btn" data-key="DOT">•</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">π</span><span class="lbl-r">e</span></div>
-        <button class="n-btn" style="font-size:13px" data-key="EXP">×10<sup style="font-size:10px">x</sup></button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">%</span><span class="lbl-r">PreAns</span></div>
-        <button class="n-btn" style="font-size:14px" data-key="ANS">Ans</button>
-      </div>
-      <div class="f-wrap">
-        <div class="lbl-top"><span class="lbl-y">≈</span></div>
-        <button class="n-btn op-gray" data-key="EQUALS">=</button>
-      </div>
-    </div>
-  </div><!-- end .keypad -->
-
-</div><!-- end .calculator -->
-</div><!-- end .calculator-wrapper -->
-
-        <!-- Gaze Preview Overlay -->
-        <div id="gaze-overlay">
-          <div id="gaze-cursor">●</div>
-        </div>
       </div>
     </div>
 
@@ -719,6 +857,35 @@
         <!-- 3D Viewport -->
         <div id="hand-viewport">
           <div class="hand-badge" id="hand-badge"><span class="hand-dot" style="background:var(--text-secondary)"></span>Đang tải mô hình...</div>
+
+          <!-- Guide Panel: Top Right -->
+          <div class="hand-guide-panel" id="hand-guide-panel">
+            <div class="hgp-header">
+              <div class="hgp-title">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                <span>Hướng Dẫn Sử Dụng 3D</span>
+              </div>
+            </div>
+            <div class="hgp-body">
+              <div class="hgp-item">
+                <span class="hgp-tag">🎤 Giọng nói chuyển tầng</span>
+                <p>Nói <em>"Casio ảo"</em> hoặc <em>"Bàn tay 3D"</em> để chuyển đổi.</p>
+              </div>
+              <div class="hgp-item">
+                <span class="hgp-tag">🔄 Điều khiển xoay bàn tay</span>
+                <p>Nói <em>"Xoay bàn tay"</em> (bật/tắt) hoặc bấm nút <strong>[Xoay]</strong> góc dưới.</p>
+              </div>
+              <div class="hgp-item">
+                <span class="hgp-tag">🎯 Đặt lại góc nhìn</span>
+                <p>Nói <em>"Reset camera"</em> hoặc bấm nút <strong>[Reset]</strong> để về vị trí gốc.</p>
+              </div>
+              <div class="hgp-item">
+                <span class="hgp-tag">👁️ Tương tác ánh mắt</span>
+                <p>Nhìn vào các nút (tự động hút nam châm) và <strong>nháy mắt</strong> để bấm.</p>
+              </div>
+            </div>
+          </div>
+
           <div class="hand-tools">
             <button class="tb on" id="hand-tb-arrows" onclick="handToggleArrows()">Vectơ (B,I,F)</button>
             <button class="tb" id="hand-tb-rot" onclick="handToggleRot()">Xoay</button>
@@ -757,6 +924,50 @@
 
     <!-- Voice Feedback -->
     <div id="voice-feedback">Đang nghe...</div>
+
+    <!-- PIN Protection Modal for Calibration -->
+    <div id="pin-modal" class="pin-modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="pin-modal-title">
+      <div class="pin-modal-card" id="pin-modal-card">
+        <button type="button" class="pin-close-btn" id="btn-pin-close" aria-label="Đóng">&times;</button>
+        <div class="pin-modal-header">
+          <div class="pin-lock-icon">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <h3 id="pin-modal-title" class="pin-title">Khu Vực Quản Trị</h3>
+          <p class="pin-desc">Chức năng hiệu chỉnh đang hoàn thiện. Vui lòng nhập mã PIN bảo mật để truy cập.</p>
+        </div>
+
+        <div class="pin-input-container">
+          <div class="pin-dots-display" id="pin-dots">
+            <span class="pin-dot" data-idx="0"></span>
+            <span class="pin-dot" data-idx="1"></span>
+            <span class="pin-dot" data-idx="2"></span>
+            <span class="pin-dot" data-idx="3"></span>
+          </div>
+          <input type="password" id="pin-hidden-input" maxlength="4" pattern="[0-9]*" inputmode="numeric" autocomplete="off" />
+        </div>
+
+        <div id="pin-error-msg" class="pin-error-text"></div>
+
+        <div class="pin-keypad">
+          <button type="button" class="pin-key" data-digit="1">1</button>
+          <button type="button" class="pin-key" data-digit="2">2</button>
+          <button type="button" class="pin-key" data-digit="3">3</button>
+          <button type="button" class="pin-key" data-digit="4">4</button>
+          <button type="button" class="pin-key" data-digit="5">5</button>
+          <button type="button" class="pin-key" data-digit="6">6</button>
+          <button type="button" class="pin-key" data-digit="7">7</button>
+          <button type="button" class="pin-key" data-digit="8">8</button>
+          <button type="button" class="pin-key" data-digit="9">9</button>
+          <button type="button" class="pin-key pin-action" id="btn-pin-clear">Xóa</button>
+          <button type="button" class="pin-key" data-digit="0">0</button>
+          <button type="button" class="pin-key pin-action pin-cancel" id="btn-pin-cancel">Hủy</button>
+        </div>
+      </div>
+    </div>
     </div><!-- /main-stage -->
   </div>
 

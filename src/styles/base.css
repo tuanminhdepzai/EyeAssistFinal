@@ -1,4 +1,4 @@
-/* ===== EyeAssist STEM — Base Styles =====
+/* ===== EyeAssist — Base Styles =====
    Hướng thiết kế: Tobii Dynavox transfer (Fitzgerald Key color coding,
    rail dọc thiết bị, dwell-ring motif) — xem design-demos/direction-approved.md */
 :root {
@@ -266,6 +266,7 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
   object-fit: cover;
+  transform: scaleX(-1);
 }
 #cam-preview canvas { z-index: 1; }
 #fps-counter {
@@ -452,14 +453,32 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
 #tab-casio {
   display: none;
   flex: 1;
-  background: radial-gradient(900px 520px at 46% 38%, #221d15 0%, var(--bg-primary) 62%), var(--bg-primary);
-  overflow: auto;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 20px;
+  background: radial-gradient(900px 520px at 50% 38%, #252018 0%, var(--bg-primary) 68%), var(--bg-primary);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 20px;
 }
 #tab-casio.active {
+  display: block;
+}
+
+/* ===== CASIO WORKSPACE LAYOUT ===== */
+.casio-workspace {
   display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 22px;
+  width: 100%;
+  max-width: 1380px;
+  margin: 0 auto;
+  min-height: 100%;
+}
+
+.casio-center-stage {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex-shrink: 0;
 }
 
 #casio-app {
@@ -467,6 +486,303 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
   display: inline-flex;
   /* Scale to fill viewport */
   transform-origin: top center;
+}
+
+/* ===== CASIO GUIDE COLUMNS & CARDS ===== */
+.casio-guide-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 340px;
+  flex-shrink: 0;
+}
+
+.casio-guide-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-glass);
+  transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+
+.casio-guide-card:hover {
+  border-color: rgba(232, 184, 75, 0.28);
+  box-shadow: inset 0 1px 0 rgba(241,234,217,.12), 0 10px 28px rgba(0,0,0,.42);
+}
+
+.guide-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 11px;
+  border-bottom: 1px solid rgba(241, 234, 217, 0.08);
+}
+
+.guide-icon-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.guide-icon-badge svg {
+  width: 20px;
+  height: 20px;
+}
+
+.guide-icon-badge.amber {
+  background: rgba(232, 184, 75, 0.14);
+  color: var(--accent-amber-hi);
+  border: 1px solid rgba(232, 184, 75, 0.3);
+}
+
+.guide-icon-badge.green {
+  background: rgba(147, 196, 125, 0.14);
+  color: var(--accent-green-hi);
+  border: 1px solid rgba(147, 196, 125, 0.3);
+}
+
+.guide-icon-badge.blue {
+  background: rgba(122, 167, 217, 0.14);
+  color: var(--accent-blue);
+  border: 1px solid rgba(122, 167, 217, 0.3);
+}
+
+.guide-card-title {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  letter-spacing: 0.2px;
+}
+
+.guide-card-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.guide-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.guide-step-item {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+}
+
+.guide-bullet {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(232, 184, 75, 0.15);
+  color: var(--accent-amber-hi);
+  border: 1px solid rgba(232, 184, 75, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11.5px;
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.guide-step-item strong {
+  color: var(--text-primary);
+  font-size: 13.5px;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.guide-step-item p {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.guide-tip-box {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: rgba(232, 184, 75, 0.08);
+  border: 1px solid rgba(232, 184, 75, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+.guide-tip-box svg {
+  color: var(--accent-amber-hi);
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+.guide-desc-text {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+  line-height: 1.45;
+}
+
+.guide-voice-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 7px;
+}
+
+.voice-cmd-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(241, 234, 217, 0.07);
+  border-radius: 7px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.voice-tag {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.voice-action {
+  color: var(--accent-green-hi);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 12.5px;
+}
+
+.guide-feature-row {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+}
+
+.kbd-badge {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 7px;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+  margin-top: 1px;
+  letter-spacing: 0.4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.kbd-badge.yellow {
+  background: #dcb343;
+  color: #1a1608;
+}
+
+.kbd-badge.red {
+  background: #d04058;
+  color: #ffffff;
+}
+
+.kbd-badge.cyan {
+  background: rgba(122, 167, 217, 0.2);
+  color: var(--accent-blue);
+  border: 1px solid rgba(122, 167, 217, 0.4);
+}
+
+.kbd-badge.purple {
+  background: rgba(186, 147, 222, 0.2);
+  color: #c9a7eb;
+  border: 1px solid rgba(186, 147, 222, 0.4);
+}
+
+.guide-feature-row strong {
+  color: var(--text-primary);
+  font-size: 13.5px;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.guide-feature-row p {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.stem-flow-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.flow-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(241, 234, 217, 0.07);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.flow-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  background: var(--accent-amber);
+  color: #191613;
+  font-weight: 800;
+  font-size: 11.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.flow-arrow {
+  text-align: center;
+  color: var(--accent-amber);
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+/* Responsive for Casio guide panels */
+@media (max-width: 1320px) {
+  .casio-guide-col {
+    width: 280px;
+  }
+}
+
+@media (max-width: 1040px) {
+  .casio-workspace {
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+  .casio-guide-col {
+    width: 100%;
+    max-width: 520px;
+  }
 }
 
 /* ===== Gaze Overlay (on top of Casio) ===== */
@@ -630,8 +946,8 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
 .cr { display: flex; flex-direction: column; gap: 4px; }
 .cr label { display: flex; justify-content: space-between; font-size: .75rem; color: var(--text-secondary); font-weight: 500; }
 .cr .v { color: var(--accent-amber-hi); font-weight: 600; }
-#hand-sidebar input[type=range] { -webkit-appearance: none; width: 100%; height: 5px; border-radius: 3px; background: rgba(255,255,255,.07); outline: none; }
-#hand-sidebar input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--accent-amber); cursor: pointer; transition: transform .1s; }
+#hand-sidebar input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 5px; border-radius: 3px; background: rgba(255,255,255,.07); outline: none; }
+#hand-sidebar input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--accent-amber); cursor: pointer; transition: transform .1s; }
 #hand-sidebar input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
 #hand-viewport { flex: 1; height: 100%; position: relative; overflow: hidden; }
@@ -644,6 +960,78 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
 .hand-debug-hdr { font-weight: bold; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); padding-bottom: 4px; margin-bottom: 6px; display: flex; justify-content: space-between; }
 #hand-debug-logs { overflow-y: auto; flex: 1; max-height: 160px; display: flex; flex-direction: column; gap: 2px; }
 
+/* ===== HAND 3D GUIDE PANEL ===== */
+.hand-guide-panel {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  width: 280px;
+  background: rgba(34, 29, 23, 0.94);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(232, 184, 75, 0.28);
+  border-radius: 12px;
+  padding: 12px 15px;
+  z-index: 10;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  user-select: none;
+  pointer-events: auto;
+  font-family: var(--font-ui);
+  transition: opacity 0.2s, transform 0.2s;
+}
+.hgp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 7px;
+  margin-bottom: 9px;
+}
+.hgp-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--accent-amber-hi);
+  letter-spacing: 0.2px;
+}
+.hgp-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hgp-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.hgp-tag {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.hgp-item p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+.hgp-item p strong {
+  color: #fff;
+  font-weight: 600;
+}
+.hgp-item p em {
+  color: var(--accent-amber-hi);
+  font-style: normal;
+  background: rgba(232, 184, 75, 0.1);
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid rgba(232, 184, 75, 0.2);
+}
+
 .hand-tools { position: absolute; bottom: 18px; right: 18px; display: flex; gap: 8px; z-index: 5; flex-wrap: wrap; }
 .tb { background: rgba(34, 29, 23, .9); backdrop-filter: blur(12px); border: 1px solid var(--border-color); color: var(--text-primary); padding: 11px 15px; border-radius: 9px; cursor: pointer; font-family: inherit; font-size: .82rem; font-weight: 600; display: flex; align-items: center; gap: 5px; transition: all .2s; min-height: 46px; }
 .tb:hover { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.14); }
@@ -654,6 +1042,223 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
 #hand-sidebar::-webkit-scrollbar { width: 5px; }
 #hand-sidebar::-webkit-scrollbar-track { background: transparent; }
 #hand-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.09); border-radius: 3px; }
+
+/* ===== TAB LOCK BADGE ===== */
+.tab-lock-badge {
+  font-size: 11px;
+  margin-left: 3px;
+  opacity: 0.85;
+}
+
+/* ===== PIN PROTECTION MODAL ===== */
+.pin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 12, 10, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999;
+  padding: 16px;
+  animation: pinFadeIn 0.25s ease-out;
+}
+
+.pin-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 330px;
+  background: rgba(28, 24, 19, 0.94);
+  border: 1px solid rgba(241, 234, 217, 0.16);
+  border-radius: 18px;
+  padding: 24px 20px 20px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(232, 184, 75, 0.12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: transform 0.2s;
+}
+
+.pin-modal-card.shake {
+  animation: pinShake 0.4s ease-in-out;
+}
+
+.pin-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+.pin-close-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.pin-modal-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.pin-lock-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(232, 184, 75, 0.14);
+  color: var(--accent-amber-hi);
+  border: 1px solid rgba(232, 184, 75, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  box-shadow: 0 0 20px rgba(232, 184, 75, 0.2);
+}
+
+.pin-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  letter-spacing: 0.2px;
+}
+
+.pin-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.pin-input-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+  width: 100%;
+}
+
+.pin-dots-display {
+  display: flex;
+  gap: 14px;
+  padding: 10px 0;
+  cursor: pointer;
+}
+
+.pin-dot {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid rgba(241, 234, 217, 0.3);
+  background: transparent;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pin-dot.filled {
+  border-color: var(--accent-amber-hi);
+  background: var(--accent-amber-hi);
+  box-shadow: 0 0 12px rgba(232, 184, 75, 0.6);
+  transform: scale(1.15);
+}
+
+.pin-dot.success {
+  border-color: var(--accent-green-hi);
+  background: var(--accent-green-hi);
+  box-shadow: 0 0 12px rgba(147, 196, 125, 0.7);
+  transform: scale(1.2);
+}
+
+.pin-dot.error {
+  border-color: var(--accent-orange);
+  background: var(--accent-orange);
+  box-shadow: 0 0 12px rgba(232, 114, 75, 0.7);
+}
+
+#pin-hidden-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 1px;
+  height: 1px;
+}
+
+.pin-error-text {
+  font-size: 12px;
+  color: #ff6b6b;
+  min-height: 18px;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.pin-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.pin-key {
+  height: 46px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(241, 234, 217, 0.09);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.pin-key:hover {
+  background: rgba(232, 184, 75, 0.14);
+  border-color: rgba(232, 184, 75, 0.35);
+  color: var(--accent-amber-hi);
+  transform: translateY(-1px);
+}
+
+.pin-key:active {
+  transform: translateY(1px) scale(0.97);
+  background: rgba(232, 184, 75, 0.25);
+}
+
+.pin-key.pin-action {
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text-muted);
+}
+
+.pin-key.pin-cancel:hover {
+  background: rgba(232, 114, 75, 0.15);
+  border-color: rgba(232, 114, 75, 0.4);
+  color: #ff8b75;
+}
+
+@keyframes pinFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pinShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-10px); }
+  40%, 80% { transform: translateX(10px); }
+}
 
 /* ===== Reduced motion ===== */
 @media (prefers-reduced-motion: reduce) {
