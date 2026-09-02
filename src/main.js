@@ -1526,7 +1526,6 @@ function initAuthUI() {
   const modal = document.getElementById('auth-modal');
   const btnOpenLogin = document.getElementById('btn-open-login');
   const btnClose = document.getElementById('btn-auth-close');
-  const btnSkip = document.getElementById('btn-auth-skip');
   const userProfile = document.getElementById('nav-user-profile');
   const userName = document.getElementById('nav-user-name');
   const userAvatar = document.getElementById('nav-user-avatar');
@@ -1542,6 +1541,8 @@ function initAuthUI() {
   const linkBackToLogin = document.getElementById('link-back-to-login');
   const btnGoogle = document.getElementById('btn-google-login');
 
+  let isAuthed = false;
+
   if (!modal) return;
 
   function showFeedback(msg, type = 'error') {
@@ -1556,14 +1557,21 @@ function initAuthUI() {
     feedback.className = 'auth-feedback-msg';
   }
 
-  function openModal(initialTab = 'login') {
+  function openModal(initialTab = 'login', mandatory = false) {
     clearFeedback();
     switchAuthTab(initialTab);
+    if (mandatory) {
+      modal.classList.add('mandatory');
+    } else {
+      modal.classList.remove('mandatory');
+    }
     modal.classList.add('active');
   }
 
   function closeModal() {
-    modal.classList.remove('active');
+    // Không cho phép tắt modal nếu chưa đăng nhập
+    if (!isAuthed) return;
+    modal.classList.remove('active', 'mandatory');
     clearFeedback();
   }
 
@@ -1587,10 +1595,10 @@ function initAuthUI() {
     if (modalTitle && modalDesc) {
       if (tabName === 'login') {
         modalTitle.textContent = 'Đăng Nhập EyeAssist';
-        modalDesc.textContent = 'Đăng nhập để đồng bộ dữ liệu học tập và hiệu chuẩn';
+        modalDesc.textContent = 'Vui lòng đăng nhập để bắt đầu sử dụng ứng dụng';
       } else if (tabName === 'register') {
         modalTitle.textContent = 'Tạo Tài Khoản Mới';
-        modalDesc.textContent = 'Đăng ký nhanh chóng để lưu profile cá nhân hóa';
+        modalDesc.textContent = 'Đăng ký tài khoản để trải nghiệm toàn bộ tính năng';
       } else if (tabName === 'forgot') {
         modalTitle.textContent = 'Khôi Phục Mật Khẩu';
         modalDesc.textContent = 'Nhập email để nhận liên kết đặt lại mật khẩu';
@@ -1599,12 +1607,15 @@ function initAuthUI() {
   }
 
   // Open / Close events
-  if (btnOpenLogin) btnOpenLogin.addEventListener('click', () => openModal('login'));
-  if (btnClose) btnClose.addEventListener('click', closeModal);
-  if (btnSkip) btnSkip.addEventListener('click', closeModal);
+  if (btnOpenLogin) btnOpenLogin.addEventListener('click', () => openModal('login', !isAuthed));
+  if (btnClose) btnClose.addEventListener('click', () => {
+    if (isAuthed) closeModal();
+  });
 
   modal.addEventListener('click', (e) => {
-    if (e.target === modal) closeModal();
+    if (e.target === modal && isAuthed) {
+      closeModal();
+    }
   });
 
   // Tab switcher
@@ -1642,7 +1653,8 @@ function initAuthUI() {
 
       if (res.success) {
         showFeedback('Đăng nhập thành công!', 'success');
-        setTimeout(() => closeModal(), 600);
+        isAuthed = true;
+        setTimeout(() => closeModal(), 500);
       } else {
         showFeedback(res.error, 'error');
       }
@@ -1672,7 +1684,8 @@ function initAuthUI() {
 
       if (res.success) {
         showFeedback('Tạo tài khoản thành công!', 'success');
-        setTimeout(() => closeModal(), 600);
+        isAuthed = true;
+        setTimeout(() => closeModal(), 500);
       } else {
         showFeedback(res.error, 'error');
       }
@@ -1713,7 +1726,8 @@ function initAuthUI() {
       const res = await loginWithGoogle();
       if (res.success) {
         showFeedback('Đăng nhập Google thành công!', 'success');
-        setTimeout(() => closeModal(), 600);
+        isAuthed = true;
+        setTimeout(() => closeModal(), 500);
       } else if (res.code !== 'auth/popup-closed-by-user') {
         showFeedback(res.error, 'error');
       }
@@ -1730,6 +1744,7 @@ function initAuthUI() {
   // Realtime Auth State Listener
   onAuthChange((user) => {
     if (user) {
+      isAuthed = true;
       if (btnOpenLogin) btnOpenLogin.style.display = 'none';
       if (userProfile) userProfile.style.display = 'flex';
 
@@ -1751,9 +1766,13 @@ function initAuthUI() {
           `;
         }
       }
+      closeModal();
     } else {
+      isAuthed = false;
       if (btnOpenLogin) btnOpenLogin.style.display = 'flex';
       if (userProfile) userProfile.style.display = 'none';
+      // Bắt buộc đăng nhập: mở modal khóa toàn màn hình
+      openModal('login', true);
     }
   });
 }

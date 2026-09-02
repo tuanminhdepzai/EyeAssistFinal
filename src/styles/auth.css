@@ -173,6 +173,10 @@
   transform: scale(1) translateY(0);
 }
 
+.auth-modal-overlay.mandatory .auth-close-btn {
+  display: none !important;
+}
+
 .auth-close-btn {
   position: absolute;
   top: 18px;
