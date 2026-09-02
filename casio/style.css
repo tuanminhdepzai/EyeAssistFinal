@@ -1029,6 +1029,14 @@
   height: 28px;
 }
 
+[data-key="X_VAR"] {
+  font-size: 19px !important;
+  font-weight: 700 !important;
+  font-style: italic;
+  font-family: 'Times New Roman', 'Cambria Math', Georgia, serif;
+  line-height: 1;
+}
+
 /* ===== NUMERIC KEYPAD ===== */
 .num-grid {
   display: grid;
