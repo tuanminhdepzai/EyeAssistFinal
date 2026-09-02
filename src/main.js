@@ -1498,17 +1498,16 @@ function scaleCalculator() {
   if (!casioApp || !wrapper || !tab) return;
 
   const stage = document.querySelector('.casio-center-stage');
-  const naturalW = 370;   // .calculator width in px (from casio/style.css)
-  const naturalH = 650;   // approximate full height
+  const naturalW = 380;   // .calculator-wrapper width in px
+  const naturalH = 785;   // actual full rendered height of fx-580VN X in px
   const stageW = stage && stage.clientWidth > 0 ? stage.clientWidth : 380;
   const availW = Math.max(naturalW, stageW);
-  const availH = tab.clientHeight - 40;
+  const availH = tab.clientHeight > 0 ? tab.clientHeight - 20 : window.innerHeight - 40;
 
   if (availW <= 0 || availH <= 0) return;
 
-  const scale = Math.min(1, availW / naturalW, availH / naturalH);
+  const scale = Math.min(1, availH / naturalH, availW / naturalW);
   casioApp.style.transform = `scale(${scale})`;
-  casioApp.style.marginBottom = `${-(1 - scale) * naturalH}px`;
 }
 
 // ============ UTILITIES ============

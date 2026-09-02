@@ -60,6 +60,14 @@
           <span class="tab-label">Hiệu chỉnh <span class="tab-lock-badge" title="Được bảo vệ bằng mã PIN">🔒</span></span>
         </button>
       </div>
+      <!-- Cam Preview in left sidebar -->
+      <div id="cam-preview">
+        <video id="webcam" autoplay playsinline muted></video>
+        <canvas id="overlay" width="160" height="120"></canvas>
+        <span id="fps-counter">0 FPS</span>
+        <span id="blink-stats"></span>
+      </div>
+
       <div class="nav-status" aria-label="Trạng thái hệ thống">
         <div class="status-row" id="cam-status">
           <span class="status-dot" aria-hidden="true"></span>
@@ -86,15 +94,7 @@
     </nav>
 
     <div id="main-stage">
-    <!-- Cam Preview (small, corner) -->
-    <div id="cam-preview">
-      <video id="webcam" autoplay playsinline muted></video>
-      <canvas id="overlay" width="160" height="120"></canvas>
-      <span id="fps-counter">0 FPS</span>
-      <span id="blink-stats"></span>
-    </div>
-
-    <!-- Calibration Tab -->
+      <!-- Calibration Tab -->
     <div id="tab-calibration" class="tab-content">
       <div id="calibration-screen">
         <!-- Step 1: Pre-Calibration Setup Card -->
