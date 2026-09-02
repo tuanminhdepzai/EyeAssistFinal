@@ -13,7 +13,7 @@ import { auth, googleProvider } from "./firebase.js";
 /**
  * Friendly Vietnamese error mapping for Firebase Auth errors
  */
-export function getFriendlyErrorMessage(errorCode) {
+export function getFriendlyErrorMessage(errorCode, defaultMsg = '') {
   switch (errorCode) {
     case 'auth/invalid-email':
       return 'Địa chỉ email không hợp lệ.';
@@ -25,19 +25,25 @@ export function getFriendlyErrorMessage(errorCode) {
     case 'auth/wrong-password':
       return 'Mật khẩu không chính xác.';
     case 'auth/email-already-in-use':
-      return 'Email này đã được đăng ký tài khoản.';
+      return 'Email này đã được đăng ký tài khoản. Vui lòng chuyển sang tab Đăng Nhập.';
     case 'auth/weak-password':
       return 'Mật khẩu quá yếu (tối thiểu 6 ký tự).';
+    case 'auth/operation-not-allowed':
+      return 'Phương thức đăng nhập này chưa được Bật trong Firebase Console (Authentication > Sign-in method).';
+    case 'auth/unauthorized-domain':
+      return 'Tên miền chưa được cấp phép trong Firebase Console (Authentication > Settings > Authorized domains).';
     case 'auth/popup-closed-by-user':
       return 'Cửa sổ đăng nhập Google đã bị đóng.';
+    case 'auth/cancelled-popup-request':
+      return 'Cửa sổ Google trước đó đã bị hủy. Vui lòng thử lại.';
     case 'auth/popup-blocked':
-      return 'Trình duyệt đã chặn cửa sổ đăng nhập. Vui lòng cho phép popup.';
+      return 'Trình duyệt đã chặn cửa sổ popup. Vui lòng cho phép popup để đăng nhập.';
     case 'auth/network-request-failed':
-      return 'Lỗi kết nối mạng. Vui lòng kiểm tra internet của bạn.';
+      return 'Lỗi kết nối mạng hoặc máy chủ Firebase. Vui lòng kiểm tra internet của bạn.';
     case 'auth/too-many-requests':
-      return 'Quá nhiều yêu cầu thử lại. Vui lòng thử lại sau vài phút.';
+      return 'Quá nhiều yêu cầu thử lại. Vui lòng thử lại sau ít phút.';
     default:
-      return 'Đã xảy ra lỗi khi xác thực. Vui lòng thử lại.';
+      return defaultMsg || 'Đã xảy ra lỗi khi xác thực (' + (errorCode || 'Unknown') + '). Vui lòng thử lại.';
   }
 }
 
@@ -49,7 +55,8 @@ export async function loginWithEmail(email, password) {
     const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
     return { success: true, user: userCredential.user };
   } catch (error) {
-    return { success: false, error: getFriendlyErrorMessage(error.code), code: error.code };
+    console.error('[EyeAssist Auth Login Error]:', error.code, error.message);
+    return { success: false, error: getFriendlyErrorMessage(error.code, error.message), code: error.code };
   }
 }
 
@@ -64,7 +71,8 @@ export async function registerWithEmail(email, password, displayName = '') {
     }
     return { success: true, user: userCredential.user };
   } catch (error) {
-    return { success: false, error: getFriendlyErrorMessage(error.code), code: error.code };
+    console.error('[EyeAssist Auth Register Error]:', error.code, error.message);
+    return { success: false, error: getFriendlyErrorMessage(error.code, error.message), code: error.code };
   }
 }
 
@@ -76,7 +84,8 @@ export async function loginWithGoogle() {
     const result = await signInWithPopup(auth, googleProvider);
     return { success: true, user: result.user };
   } catch (error) {
-    return { success: false, error: getFriendlyErrorMessage(error.code), code: error.code };
+    console.error('[EyeAssist Auth Google Error]:', error.code, error.message);
+    return { success: false, error: getFriendlyErrorMessage(error.code, error.message), code: error.code };
   }
 }
 
@@ -88,7 +97,8 @@ export async function logoutUser() {
     await signOut(auth);
     return { success: true };
   } catch (error) {
-    return { success: false, error: getFriendlyErrorMessage(error.code) };
+    console.error('[EyeAssist Auth Logout Error]:', error);
+    return { success: false, error: getFriendlyErrorMessage(error.code, error.message) };
   }
 }
 
@@ -100,7 +110,8 @@ export async function resetPassword(email) {
     await sendPasswordResetEmail(auth, email.trim());
     return { success: true, message: 'Đã gửi liên kết khôi phục mật khẩu vào email của bạn.' };
   } catch (error) {
-    return { success: false, error: getFriendlyErrorMessage(error.code), code: error.code };
+    console.error('[EyeAssist Auth Reset Error]:', error.code, error.message);
+    return { success: false, error: getFriendlyErrorMessage(error.code, error.message), code: error.code };
   }
 }
 
