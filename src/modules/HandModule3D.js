@@ -112,13 +112,13 @@ export class HandModule3D {
     this._snapCy = 0;
     this._snapHysteresis = 12; // px
 
+    // Gaze 3D Orbit control state
+    this._gazeOrbitTarget = { azimuth: 0, polar: 1.15, distance: 0.84 };
+    this._gazeOrbitCurrent = { azimuth: 0, polar: 1.15, distance: 0.84 };
+    this._isGazeOrbiting = false;
+
     // Expose for gaze engine
     this.onLog = null; // optional callback: (msg, type) => {}
-
-    // Mouse tilt tracking state for Step 3 interactive hand plane rotation
-    this._targetMouseRot = { yaw: 0, pitch: 0 };
-    this._currentMouseRot = { yaw: 0, pitch: 0 };
-    this._isMouseDown = false;
 
     // Init pose
     Object.keys(FINGER_CONFIG).forEach(k => {
@@ -136,7 +136,6 @@ export class HandModule3D {
     this._init3DArrows();
     this._loadModel();
     this._bindWindowResize(viewportEl);
-    this._bindMouseTracking(viewportEl);
 
     // Nâng cấp <select> native → GazeSelect (mở & chọn bằng mắt, style đồng bộ)
     this._gazeSelects = enhanceSelects(containerEl);
@@ -291,6 +290,25 @@ export class HandModule3D {
     this._orbit.maxDistance = 3;
     this._orbit.target.set(0, 0.05, 0);
 
+    this._orbit.addEventListener('start', () => {
+      this._isGazeOrbiting = false;
+    });
+    this._orbit.addEventListener('end', () => {
+      if (this._camera) {
+        const targetY = 0.05;
+        const dx = this._camera.position.x;
+        const dy = this._camera.position.y - targetY;
+        const dz = this._camera.position.z;
+        const r = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (r > 0) {
+          const polar = Math.acos(Math.max(-1, Math.min(1, dy / r)));
+          const azimuth = Math.atan2(dx, dz);
+          this._gazeOrbitCurrent = { azimuth, polar, distance: r };
+          this._gazeOrbitTarget = { azimuth, polar, distance: r };
+        }
+      }
+    });
+
     // Lighting
     const key = new THREE.DirectionalLight(0xfff4e6, 3.0);
     key.position.set(2, 4, 3);
@@ -339,49 +357,6 @@ export class HandModule3D {
       this._renderer.setSize(vp.clientWidth, vp.clientHeight);
     };
     window.addEventListener('resize', this._resizeHandler);
-  }
-
-  _bindMouseTracking(vp) {
-    if (!vp) return;
-
-    const onMove = (clientX, clientY) => {
-      if (this._isMouseDown) return;
-      if (this._currentStep !== 3) return;
-
-      const rect = vp.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) return;
-
-      // Normalized coordinates [-1, 1] relative to center
-      const nx = ((clientX - rect.left) / rect.width) * 2 - 1;
-      const ny = ((clientY - rect.top) / rect.height) * 2 - 1;
-
-      // Smooth yaw range (+-0.95 rad) & pitch range (+-0.75 rad)
-      this._targetMouseRot.yaw = Math.max(-1, Math.min(1, nx)) * 0.95;
-      this._targetMouseRot.pitch = Math.max(-1, Math.min(1, ny)) * 0.75;
-    };
-
-    window.addEventListener('mousemove', (e) => {
-      const rect = vp.getBoundingClientRect();
-      if (
-        e.clientX >= rect.left &&
-        e.clientX <= rect.right &&
-        e.clientY >= rect.top &&
-        e.clientY <= rect.bottom
-      ) {
-        onMove(e.clientX, e.clientY);
-      } else if (this._targetMouseRot.yaw !== 0 || this._targetMouseRot.pitch !== 0) {
-        this._targetMouseRot.yaw = 0;
-        this._targetMouseRot.pitch = 0;
-      }
-    });
-
-    vp.addEventListener('mouseleave', () => {
-      this._targetMouseRot.yaw = 0;
-      this._targetMouseRot.pitch = 0;
-    });
-
-    vp.addEventListener('mousedown', () => { this._isMouseDown = true; });
-    window.addEventListener('mouseup', () => { this._isMouseDown = false; });
   }
 
   // ─────────────────────────────────────────
@@ -893,7 +868,6 @@ export class HandModule3D {
       targetQuat.multiply(rQuat);
     }
     handModel.userData.targetQuat = targetQuat;
-    handModel.userData.baseTargetQuat = targetQuat.clone();
   }
 
   _positionArrowsOnHand(handObj, isRight, bVec) {
@@ -979,12 +953,41 @@ export class HandModule3D {
     this._log(`🎯 Mũi tên Vectơ 3D: ${this._arrowsVisible ? 'HIỆN' : 'ẨN'}`, 'info');
   }
 
+  // ─────────────────────────────────────────
+  // EYE GAZE 3D CAMERA ROTATION
+  // ─────────────────────────────────────────
+  updateGazeOrbit(vpX, vpY) {
+    if (!this._vpEl || !this._camera || !this._orbit) return;
+    const rect = this._vpEl.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+
+    const isInsideViewport = (
+      vpX >= rect.left &&
+      vpX <= rect.right &&
+      vpY >= rect.top &&
+      vpY <= rect.bottom
+    );
+
+    if (isInsideViewport) {
+      this._isGazeOrbiting = true;
+      const nx = (vpX - (rect.left + rect.width / 2)) / (rect.width / 2);
+      const ny = (vpY - (rect.top + rect.height / 2)) / (rect.height / 2);
+
+      const clampedNx = Math.max(-1, Math.min(1, nx));
+      const clampedNy = Math.max(-1, Math.min(1, ny));
+
+      this._gazeOrbitTarget.azimuth = clampedNx * Math.PI * 0.95;
+      this._gazeOrbitTarget.polar = Math.max(0.15, Math.min(Math.PI / 2 + 0.25, 1.15 + clampedNy * 0.65));
+    }
+  }
+
   resetCam() {
-    this._targetMouseRot = { yaw: 0, pitch: 0 };
-    this._currentMouseRot = { yaw: 0, pitch: 0 };
     this._camera.position.set(0, 0.38, 0.75);
     this._orbit.target.set(0, 0.05, 0);
     this._orbit.update();
+    this._gazeOrbitTarget = { azimuth: 0, polar: 1.15, distance: 0.84 };
+    this._gazeOrbitCurrent = { azimuth: 0, polar: 1.15, distance: 0.84 };
+    this._isGazeOrbiting = false;
     this._log('🎯 Reset Camera & Orbit', 'info');
   }
 
@@ -997,34 +1000,35 @@ export class HandModule3D {
 
       // Smooth SLERP motion for hand model rotations
       const h = this._hands.left;
-      if (h && h.model) {
-        const baseQuat = h.model.userData.baseTargetQuat || h.model.userData.targetQuat;
-        if (this._currentStep === 3 && baseQuat && !this._isMouseDown) {
-          // LERP mouse rotation angles smoothly
-          this._currentMouseRot.yaw += (this._targetMouseRot.yaw - this._currentMouseRot.yaw) * 0.08;
-          this._currentMouseRot.pitch += (this._targetMouseRot.pitch - this._currentMouseRot.pitch) * 0.08;
-
-          const mouseQuat = new THREE.Quaternion().setFromEuler(
-            new THREE.Euler(this._currentMouseRot.pitch, this._currentMouseRot.yaw, 0, 'YXZ')
-          );
-          const combinedQuat = baseQuat.clone().multiply(mouseQuat);
-          h.model.quaternion.slerp(combinedQuat, 0.1);
-        } else if (h.model.userData.targetQuat) {
-          this._currentMouseRot.yaw += (0 - this._currentMouseRot.yaw) * 0.08;
-          this._currentMouseRot.pitch += (0 - this._currentMouseRot.pitch) * 0.08;
-          h.model.quaternion.slerp(h.model.userData.targetQuat, 0.08);
-        }
-
-        // Dynamically align 3D vector arrows with hand position and orientation
-        if (this._currentStep === 3 && this._quizSolution) {
-          this._positionArrowsOnHand(h, false, this._quizSolution.arrowOverlay.arrowB.vector);
-        }
+      if (h && h.model && h.model.userData.targetQuat) {
+        h.model.quaternion.slerp(h.model.userData.targetQuat, 0.08);
       }
 
       if (this._targetPulseArrow?.userData) {
         const pulse = 0.35 + Math.sin(Date.now() * 0.01) * 0.45;
         this._targetPulseArrow.userData.mat.emissiveIntensity = pulse;
       }
+
+      // Smooth Eye Gaze Camera Orbiting
+      if (this._isGazeOrbiting && !this._orbit.autoRotate) {
+        const alpha = 0.09;
+        this._gazeOrbitCurrent.azimuth += (this._gazeOrbitTarget.azimuth - this._gazeOrbitCurrent.azimuth) * alpha;
+        this._gazeOrbitCurrent.polar += (this._gazeOrbitTarget.polar - this._gazeOrbitCurrent.polar) * alpha;
+
+        const r = this._gazeOrbitCurrent.distance || 0.84;
+        const targetY = 0.05;
+        const sinP = Math.sin(this._gazeOrbitCurrent.polar);
+        const cosP = Math.cos(this._gazeOrbitCurrent.polar);
+        const sinA = Math.sin(this._gazeOrbitCurrent.azimuth);
+        const cosA = Math.cos(this._gazeOrbitCurrent.azimuth);
+
+        this._camera.position.x = r * sinP * sinA;
+        this._camera.position.y = targetY + r * cosP;
+        this._camera.position.z = r * sinP * cosA;
+
+        this._orbit.target.set(0, targetY, 0);
+      }
+
       this._orbit.update();
       this._renderer.render(this._scene, this._camera);
     };
