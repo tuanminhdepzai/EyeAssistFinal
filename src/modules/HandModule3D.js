@@ -136,6 +136,7 @@ export class HandModule3D {
     this._init3DArrows();
     this._loadModel();
     this._bindWindowResize(viewportEl);
+    this._bindMouseRotationGuard(viewportEl);
 
     // Nâng cấp <select> native → GazeSelect (mở & chọn bằng mắt, style đồng bộ)
     this._gazeSelects = enhanceSelects(containerEl);
@@ -143,6 +144,38 @@ export class HandModule3D {
     // Expose globals needed by HTML onclick handlers
     window._handModule = this;
     this._exposeGlobals();
+  }
+
+  _bindMouseRotationGuard(vpEl) {
+    if (!vpEl) return;
+    let isDragging = false;
+
+    const startDrag = () => {
+      isDragging = true;
+      window._is3DMouseActive = true;
+      if (window._cancelBlinkProgress) {
+        window._cancelBlinkProgress();
+      }
+    };
+
+    const endDrag = () => {
+      if (!isDragging) return;
+      isDragging = false;
+      setTimeout(() => {
+        if (!isDragging) {
+          window._is3DMouseActive = false;
+        }
+      }, 250);
+    };
+
+    vpEl.addEventListener('mousedown', startDrag, { passive: true });
+    vpEl.addEventListener('touchstart', startDrag, { passive: true });
+    vpEl.addEventListener('mousemove', (e) => {
+      if (e.buttons > 0) startDrag();
+    }, { passive: true });
+
+    window.addEventListener('mouseup', endDrag, { passive: true });
+    window.addEventListener('touchend', endDrag, { passive: true });
   }
 
   dispose() {

@@ -87,13 +87,21 @@ const blinkProgress = new BlinkProgressBar({
 // ---- Realtime dwell ring: lấp đầy NGAY TRONG LÚC nhắm mắt ----
 // Vòng tròn bắt đầu khi mắt nhắm qua mức tối thiểu và lấp đầy theo thời gian
 // nhắm thực tế; đủ lâu thì kích hoạt — không chờ mở mắt xong mới chạy.
-const DWELL_INTENTIONAL_MS = 450;   // nhắm đủ mức này → xác nhận
-const DWELL_MIN_START_MS = 120;     // dưới mức này = chớp thường, chưa hiện ring
-let dwellData = null;               // realtime state của vòng hiện tại
-let dwellLocked = false;            // Khóa chống bấm lặp trong cùng lần nhắm
-let blinkHandledThisCycle = false;  // Cờ đánh dấu nháy mắt chu kỳ này đã kích hoạt click
+window._cancelBlinkProgress = () => {
+  if (blinkProgress && blinkProgress.isActive) {
+    blinkProgress.cancel('mouse_3d_rotation');
+  }
+  dwellData = null;
+  dwellLocked = false;
+};
 
 blinkDetector.on('onCloseFrame', ({ closedMs }) => {
+  if (window._is3DMouseActive) {
+    if (dwellData && window._cancelBlinkProgress) {
+      window._cancelBlinkProgress();
+    }
+    return;
+  }
   if (dwellLocked || blinkHandledThisCycle) return;
   if (closedMs < DWELL_MIN_START_MS) return;
 
@@ -685,7 +693,7 @@ blinkDetector.on('onClassified', (classification) => {
   }
 
   // Chip phân loại gần con trỏ (feedback realtime)
-  if (classification.type === 'natural' || classification.type === 'intentional' || classification.type === 'uncertain') {
+  if (!window._is3DMouseActive && (classification.type === 'natural' || classification.type === 'intentional' || classification.type === 'uncertain')) {
     blinkProgress.showClassification(
       lastGoodGaze.x * window.innerWidth,
       lastGoodGaze.y * window.innerHeight,
@@ -706,6 +714,7 @@ blinkDetector.on('onClassified', (classification) => {
 // Nháy chủ đích → realtime dwell ring đã xử lý phần lớn trường hợp (nhắm đủ lâu).
 // Handler này chỉ còn cho double-blink upgrade hoặc nháy ngắn không kịp chạy onCloseFrame.
 blinkDetector.on('onIntentional', (blinkData) => {
+  if (window._is3DMouseActive) return;
   // Nếu chu kỳ nháy này đã được kích hoạt click xong (từ onCloseFrame dwell) → BỎ QUA, không bấm lặp!
   if (blinkHandledThisCycle || dwellLocked) {
     return;
@@ -736,6 +745,7 @@ blinkDetector.on('onIntentional', (blinkData) => {
 });
 
 blinkDetector.on('onWink', (side, duration) => {
+  if (window._is3DMouseActive) return;
   if (blinkHandledThisCycle || dwellLocked) return;
 
   let cx = 0, cy = 0;
