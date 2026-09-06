@@ -87,21 +87,30 @@ const blinkProgress = new BlinkProgressBar({
 // ---- Realtime dwell ring: lấp đầy NGAY TRONG LÚC nhắm mắt ----
 // Vòng tròn bắt đầu khi mắt nhắm qua mức tối thiểu và lấp đầy theo thời gian
 // nhắm thực tế; đủ lâu thì kích hoạt — không chờ mở mắt xong mới chạy.
-window._cancelBlinkProgress = () => {
-  if (blinkProgress && blinkProgress.isActive) {
-    blinkProgress.cancel('mouse_3d_rotation');
+const DWELL_INTENTIONAL_MS = 450;   // nhắm đủ mức này → xác nhận
+const DWELL_MIN_START_MS = 120;     // dưới mức này = chớp thường, chưa hiện ring
+let dwellData = null;               // realtime state của vòng hiện tại
+let dwellLocked = false;            // Khóa chống bấm lặp trong cùng lần nhắm
+let blinkHandledThisCycle = false;  // Cờ đánh dấu nháy mắt chu kỳ này đã kích hoạt click
+
+function isInside3DViewportCanvas(cx, cy) {
+  if (state.currentTab !== 'hand') return false;
+  const vp = document.getElementById('hand-viewport');
+  if (!vp) return false;
+  const rect = vp.getBoundingClientRect();
+  if (cx >= rect.left && cx <= rect.right && cy >= rect.top && cy <= rect.bottom) {
+    const el = document.elementFromPoint(cx, cy);
+    if (el) {
+      if (el.closest('.hand-guide-panel') || el.closest('.hand-tools') || el.closest('button') || el.closest('.step-card') || el.closest('#hand-sidebar')) {
+        return false;
+      }
+    }
+    return true;
   }
-  dwellData = null;
-  dwellLocked = false;
-};
+  return false;
+}
 
 blinkDetector.on('onCloseFrame', ({ closedMs }) => {
-  if (window._is3DMouseActive) {
-    if (dwellData && window._cancelBlinkProgress) {
-      window._cancelBlinkProgress();
-    }
-    return;
-  }
   if (dwellLocked || blinkHandledThisCycle) return;
   if (closedMs < DWELL_MIN_START_MS) return;
 
@@ -115,6 +124,11 @@ blinkDetector.on('onCloseFrame', ({ closedMs }) => {
       const vp = gazeToViewport(lastGoodGaze.x, lastGoodGaze.y);
       cx = vp.x; cy = vp.y;
     }
+
+    if (isInside3DViewportCanvas(cx, cy)) {
+      return; // Bỏ qua nháy mắt chọn khi đang tương tác xoay 3D viewport
+    }
+
     dwellData = { x: cx, y: cy };
     blinkProgress.start(cx, cy, { subtype: 'long', duration: 0, confidence: 0.85 }, {
       target: fusion.lastGazeTarget,
@@ -636,6 +650,7 @@ function enableMouseFallback() {
   
   document.addEventListener('click', (e) => {
     if (e.target.closest('#casio-app')) return; // Nút Casio đã tự xử lý sự kiện riêng
+    if (isInside3DViewportCanvas(e.clientX, e.clientY)) return;
     blinkProgress.start(e.clientX, e.clientY, {
       subtype: 'short',
       duration: 300,
@@ -645,6 +660,7 @@ function enableMouseFallback() {
   
   document.addEventListener('contextmenu', (e) => {
     e.preventDefault();
+    if (isInside3DViewportCanvas(e.clientX, e.clientY)) return;
     blinkProgress.start(e.clientX, e.clientY, {
       subtype: 'long',
       duration: 800,
@@ -693,7 +709,7 @@ blinkDetector.on('onClassified', (classification) => {
   }
 
   // Chip phân loại gần con trỏ (feedback realtime)
-  if (!window._is3DMouseActive && (classification.type === 'natural' || classification.type === 'intentional' || classification.type === 'uncertain')) {
+  if (classification.type === 'natural' || classification.type === 'intentional' || classification.type === 'uncertain') {
     blinkProgress.showClassification(
       lastGoodGaze.x * window.innerWidth,
       lastGoodGaze.y * window.innerHeight,
@@ -714,7 +730,6 @@ blinkDetector.on('onClassified', (classification) => {
 // Nháy chủ đích → realtime dwell ring đã xử lý phần lớn trường hợp (nhắm đủ lâu).
 // Handler này chỉ còn cho double-blink upgrade hoặc nháy ngắn không kịp chạy onCloseFrame.
 blinkDetector.on('onIntentional', (blinkData) => {
-  if (window._is3DMouseActive) return;
   // Nếu chu kỳ nháy này đã được kích hoạt click xong (từ onCloseFrame dwell) → BỎ QUA, không bấm lặp!
   if (blinkHandledThisCycle || dwellLocked) {
     return;
@@ -738,6 +753,10 @@ blinkDetector.on('onIntentional', (blinkData) => {
     cx = vp.x; cy = vp.y;
   }
 
+  if (isInside3DViewportCanvas(cx, cy)) {
+    return;
+  }
+
   blinkProgress.start(cx, cy, blinkData, {
     target: fusion.lastGazeTarget,
     confirmMs: 250
@@ -745,7 +764,6 @@ blinkDetector.on('onIntentional', (blinkData) => {
 });
 
 blinkDetector.on('onWink', (side, duration) => {
-  if (window._is3DMouseActive) return;
   if (blinkHandledThisCycle || dwellLocked) return;
 
   let cx = 0, cy = 0;
@@ -756,6 +774,10 @@ blinkDetector.on('onWink', (side, duration) => {
   } else {
     const vp = gazeToViewport(lastGoodGaze.x, lastGoodGaze.y);
     cx = vp.x; cy = vp.y;
+  }
+
+  if (isInside3DViewportCanvas(cx, cy)) {
+    return;
   }
 
   blinkProgress.start(cx, cy, { subtype: 'wink', side, duration }, {
