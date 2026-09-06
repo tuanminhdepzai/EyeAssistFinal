@@ -115,6 +115,12 @@ export class HandModule3D {
     // Expose for gaze engine
     this.onLog = null; // optional callback: (msg, type) => {}
 
+    // Interactive Mouse / Gaze rotation tracking state
+    this._targetMouseRotX = 0;
+    this._targetMouseRotY = 0;
+    this._currentMouseRotX = 0;
+    this._currentMouseRotY = 0;
+
     // Init pose
     Object.keys(FINGER_CONFIG).forEach(k => {
       this._hands.left.currentPose[k] = { curl: 0, spread: 0 };
@@ -131,6 +137,7 @@ export class HandModule3D {
     this._init3DArrows();
     this._loadModel();
     this._bindWindowResize(viewportEl);
+    this._setupPointerRotationListeners();
 
     // Nâng cấp <select> native → GazeSelect (mở & chọn bằng mắt, style đồng bộ)
     this._gazeSelects = enhanceSelects(containerEl);
@@ -138,6 +145,41 @@ export class HandModule3D {
     // Expose globals needed by HTML onclick handlers
     window._handModule = this;
     this._exposeGlobals();
+  }
+
+  _setupPointerRotationListeners() {
+    if (!this._vpEl) return;
+    const updatePointerRotation = (clientX, clientY) => {
+      if (this._currentStep !== 3 && !this._quizSolution) return;
+      const rect = this._vpEl.getBoundingClientRect();
+      if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+        const normX = ((clientX - rect.left) / rect.width) * 2 - 1; // -1 to +1
+        const normY = ((clientY - rect.top) / rect.height) * 2 - 1; // -1 to +1
+        this._targetMouseRotY = normX * (Math.PI * 0.7); // yaw rotation
+        this._targetMouseRotX = normY * (Math.PI * 0.4); // pitch rotation
+      }
+    };
+
+    this._vpEl.addEventListener('mousemove', (e) => {
+      updatePointerRotation(e.clientX, e.clientY);
+    });
+
+    this._vpEl.addEventListener('mouseleave', () => {
+      this._targetMouseRotX = 0;
+      this._targetMouseRotY = 0;
+    });
+
+    this._vpEl.addEventListener('touchmove', (e) => {
+      if (e.touches && e.touches[0]) {
+        updatePointerRotation(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: true });
+
+    window.addEventListener('gazeMove', (e) => {
+      if (e.detail && e.detail.x !== undefined && e.detail.y !== undefined) {
+        updatePointerRotation(e.detail.x, e.detail.y);
+      }
+    });
   }
 
   dispose() {
@@ -930,6 +972,10 @@ export class HandModule3D {
   }
 
   resetCam() {
+    this._targetMouseRotX = 0;
+    this._targetMouseRotY = 0;
+    this._currentMouseRotX = 0;
+    this._currentMouseRotY = 0;
     this._camera.position.set(0, 0.38, 0.75);
     this._orbit.target.set(0, 0.05, 0);
     this._orbit.update();
@@ -946,7 +992,20 @@ export class HandModule3D {
       // Smooth SLERP motion for hand model rotations
       const h = this._hands.left;
       if (h && h.model && h.model.userData.targetQuat) {
-        h.model.quaternion.slerp(h.model.userData.targetQuat, 0.08);
+        let finalQuat = h.model.userData.targetQuat.clone();
+
+        // Smooth interactive rotation following mouse/gaze cursor when in Step 3 / Solution mode
+        if (this._currentStep === 3 || this._quizSolution) {
+          this._currentMouseRotX += (this._targetMouseRotX - this._currentMouseRotX) * 0.08;
+          this._currentMouseRotY += (this._targetMouseRotY - this._currentMouseRotY) * 0.08;
+
+          const mouseQuat = new THREE.Quaternion().setFromEuler(
+            new THREE.Euler(this._currentMouseRotX, this._currentMouseRotY, 0, 'YXZ')
+          );
+          finalQuat.multiply(mouseQuat);
+        }
+
+        h.model.quaternion.slerp(finalQuat, 0.1);
       }
 
       if (this._targetPulseArrow?.userData) {
