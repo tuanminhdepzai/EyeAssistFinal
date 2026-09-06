@@ -501,7 +501,7 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: 295px;
+  width: 310px;
   flex-shrink: 0;
 }
 
@@ -531,8 +531,8 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
 }
 
 .guide-icon-badge {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -541,8 +541,8 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
 }
 
 .guide-icon-badge svg {
-  width: 17px;
-  height: 17px;
+  width: 19px;
+  height: 19px;
 }
 
 .guide-icon-badge.amber {
@@ -564,7 +564,7 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
 }
 
 .guide-card-title {
-  font-size: 13.5px;
+  font-size: 16.5px;
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 1px;
@@ -572,7 +572,7 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
 }
 
 .guide-card-sub {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--text-muted);
   font-family: var(--font-mono);
 }
@@ -581,7 +581,7 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
   display: flex;
   flex-direction: column;
   gap: 7px;
-  font-size: 12px;
+  font-size: 15px;
   line-height: 1.4;
   color: var(--text-secondary);
 }
@@ -593,8 +593,8 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
 }
 
 .guide-bullet {
-  width: 19px;
-  height: 19px;
+  width: 23px;
+  height: 23px;
   border-radius: 50%;
   background: rgba(232, 184, 75, 0.15);
   color: var(--accent-amber-hi);
@@ -602,7 +602,7 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10.5px;
+  font-size: 13.5px;
   font-weight: 800;
   flex-shrink: 0;
   margin-top: 1px;
@@ -610,13 +610,13 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
 
 .guide-step-item strong {
   color: var(--text-primary);
-  font-size: 12.5px;
+  font-size: 15.5px;
   display: block;
   margin-bottom: 1px;
 }
 
 .guide-step-item p {
-  font-size: 11.5px;
+  font-size: 14.5px;
   color: var(--text-secondary);
   margin: 0;
   line-height: 1.35;
@@ -630,7 +630,7 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
   border: 1px solid rgba(232, 184, 75, 0.2);
   border-radius: var(--radius-sm);
   padding: 6px 9px;
-  font-size: 11.5px;
+  font-size: 14.5px;
   color: var(--text-primary);
   margin-top: 2px;
   line-height: 1.35;
@@ -638,13 +638,13 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
 
 .guide-tip-box svg {
   color: var(--accent-amber-hi);
-  width: 15px;
-  height: 15px;
+  width: 17px;
+  height: 17px;
   flex-shrink: 0;
 }
 
 .guide-desc-text {
-  font-size: 11.5px;
+  font-size: 14.5px;
   color: var(--text-muted);
   margin-bottom: 2px;
   line-height: 1.35;
@@ -663,21 +663,21 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(241, 234, 217, 0.07);
   border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 12px;
+  padding: 5px 9px;
+  font-size: 15px;
 }
 
 .voice-tag {
   color: var(--text-primary);
   font-weight: 600;
-  font-size: 12px;
+  font-size: 15px;
 }
 
 .voice-action {
   color: var(--accent-green-hi);
   font-family: var(--font-mono);
   font-weight: 700;
-  font-size: 11.5px;
+  font-size: 14.5px;
 }
 
 .guide-feature-row {
@@ -687,9 +687,9 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
 }
 
 .kbd-badge {
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 800;
-  padding: 2px 6px;
+  padding: 3px 7px;
   border-radius: 4px;
   font-family: var(--font-mono);
   flex-shrink: 0;
@@ -722,13 +722,13 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
 
 .guide-feature-row strong {
   color: var(--text-primary);
-  font-size: 12.5px;
+  font-size: 15.5px;
   display: block;
   margin-bottom: 1px;
 }
 
 .guide-feature-row p {
-  font-size: 11.5px;
+  font-size: 14.5px;
   color: var(--text-secondary);
   margin: 0;
   line-height: 1.35;
@@ -973,7 +973,7 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
   position: absolute;
   top: 14px;
   right: 18px;
-  width: 280px;
+  width: 305px;
   background: rgba(34, 29, 23, 0.94);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(232, 184, 75, 0.28);
@@ -998,7 +998,7 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 0.88rem;
+  font-size: 1.07rem;
   font-weight: 700;
   color: var(--accent-amber-hi);
   letter-spacing: 0.2px;
@@ -1014,7 +1014,7 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
   gap: 3px;
 }
 .hgp-tag {
-  font-size: 0.8rem;
+  font-size: 0.99rem;
   font-weight: 700;
   color: var(--text-primary);
   display: inline-flex;
@@ -1023,7 +1023,7 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
 }
 .hgp-item p {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: 0.97rem;
   color: var(--text-secondary);
   line-height: 1.4;
 }
