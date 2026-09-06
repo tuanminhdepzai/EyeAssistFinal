@@ -973,7 +973,7 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
   position: absolute;
   top: 14px;
   right: 18px;
-  width: 305px;
+  width: 285px;
   background: rgba(34, 29, 23, 0.94);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(232, 184, 75, 0.28);
@@ -998,7 +998,7 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 1.07rem;
+  font-size: 0.94rem;
   font-weight: 700;
   color: var(--accent-amber-hi);
   letter-spacing: 0.2px;
@@ -1014,7 +1014,7 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
   gap: 3px;
 }
 .hgp-tag {
-  font-size: 0.99rem;
+  font-size: 0.86rem;
   font-weight: 700;
   color: var(--text-primary);
   display: inline-flex;
@@ -1023,7 +1023,7 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
 }
 .hgp-item p {
   margin: 0;
-  font-size: 0.97rem;
+  font-size: 0.84rem;
   color: var(--text-secondary);
   line-height: 1.4;
 }
