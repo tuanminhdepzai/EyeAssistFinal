@@ -664,7 +664,6 @@ function updateGazeCursor(vpX, vpY) {
   cursor.style.left = `${vpX}px`;
   cursor.style.top = `${vpY}px`;
   cursor.classList.add('visible');
-  window.dispatchEvent(new CustomEvent('gazeMove', { detail: { x: vpX, y: vpY } }));
 }
 
 // ============ BLINK DETECTOR WIRING (Phase 1 + 2 + 3) ============

@@ -115,11 +115,10 @@ export class HandModule3D {
     // Expose for gaze engine
     this.onLog = null; // optional callback: (msg, type) => {}
 
-    // Interactive Mouse / Gaze rotation tracking state
-    this._targetMouseRotX = 0;
-    this._targetMouseRotY = 0;
-    this._currentMouseRotX = 0;
-    this._currentMouseRotY = 0;
+    // Mouse tilt tracking state for Step 3 interactive hand plane rotation
+    this._targetMouseRot = { yaw: 0, pitch: 0 };
+    this._currentMouseRot = { yaw: 0, pitch: 0 };
+    this._isMouseDown = false;
 
     // Init pose
     Object.keys(FINGER_CONFIG).forEach(k => {
@@ -137,7 +136,7 @@ export class HandModule3D {
     this._init3DArrows();
     this._loadModel();
     this._bindWindowResize(viewportEl);
-    this._setupPointerRotationListeners();
+    this._bindMouseTracking(viewportEl);
 
     // Nâng cấp <select> native → GazeSelect (mở & chọn bằng mắt, style đồng bộ)
     this._gazeSelects = enhanceSelects(containerEl);
@@ -145,41 +144,6 @@ export class HandModule3D {
     // Expose globals needed by HTML onclick handlers
     window._handModule = this;
     this._exposeGlobals();
-  }
-
-  _setupPointerRotationListeners() {
-    if (!this._vpEl) return;
-    const updatePointerRotation = (clientX, clientY) => {
-      if (this._currentStep !== 3 && !this._quizSolution) return;
-      const rect = this._vpEl.getBoundingClientRect();
-      if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
-        const normX = ((clientX - rect.left) / rect.width) * 2 - 1; // -1 to +1
-        const normY = ((clientY - rect.top) / rect.height) * 2 - 1; // -1 to +1
-        this._targetMouseRotY = normX * (Math.PI * 0.7); // yaw rotation
-        this._targetMouseRotX = normY * (Math.PI * 0.4); // pitch rotation
-      }
-    };
-
-    this._vpEl.addEventListener('mousemove', (e) => {
-      updatePointerRotation(e.clientX, e.clientY);
-    });
-
-    this._vpEl.addEventListener('mouseleave', () => {
-      this._targetMouseRotX = 0;
-      this._targetMouseRotY = 0;
-    });
-
-    this._vpEl.addEventListener('touchmove', (e) => {
-      if (e.touches && e.touches[0]) {
-        updatePointerRotation(e.touches[0].clientX, e.touches[0].clientY);
-      }
-    }, { passive: true });
-
-    window.addEventListener('gazeMove', (e) => {
-      if (e.detail && e.detail.x !== undefined && e.detail.y !== undefined) {
-        updatePointerRotation(e.detail.x, e.detail.y);
-      }
-    });
   }
 
   dispose() {
@@ -375,6 +339,49 @@ export class HandModule3D {
       this._renderer.setSize(vp.clientWidth, vp.clientHeight);
     };
     window.addEventListener('resize', this._resizeHandler);
+  }
+
+  _bindMouseTracking(vp) {
+    if (!vp) return;
+
+    const onMove = (clientX, clientY) => {
+      if (this._isMouseDown) return;
+      if (this._currentStep !== 3) return;
+
+      const rect = vp.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+
+      // Normalized coordinates [-1, 1] relative to center
+      const nx = ((clientX - rect.left) / rect.width) * 2 - 1;
+      const ny = ((clientY - rect.top) / rect.height) * 2 - 1;
+
+      // Smooth yaw range (+-0.95 rad) & pitch range (+-0.75 rad)
+      this._targetMouseRot.yaw = Math.max(-1, Math.min(1, nx)) * 0.95;
+      this._targetMouseRot.pitch = Math.max(-1, Math.min(1, ny)) * 0.75;
+    };
+
+    window.addEventListener('mousemove', (e) => {
+      const rect = vp.getBoundingClientRect();
+      if (
+        e.clientX >= rect.left &&
+        e.clientX <= rect.right &&
+        e.clientY >= rect.top &&
+        e.clientY <= rect.bottom
+      ) {
+        onMove(e.clientX, e.clientY);
+      } else if (this._targetMouseRot.yaw !== 0 || this._targetMouseRot.pitch !== 0) {
+        this._targetMouseRot.yaw = 0;
+        this._targetMouseRot.pitch = 0;
+      }
+    });
+
+    vp.addEventListener('mouseleave', () => {
+      this._targetMouseRot.yaw = 0;
+      this._targetMouseRot.pitch = 0;
+    });
+
+    vp.addEventListener('mousedown', () => { this._isMouseDown = true; });
+    window.addEventListener('mouseup', () => { this._isMouseDown = false; });
   }
 
   // ─────────────────────────────────────────
@@ -886,6 +893,7 @@ export class HandModule3D {
       targetQuat.multiply(rQuat);
     }
     handModel.userData.targetQuat = targetQuat;
+    handModel.userData.baseTargetQuat = targetQuat.clone();
   }
 
   _positionArrowsOnHand(handObj, isRight, bVec) {
@@ -972,10 +980,8 @@ export class HandModule3D {
   }
 
   resetCam() {
-    this._targetMouseRotX = 0;
-    this._targetMouseRotY = 0;
-    this._currentMouseRotX = 0;
-    this._currentMouseRotY = 0;
+    this._targetMouseRot = { yaw: 0, pitch: 0 };
+    this._currentMouseRot = { yaw: 0, pitch: 0 };
     this._camera.position.set(0, 0.38, 0.75);
     this._orbit.target.set(0, 0.05, 0);
     this._orbit.update();
@@ -991,21 +997,28 @@ export class HandModule3D {
 
       // Smooth SLERP motion for hand model rotations
       const h = this._hands.left;
-      if (h && h.model && h.model.userData.targetQuat) {
-        let finalQuat = h.model.userData.targetQuat.clone();
-
-        // Smooth interactive rotation following mouse/gaze cursor when in Step 3 / Solution mode
-        if (this._currentStep === 3 || this._quizSolution) {
-          this._currentMouseRotX += (this._targetMouseRotX - this._currentMouseRotX) * 0.08;
-          this._currentMouseRotY += (this._targetMouseRotY - this._currentMouseRotY) * 0.08;
+      if (h && h.model) {
+        const baseQuat = h.model.userData.baseTargetQuat || h.model.userData.targetQuat;
+        if (this._currentStep === 3 && baseQuat && !this._isMouseDown) {
+          // LERP mouse rotation angles smoothly
+          this._currentMouseRot.yaw += (this._targetMouseRot.yaw - this._currentMouseRot.yaw) * 0.08;
+          this._currentMouseRot.pitch += (this._targetMouseRot.pitch - this._currentMouseRot.pitch) * 0.08;
 
           const mouseQuat = new THREE.Quaternion().setFromEuler(
-            new THREE.Euler(this._currentMouseRotX, this._currentMouseRotY, 0, 'YXZ')
+            new THREE.Euler(this._currentMouseRot.pitch, this._currentMouseRot.yaw, 0, 'YXZ')
           );
-          finalQuat.multiply(mouseQuat);
+          const combinedQuat = baseQuat.clone().multiply(mouseQuat);
+          h.model.quaternion.slerp(combinedQuat, 0.1);
+        } else if (h.model.userData.targetQuat) {
+          this._currentMouseRot.yaw += (0 - this._currentMouseRot.yaw) * 0.08;
+          this._currentMouseRot.pitch += (0 - this._currentMouseRot.pitch) * 0.08;
+          h.model.quaternion.slerp(h.model.userData.targetQuat, 0.08);
         }
 
-        h.model.quaternion.slerp(finalQuat, 0.1);
+        // Dynamically align 3D vector arrows with hand position and orientation
+        if (this._currentStep === 3 && this._quizSolution) {
+          this._positionArrowsOnHand(h, false, this._quizSolution.arrowOverlay.arrowB.vector);
+        }
       }
 
       if (this._targetPulseArrow?.userData) {
