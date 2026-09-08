@@ -222,16 +222,6 @@ async function startSensorsAfterLogin() {
 
     // 3. Bắt đầu nhận diện giọng nói (yêu cầu quyền Micro)
     voice.start();
-
-    // 4. Preload 3D Hand Model ở nền để khi chuyển tab là INSTANT 0s!
-    if (!handModuleInited) {
-      const vp = document.getElementById('hand-viewport');
-      const container = document.getElementById('tab-hand');
-      if (vp && container) {
-        handModuleInited = true;
-        handModule.init(vp, container);
-      }
-    }
   } catch (err) {
     console.warn('Sensors start error:', err);
   }
@@ -1062,21 +1052,31 @@ function parseAllowedVoiceCommand(rawText) {
   return null;
 }
 
-voice.on('onResult', (command, raw) => {
-  const match = parseAllowedVoiceCommand(raw);
-  if (!match) {
-    if (dom.voiceFeedback) dom.voiceFeedback.classList.remove('visible', 'listening');
+let _lastVoiceCmdKey = '';
+let _lastVoiceCmdTime = 0;
+
+function executeVoiceCommand(match) {
+  if (!match) return;
+
+  const now = Date.now();
+  const cmdKey = `${match.type}:${match.target || match.action}`;
+
+  // Cooldown 1.2s cho cùng 1 lệnh để tránh thực thi lặp liên tục trong cùng 1 câu nói
+  if (cmdKey === _lastVoiceCmdKey && (now - _lastVoiceCmdTime) < 1200) {
     return;
   }
 
-  // Hiển thị sub ở dưới
+  _lastVoiceCmdKey = cmdKey;
+  _lastVoiceCmdTime = now;
+
+  // Hiển thị feedback UI lập tức
   if (dom.voiceFeedback) {
     dom.voiceFeedback.textContent = `🎤 "${match.display}"`;
     dom.voiceFeedback.classList.add('visible', 'listening');
-    setTimeout(() => dom.voiceFeedback.classList.remove('listening'), 2500);
+    setTimeout(() => dom.voiceFeedback?.classList.remove('listening'), 2200);
   }
 
-  // Thực thi lệnh tương ứng
+  // Thực thi lệnh ngay tức thì (Instant Execution < 150ms)
   if (match.type === 'switch_tab') {
     if (state.currentTab !== match.target) {
       switchTab(match.target);
@@ -1092,13 +1092,21 @@ voice.on('onResult', (command, raw) => {
       }
     }
   }
+}
+
+voice.on('onResult', (command, raw) => {
+  const match = parseAllowedVoiceCommand(raw);
+  if (match) {
+    executeVoiceCommand(match);
+  } else if (dom.voiceFeedback) {
+    dom.voiceFeedback.classList.remove('visible', 'listening');
+  }
 });
 
 voice.on('onInterim', (text) => {
   const match = parseAllowedVoiceCommand(text);
-  if (match && dom.voiceFeedback) {
-    dom.voiceFeedback.textContent = `🎤 ${match.display}`;
-    dom.voiceFeedback.classList.add('visible');
+  if (match) {
+    executeVoiceCommand(match);
   } else if (dom.voiceFeedback) {
     dom.voiceFeedback.classList.remove('visible');
   }
@@ -1372,15 +1380,15 @@ function switchTab(tabId) {
     }
   }
   
-  // Init or Resize Hand Module instantly
-  if (tabId === 'hand') {
-    if (!handModuleInited) {
-      handModuleInited = true;
-      const vp = document.getElementById('hand-viewport');
-      const container = document.getElementById('tab-hand');
-      if (vp && container) handModule.init(vp, container);
-    }
-    requestAnimationFrame(() => handModule.handleResize());
+  // Lazy-init Hand Module on first switch
+  if (tabId === 'hand' && !handModuleInited) {
+    handModuleInited = true;
+    const vp = document.getElementById('hand-viewport');
+    const container = document.getElementById('tab-hand');
+    setTimeout(() => {
+      handModule.init(vp, container);
+      setTimeout(() => handModule.handleResize(), 100);
+    }, 50);
   }
 
   // Handle physics tab resize
@@ -1391,6 +1399,11 @@ function switchTab(tabId) {
         physics.handleResize(container.clientWidth, container.clientHeight);
       }
     }, 100);
+  }
+
+  // Handle hand tab resize when re-entering
+  if (tabId === 'hand' && handModuleInited) {
+    setTimeout(() => handModule.handleResize(), 100);
   }
 }
 
