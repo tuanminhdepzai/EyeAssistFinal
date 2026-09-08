@@ -229,6 +229,15 @@ export class VoiceHandler {
   _parseCommand(text) {
     if (!text) return { type: 'unknown', raw: text };
 
+    // 0. Check tab navigation commands
+    if (
+      text.includes('bàn tay') ||
+      text.includes('casio') ||
+      text.includes('hiệu chỉnh')
+    ) {
+      return { type: 'navigation', raw: text };
+    }
+
     // 1. Check physics 3D hand commands
     for (const [phrase, action] of Object.entries(this._getPhysicsMap())) {
       if (text.includes(phrase)) {
@@ -289,7 +298,6 @@ export class VoiceHandler {
       'nắm tay': 'pose_fist',
       'nắm tay lại': 'pose_fist',
       'mở tay': 'pose_open',
-      'mở bàn tay': 'pose_open',
       'duỗi tay': 'pose_open',
       'khóa đáp án': 'lock_answer',
       'khóa': 'lock_answer',

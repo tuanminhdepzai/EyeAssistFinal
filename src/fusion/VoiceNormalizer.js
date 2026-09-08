@@ -57,7 +57,10 @@ export class VoiceNormalizer {
       ['lui lại', 'xóa một'],
       ['quay lại', 'undo'],
 
-      // Vật lý 3D
+      // Vật lý 3D & Navigation
+      ['bàn tay ba đê', 'bàn tay 3d'],
+      ['bàn tay ba d', 'bàn tay 3d'],
+      ['bàn tay 3 d', 'bàn tay 3d'],
       ['xoay sang trái', 'xoay trái'],
       ['xoay sang phải', 'xoay phải'],
       ['lật ngửa', 'lật tay'],
@@ -67,7 +70,7 @@ export class VoiceNormalizer {
       ['đổi tay phải', 'tay phải'],
       ['đổi tay trái', 'tay trái'],
       ['nắm tay lại', 'nắm tay'],
-      ['mở bàn tay', 'mở tay'],
+      ['duỗi bàn tay', 'mở tay'],
       ['duỗi tay', 'mở tay'],
       ['khóa đáp án', 'khóa'],
       ['chốt đáp án', 'khóa'],

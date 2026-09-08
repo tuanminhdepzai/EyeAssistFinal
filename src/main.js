@@ -222,6 +222,16 @@ async function startSensorsAfterLogin() {
 
     // 3. Bắt đầu nhận diện giọng nói (yêu cầu quyền Micro)
     voice.start();
+
+    // 4. Preload 3D Hand Model ở nền để khi chuyển tab là INSTANT 0s!
+    if (!handModuleInited) {
+      const vp = document.getElementById('hand-viewport');
+      const container = document.getElementById('tab-hand');
+      if (vp && container) {
+        handModuleInited = true;
+        handModule.init(vp, container);
+      }
+    }
   } catch (err) {
     console.warn('Sensors start error:', err);
   }
@@ -973,15 +983,19 @@ function parseAllowedVoiceCommand(rawText) {
 
   // 1. Chuyển qua bàn tay 3D
   if (
-    t.includes('chuyển qua bàn tay 3d') ||
-    t.includes('chuyển sang bàn tay 3d') ||
-    t.includes('chuyển qua bàn tay ba đê') ||
-    t.includes('chuyển sang bàn tay ba đê') ||
+    t.includes('chuyển qua bàn tay') ||
+    t.includes('chuyển sang bàn tay') ||
+    t.includes('chuyển bàn tay') ||
+    t.includes('sang bàn tay') ||
+    t.includes('qua bàn tay') ||
+    t.includes('mở bàn tay') ||
     t.includes('bàn tay 3d') ||
     t.includes('bàn tay ba đê') ||
-    t.includes('mở bàn tay 3d') ||
-    t.includes('mở bàn tay ba đê') ||
-    t === 'hãy mở bàn tay 3d'
+    t.includes('bàn tay 3 d') ||
+    t.includes('bàn tay ba d') ||
+    t.includes('mở tay 3d') ||
+    t.includes('mở tay ba đê') ||
+    t === 'bàn tay'
   ) {
     return { type: 'switch_tab', target: 'hand', display: 'chuyển qua bàn tay 3D' };
   }
@@ -1358,15 +1372,15 @@ function switchTab(tabId) {
     }
   }
   
-  // Lazy-init Hand Module on first switch
-  if (tabId === 'hand' && !handModuleInited) {
-    handModuleInited = true;
-    const vp = document.getElementById('hand-viewport');
-    const container = document.getElementById('tab-hand');
-    setTimeout(() => {
-      handModule.init(vp, container);
-      setTimeout(() => handModule.handleResize(), 100);
-    }, 50);
+  // Init or Resize Hand Module instantly
+  if (tabId === 'hand') {
+    if (!handModuleInited) {
+      handModuleInited = true;
+      const vp = document.getElementById('hand-viewport');
+      const container = document.getElementById('tab-hand');
+      if (vp && container) handModule.init(vp, container);
+    }
+    requestAnimationFrame(() => handModule.handleResize());
   }
 
   // Handle physics tab resize
@@ -1377,11 +1391,6 @@ function switchTab(tabId) {
         physics.handleResize(container.clientWidth, container.clientHeight);
       }
     }, 100);
-  }
-
-  // Handle hand tab resize when re-entering
-  if (tabId === 'hand' && handModuleInited) {
-    setTimeout(() => handModule.handleResize(), 100);
   }
 }
 
