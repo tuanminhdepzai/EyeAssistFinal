@@ -263,7 +263,7 @@ async function initMediaPipe() {
     
     state.faceMesh = new FaceMesh({
       locateFile: (file) => {
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+        return `/mediapipe/face_mesh/${file}`;
       }
     });
 
@@ -282,10 +282,6 @@ async function initMediaPipe() {
 
 async function initWebcam() {
   try {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      throw new Error('Trình duyệt không hỗ trợ truy cập Webcam hoặc kết nối không phải HTTPS');
-    }
-
     let stream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({
@@ -296,9 +292,9 @@ async function initWebcam() {
         },
         audio: false,
       });
-    } catch (errConstraint) {
-      console.warn('Yêu cầu webcam chuẩn thất bại, thử chế độ cơ bản:', errConstraint);
-      // Fallback nếu thiết bị kén constraint
+    } catch (primaryErr) {
+      console.warn('Constrained webcam request failed, trying simple video request...', primaryErr.message);
+      // Fallback: try default video stream without resolution/facingMode constraints
       stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
     }
     
@@ -308,18 +304,19 @@ async function initWebcam() {
     }
     if (dom.camStatus) dom.camStatus.classList.add('active');
   } catch (e) {
-    console.warn('Webcam access denied:', e.message);
+    console.warn('Webcam access error:', e.name, e.message);
     if (dom.camStatus) dom.camStatus.classList.add('error');
-    const msgEl = document.getElementById('loading-status') || dom.loadingStatus;
-    if (msgEl) {
-      if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-        msgEl.textContent = '⚠️ Trình duyệt bắt buộc trang web phải chạy HTTPS mới cho mở Camera!';
-      } else if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
-        msgEl.textContent = '⚠️ Hãy bấm vào biểu tượng 🔒 ở thanh địa chỉ để CHẤP NHẬN quyền truy cập Camera.';
-      } else {
-        msgEl.textContent = '⚠️ Không tìm thấy Webcam hoặc Camera đang bị ứng dụng khác (Zoom, Teams, OBS) chiếm dụng.';
-      }
+
+    let userMsg = 'Lỗi webcam!';
+    if (e.name === 'NotFoundError' || e.message.includes('device not found')) {
+      userMsg = 'Không tìm thấy Webcam trên máy tính này. Vui lòng cắm webcam hoặc bật camera trong Windows Settings.';
+    } else if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+      userMsg = 'Quyền truy cập Webcam bị từ chối. Vui lòng bật quyền camera trong trình duyệt.';
+    } else if (e.name === 'NotReadableError' || e.name === 'TrackStartError') {
+      userMsg = 'Webcam đang bị ứng dụng khác (Zoom, Teams, OBS...) chiếm dụng. Vui lòng đóng ứng dụng đó.';
     }
+
+    if (dom.loadingStatus) dom.loadingStatus.textContent = userMsg;
   }
 }
 

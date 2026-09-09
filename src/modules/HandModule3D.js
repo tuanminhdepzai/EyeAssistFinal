@@ -429,7 +429,7 @@ export class HandModule3D {
     if (loadMsg) loadMsg.textContent = 'Đang tải mô hình bàn tay 3D...';
     this._log('Khởi tạo GLTFLoader tải 3D model...', 'info');
 
-    loader.load('./Realistic Hand.glb', (gltfLeft) => {
+    loader.load(encodeURI('/Realistic Hand.glb'), (gltfLeft) => {
       this._setupHandInstance(gltfLeft.scene, this._hands.left, false);
       this._log('Tải thành công mô hình Tay Trái 3D!', 'success');
 
