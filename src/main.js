@@ -282,14 +282,25 @@ async function initMediaPipe() {
 
 async function initWebcam() {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        width: { ideal: 640 },
-        height: { ideal: 480 },
-        facingMode: 'user',
-      },
-      audio: false,
-    });
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error('Trình duyệt không hỗ trợ truy cập Webcam hoặc kết nối không phải HTTPS');
+    }
+
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          facingMode: 'user',
+        },
+        audio: false,
+      });
+    } catch (errConstraint) {
+      console.warn('Yêu cầu webcam chuẩn thất bại, thử chế độ cơ bản:', errConstraint);
+      // Fallback nếu thiết bị kén constraint
+      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    }
     
     if (dom.webcam) {
       dom.webcam.srcObject = stream;
@@ -299,6 +310,16 @@ async function initWebcam() {
   } catch (e) {
     console.warn('Webcam access denied:', e.message);
     if (dom.camStatus) dom.camStatus.classList.add('error');
+    const msgEl = document.getElementById('loading-status') || dom.loadingStatus;
+    if (msgEl) {
+      if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        msgEl.textContent = '⚠️ Trình duyệt bắt buộc trang web phải chạy HTTPS mới cho mở Camera!';
+      } else if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+        msgEl.textContent = '⚠️ Hãy bấm vào biểu tượng 🔒 ở thanh địa chỉ để CHẤP NHẬN quyền truy cập Camera.';
+      } else {
+        msgEl.textContent = '⚠️ Không tìm thấy Webcam hoặc Camera đang bị ứng dụng khác (Zoom, Teams, OBS) chiếm dụng.';
+      }
+    }
   }
 }
 
