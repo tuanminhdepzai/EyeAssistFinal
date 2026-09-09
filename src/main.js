@@ -985,44 +985,33 @@ function parseAllowedVoiceCommand(rawText) {
   if (!rawText) return null;
   const t = rawText.toLowerCase().trim().replace(/[.,?!]/g, '');
 
-  // 1. Chuyển qua bàn tay 3D
+  // 1. Chuyển qua Casio ảo (Ưu tiên kiểm tra trước)
   if (
-    t.includes('chuyển qua bàn tay') ||
-    t.includes('chuyển sang bàn tay') ||
-    t.includes('chuyển bàn tay') ||
-    t.includes('sang bàn tay') ||
-    t.includes('qua bàn tay') ||
-    t.includes('mở bàn tay') ||
-    t.includes('bàn tay 3d') ||
-    t.includes('bàn tay ba đê') ||
-    t.includes('bàn tay 3 d') ||
-    t.includes('bàn tay ba d') ||
-    t.includes('mở tay 3d') ||
-    t.includes('mở tay ba đê') ||
-    t === 'bàn tay'
-  ) {
-    return { type: 'switch_tab', target: 'hand', display: 'chuyển qua bàn tay 3D' };
-  }
-
-  // 2. Chuyển qua Casio ảo
-  if (
-    t.includes('chuyển qua casio ảo') ||
-    t.includes('chuyển sang casio ảo') ||
-    t.includes('chuyển qua casio') ||
-    t.includes('chuyển sang casio') ||
-    t.includes('casio ảo') ||
-    t.includes('mở casio ảo') ||
-    t === 'hãy mở casio ảo'
+    t.includes('casio') ||
+    t.includes('ca si ô') ||
+    t.includes('ca sio') ||
+    t.includes('ca xi ô') ||
+    t.includes('máy tính') ||
+    t.includes('máy tính ảo')
   ) {
     return { type: 'switch_tab', target: 'casio', display: 'chuyển qua Casio ảo' };
   }
 
+  // 2. Chuyển qua bàn tay 3D
+  if (
+    t.includes('bàn tay') ||
+    t.includes('tay 3d') ||
+    t.includes('tay ba đê') ||
+    t.includes('tay ba d')
+  ) {
+    return { type: 'switch_tab', target: 'hand', display: 'chuyển qua bàn tay 3D' };
+  }
+
   // 3. Chuyển sang hiệu chỉnh
   if (
-    t.includes('chuyển sang hiệu chỉnh') ||
-    t.includes('chuyển qua hiệu chỉnh') ||
     t.includes('hiệu chỉnh') ||
-    t.includes('mở hiệu chỉnh')
+    t.includes('cân chỉnh') ||
+    t.includes('calib')
   ) {
     return { type: 'switch_tab', target: 'calibration', display: 'chuyển sang hiệu chỉnh' };
   }

@@ -58,6 +58,12 @@ export class VoiceNormalizer {
       ['quay lại', 'undo'],
 
       // Vật lý 3D & Navigation
+      ['ca si ô', 'casio'],
+      ['ca si ô ảo', 'casio ảo'],
+      ['ca sio', 'casio'],
+      ['ca xi ô', 'casio'],
+      ['kasiô', 'casio'],
+      ['máy tính casio', 'casio ảo'],
       ['bàn tay ba đê', 'bàn tay 3d'],
       ['bàn tay ba d', 'bàn tay 3d'],
       ['bàn tay 3 d', 'bàn tay 3d'],
