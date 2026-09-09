@@ -443,13 +443,9 @@ function initModules() {
   // Dual-feedback: cập nhật nhãn chữ của cụm trạng thái theo class
   initStatusLabelSync();
 
-  // Auto-fit responsive screen scaling & Casio calculator
-  autoFitViewport();
+  // Scale Casio calculator to fill viewport
   scaleCalculator();
-  window.addEventListener('resize', () => {
-    autoFitViewport();
-    scaleCalculator();
-  });
+  window.addEventListener('resize', scaleCalculator);
 
   // Initialize Firebase Auth UI
   initAuthUI();
@@ -1383,9 +1379,6 @@ function switchTab(tabId) {
   moveNavPill(true); // pill trượt tới tab vừa chọn
   dom.tabContents.forEach(t => t.classList.toggle('active', t.id === `tab-${tabId}`));
   
-  autoFitViewport();
-  scaleCalculator();
-  
   const cursor = dom.gazeCursor;
   if (cursor) {
     if (tabId === 'casio') {
@@ -1426,6 +1419,9 @@ function switchTab(tabId) {
   if (tabId === 'hand' && handModuleInited) {
     setTimeout(() => handModule.handleResize(), 100);
   }
+
+  // Auto-fit scale check on tab switch
+  setTimeout(autoFitViewportScale, 30);
 }
 
 // ============ CALIBRATION ============
@@ -1592,38 +1588,6 @@ function updateMicUI() {
     if (dom.btnMicToggle) dom.btnMicToggle.classList.remove('active', 'listening');
     if (dom.micIcon) dom.micIcon.textContent = '🎤';
     if (dom.voiceStatus) dom.voiceStatus.classList.remove('active');
-  }
-}
-
-// ============ AUTO FIT VIEWPORT ENGINE ============
-// Tự động nhận diện cấu hình độ phân giải / tỷ lệ zoom của màn hình người dùng
-// để hiển thị 100% full giao diện vừa vặn trong 1 màn hình mà không cần cuộn trang.
-function autoFitViewport() {
-  const targetH = 920;  // Chiều cao thiết kế chuẩn (px) cho full màn hình 100%
-  const targetW = 1440; // Chiều rộng thiết kế chuẩn (px)
-
-  const currentH = window.innerHeight;
-  const currentW = window.innerWidth;
-
-  // Tính tỷ lệ zoom tự động cho cả chiều cao và chiều rộng
-  const scaleH = currentH / targetH;
-  const scaleW = currentW / targetW;
-
-  // Lấy tỷ lệ bé hơn để đảm bảo không bị tràn bất kỳ chiều nào
-  let scale = Math.min(scaleH, scaleW);
-  // Giới hạn scale tối thiểu 0.68 và tối đa 1.0
-  scale = Math.min(1.0, Math.max(0.68, scale));
-
-  const root = document.documentElement;
-  if ('zoom' in root.style) {
-    root.style.zoom = scale;
-  } else {
-    // Fallback cho trình duyệt không hỗ trợ thuộc tính zoom
-    root.style.setProperty('--app-scale', scale);
-    document.body.style.transform = `scale(${scale})`;
-    document.body.style.transformOrigin = 'top left';
-    document.body.style.width = `${100 / scale}%`;
-    document.body.style.height = `${100 / scale}%`;
   }
 }
 
@@ -2005,18 +1969,68 @@ setInterval(() => {
   if (dom.statErrors) dom.statErrors.textContent = metrics.totalErrors;
 }, 2000);
 
+// ============ DYNAMIC AUTO-VIEWPORT RESPONSIVE SCALING ============
+function autoFitViewportScale() {
+  const app = document.getElementById('app');
+  if (!app) return;
+
+  const curW = window.innerWidth;
+  const curH = window.innerHeight;
+
+  // Design baseline standards
+  const BASE_W = 1280;
+  const BASE_H = 850;
+
+  const scaleW = curW / BASE_W;
+  const scaleH = curH / BASE_H;
+
+  // Fit minimum dimension to guarantee zero scrolling & no black bars
+  let scale = Math.min(scaleW, scaleH);
+
+  if (curH >= BASE_H && curW >= BASE_W) {
+    scale = 1.0;
+  } else {
+    // Clamp scale between 0.65 and 1.0 for optimal UI readability
+    scale = Math.max(0.65, Math.min(1.0, scale));
+  }
+
+  if (scale < 0.995) {
+    const invW = (100 / scale).toFixed(3);
+    const invH = (100 / scale).toFixed(3);
+
+    app.style.width = `${invW}vw`;
+    app.style.height = `${invH}vh`;
+    app.style.transform = `scale(${scale})`;
+    app.style.transformOrigin = '0 0';
+  } else {
+    app.style.width = '100vw';
+    app.style.height = '100vh';
+    app.style.transform = 'none';
+  }
+
+  if (typeof moveNavPill === 'function') moveNavPill(false);
+}
+
+// Expose for external calls
+window.autoFitViewportScale = autoFitViewportScale;
+
 // ============ START ============
 function bootstrap() {
   init();
+  autoFitViewportScale();
 
-  // Physics canvas resize on window resize
   window.addEventListener('resize', () => {
+    autoFitViewportScale();
     if (state.currentTab === 'physics' && dom.physicsCanvas) {
       const container = dom.physicsCanvas.parentElement;
       if (container) {
         physics.handleResize(container.clientWidth, container.clientHeight);
       }
     }
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(autoFitViewportScale, 100);
   });
 }
 
