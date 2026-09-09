@@ -443,9 +443,13 @@ function initModules() {
   // Dual-feedback: cập nhật nhãn chữ của cụm trạng thái theo class
   initStatusLabelSync();
 
-  // Scale Casio calculator to fill viewport
+  // Auto-fit responsive screen scaling & Casio calculator
+  autoFitViewport();
   scaleCalculator();
-  window.addEventListener('resize', scaleCalculator);
+  window.addEventListener('resize', () => {
+    autoFitViewport();
+    scaleCalculator();
+  });
 
   // Initialize Firebase Auth UI
   initAuthUI();
@@ -1379,6 +1383,9 @@ function switchTab(tabId) {
   moveNavPill(true); // pill trượt tới tab vừa chọn
   dom.tabContents.forEach(t => t.classList.toggle('active', t.id === `tab-${tabId}`));
   
+  autoFitViewport();
+  scaleCalculator();
+  
   const cursor = dom.gazeCursor;
   if (cursor) {
     if (tabId === 'casio') {
@@ -1585,6 +1592,38 @@ function updateMicUI() {
     if (dom.btnMicToggle) dom.btnMicToggle.classList.remove('active', 'listening');
     if (dom.micIcon) dom.micIcon.textContent = '🎤';
     if (dom.voiceStatus) dom.voiceStatus.classList.remove('active');
+  }
+}
+
+// ============ AUTO FIT VIEWPORT ENGINE ============
+// Tự động nhận diện cấu hình độ phân giải / tỷ lệ zoom của màn hình người dùng
+// để hiển thị 100% full giao diện vừa vặn trong 1 màn hình mà không cần cuộn trang.
+function autoFitViewport() {
+  const targetH = 920;  // Chiều cao thiết kế chuẩn (px) cho full màn hình 100%
+  const targetW = 1440; // Chiều rộng thiết kế chuẩn (px)
+
+  const currentH = window.innerHeight;
+  const currentW = window.innerWidth;
+
+  // Tính tỷ lệ zoom tự động cho cả chiều cao và chiều rộng
+  const scaleH = currentH / targetH;
+  const scaleW = currentW / targetW;
+
+  // Lấy tỷ lệ bé hơn để đảm bảo không bị tràn bất kỳ chiều nào
+  let scale = Math.min(scaleH, scaleW);
+  // Giới hạn scale tối thiểu 0.68 và tối đa 1.0
+  scale = Math.min(1.0, Math.max(0.68, scale));
+
+  const root = document.documentElement;
+  if ('zoom' in root.style) {
+    root.style.zoom = scale;
+  } else {
+    // Fallback cho trình duyệt không hỗ trợ thuộc tính zoom
+    root.style.setProperty('--app-scale', scale);
+    document.body.style.transform = `scale(${scale})`;
+    document.body.style.transformOrigin = 'top left';
+    document.body.style.width = `${100 / scale}%`;
+    document.body.style.height = `${100 / scale}%`;
   }
 }
 
