@@ -1019,13 +1019,6 @@ export class HandModule3D {
     this._log(`🎯 Mũi tên Vectơ 3D: ${this._arrowsVisible ? 'HIỆN' : 'ẨN'}`, 'info');
   }
 
-  // ─────────────────────────────────────────
-  // EYE GAZE 3D CAMERA ROTATION
-  // ─────────────────────────────────────────
-  updateGazeOrbit() {
-    // Eye gaze 3D camera rotation feature removed per user request
-  }
-
   resetCam() {
     this._camera.position.set(0, 0.38, 0.75);
     this._orbit.target.set(0, 0.05, 0);

@@ -702,7 +702,7 @@ function updateGazeCursor(vpX, vpY) {
       return;
     }
   }
-  
+
   cursor.style.left = `${vpX}px`;
   cursor.style.top = `${vpY}px`;
   cursor.classList.add('visible');
