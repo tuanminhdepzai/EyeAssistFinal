@@ -93,9 +93,7 @@ button {
   display: grid;
   grid-template-columns: 252px 1fr;
   height: 100vh;
-  width: 100vw;
   overflow: hidden;
-  transform-origin: 0 0;
 }
 #main-stage {
   position: relative;

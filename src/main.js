@@ -1419,9 +1419,6 @@ function switchTab(tabId) {
   if (tabId === 'hand' && handModuleInited) {
     setTimeout(() => handModule.handleResize(), 100);
   }
-
-  // Auto-fit scale check on tab switch
-  setTimeout(autoFitViewportScale, 30);
 }
 
 // ============ CALIBRATION ============
@@ -1969,68 +1966,18 @@ setInterval(() => {
   if (dom.statErrors) dom.statErrors.textContent = metrics.totalErrors;
 }, 2000);
 
-// ============ DYNAMIC AUTO-VIEWPORT RESPONSIVE SCALING ============
-function autoFitViewportScale() {
-  const app = document.getElementById('app');
-  if (!app) return;
-
-  const curW = window.innerWidth;
-  const curH = window.innerHeight;
-
-  // Design baseline standards
-  const BASE_W = 1280;
-  const BASE_H = 850;
-
-  const scaleW = curW / BASE_W;
-  const scaleH = curH / BASE_H;
-
-  // Fit minimum dimension to guarantee zero scrolling & no black bars
-  let scale = Math.min(scaleW, scaleH);
-
-  if (curH >= BASE_H && curW >= BASE_W) {
-    scale = 1.0;
-  } else {
-    // Clamp scale between 0.65 and 1.0 for optimal UI readability
-    scale = Math.max(0.65, Math.min(1.0, scale));
-  }
-
-  if (scale < 0.995) {
-    const invW = (100 / scale).toFixed(3);
-    const invH = (100 / scale).toFixed(3);
-
-    app.style.width = `${invW}vw`;
-    app.style.height = `${invH}vh`;
-    app.style.transform = `scale(${scale})`;
-    app.style.transformOrigin = '0 0';
-  } else {
-    app.style.width = '100vw';
-    app.style.height = '100vh';
-    app.style.transform = 'none';
-  }
-
-  if (typeof moveNavPill === 'function') moveNavPill(false);
-}
-
-// Expose for external calls
-window.autoFitViewportScale = autoFitViewportScale;
-
 // ============ START ============
 function bootstrap() {
   init();
-  autoFitViewportScale();
 
+  // Physics canvas resize on window resize
   window.addEventListener('resize', () => {
-    autoFitViewportScale();
     if (state.currentTab === 'physics' && dom.physicsCanvas) {
       const container = dom.physicsCanvas.parentElement;
       if (container) {
         physics.handleResize(container.clientWidth, container.clientHeight);
       }
     }
-  });
-
-  window.addEventListener('orientationchange', () => {
-    setTimeout(autoFitViewportScale, 100);
   });
 }
 
