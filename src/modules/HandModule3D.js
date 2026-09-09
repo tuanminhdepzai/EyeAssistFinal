@@ -658,6 +658,34 @@ export class HandModule3D {
     btnRestart.style.display = 'none';
     optsDiv.innerHTML = '';
 
+    // Nếu rơi vào trường hợp song song (Lực từ F = 0)
+    if (res.isParallel) {
+      qText.innerHTML = `
+        <div style="background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.35); border-radius: 10px; padding: 12px 14px; margin-bottom: 4px;">
+          <strong style="color: #facc15; font-size: 0.98rem; display: block; margin-bottom: 6px;">⚡ TRƯỜNG HỢP SONG SONG (Lực từ F = 0 N)</strong>
+          <div style="font-size: 0.88rem; color: var(--text-primary); line-height: 1.5;">
+            ${res.message}
+          </div>
+          <div style="margin-top: 8px; font-size: 0.82rem; color: var(--text-secondary); border-top: 1px dashed rgba(255,255,255,0.12); padding-top: 6px;">
+            📌 <strong>Lý thuyết Vật lý:</strong> Công thức $F = I \\cdot L \\cdot B \\cdot \\sin\\alpha$. Do góc $\\alpha = 0^\\circ$ hoặc $180^\\circ \\rightarrow \\sin\\alpha = 0 \\rightarrow \\mathbf{F = 0\\text{ N}}$.
+          </div>
+        </div>
+      `;
+
+      resDiv.style.display = 'block';
+      resDiv.className = 'stem-res';
+      resDiv.innerHTML = `
+        <strong>⚡ KẾT QUẢ TÍNH TOÁN</strong><br>
+        <span style="font-size:.82rem">
+        🎯 <strong>Đại lượng tìm được:</strong> Lực từ F = 0 N<br>
+        📐 <strong>Góc giữa 2 vectơ:</strong> 0° hoặc 180° (Song song)<br>
+        💡 <strong>Kết luận:</strong> Không phát sinh lực từ tác dụng, không cần áp dụng bàn tay.
+        </span>
+      `;
+      btnRestart.style.display = 'flex';
+      return;
+    }
+
     const ruleType = document.getElementById('stem-rule-type').value;
     const missing = res.missingElement;
     const missingLabel = missing === 'F'
@@ -805,7 +833,45 @@ export class HandModule3D {
 
     if (bVec && iVec) {
       const dot = Math.abs(bVec[0]*iVec[0]+bVec[1]*iVec[1]+bVec[2]*iVec[2]);
-      if (dot === 1) return { error: true, message: '⚠️ Dòng điện I (hoặc v) song song với Cảm ứng từ B nên Lực từ F = 0.' };
+      if (dot === 1) {
+        return {
+          error: false,
+          isParallel: true,
+          missingElement: 'F',
+          calculatedResult: 'NONE',
+          resultLabel: 'Lực từ F = 0 N',
+          message: 'Dòng điện I (hoặc v) song song với Cảm ứng từ B nên Lực từ F = 0 N (không phát sinh lực từ tác dụng).',
+          handType: problemData.ruleType.includes('RIGHT') ? 'RIGHT_HAND' : 'LEFT_HAND',
+          arrowOverlay: {
+            arrowB: { color: '#1a73e8', direction: problemData.B, vector: bVec, label: 'B (Từ trường)', isTargetResult: false },
+            arrowI: { color: '#d93025', direction: problemData.I, vector: iVec, label: 'I/v', isTargetResult: false },
+            arrowF: { color: '#f9ab00', direction: null, vector: [0,0,0], label: 'F = 0', isTargetResult: true }
+          }
+        };
+      }
+    }
+
+    if ((bVec && fVec) || (iVec && fVec)) {
+      const v1 = bVec || iVec;
+      const dot = Math.abs(v1[0]*fVec[0]+v1[1]*fVec[1]+v1[2]*fVec[2]);
+      if (dot === 1) {
+        const name = bVec ? 'Cảm ứng từ B' : 'Dòng điện I';
+        const missing = bVec ? 'I' : 'B';
+        return {
+          error: false,
+          isParallel: true,
+          missingElement: missing,
+          calculatedResult: 'NONE',
+          resultLabel: 'Không tồn tại (F song song)',
+          message: `Lực từ F luôn vuông góc với ${name}. Do F và ${name} song song nên trường hợp này Lực từ F = 0 N.`,
+          handType: problemData.ruleType.includes('RIGHT') ? 'RIGHT_HAND' : 'LEFT_HAND',
+          arrowOverlay: {
+            arrowB: { color: '#1a73e8', direction: problemData.B, vector: bVec || [0,0,0], label: 'B (Từ trường)', isTargetResult: missing === 'B' },
+            arrowI: { color: '#d93025', direction: problemData.I, vector: iVec || [0,0,0], label: 'I/v', isTargetResult: missing === 'I' },
+            arrowF: { color: '#f9ab00', direction: problemData.F, vector: fVec, label: 'F', isTargetResult: false }
+          }
+        };
+      }
     }
 
     let missingElement = '', calculatedResultDir = '';
