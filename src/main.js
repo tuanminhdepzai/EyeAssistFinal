@@ -703,10 +703,6 @@ function updateGazeCursor(vpX, vpY) {
     }
   }
   
-  if (state.currentTab === 'hand' && window._handModule && typeof window._handModule.updateGazeOrbit === 'function') {
-    window._handModule.updateGazeOrbit(vpX, vpY);
-  }
-
   cursor.style.left = `${vpX}px`;
   cursor.style.top = `${vpY}px`;
   cursor.classList.add('visible');

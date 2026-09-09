@@ -1022,38 +1022,14 @@ export class HandModule3D {
   // ─────────────────────────────────────────
   // EYE GAZE 3D CAMERA ROTATION
   // ─────────────────────────────────────────
-  updateGazeOrbit(vpX, vpY) {
-    if (!this._vpEl || !this._camera || !this._orbit) return;
-    const rect = this._vpEl.getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0) return;
-
-    const isInsideViewport = (
-      vpX >= rect.left &&
-      vpX <= rect.right &&
-      vpY >= rect.top &&
-      vpY <= rect.bottom
-    );
-
-    if (isInsideViewport) {
-      this._isGazeOrbiting = true;
-      const nx = (vpX - (rect.left + rect.width / 2)) / (rect.width / 2);
-      const ny = (vpY - (rect.top + rect.height / 2)) / (rect.height / 2);
-
-      const clampedNx = Math.max(-1, Math.min(1, nx));
-      const clampedNy = Math.max(-1, Math.min(1, ny));
-
-      this._gazeOrbitTarget.azimuth = clampedNx * Math.PI * 0.95;
-      this._gazeOrbitTarget.polar = Math.max(0.15, Math.min(Math.PI / 2 + 0.25, 1.15 + clampedNy * 0.65));
-    }
+  updateGazeOrbit() {
+    // Eye gaze 3D camera rotation feature removed per user request
   }
 
   resetCam() {
     this._camera.position.set(0, 0.38, 0.75);
     this._orbit.target.set(0, 0.05, 0);
     this._orbit.update();
-    this._gazeOrbitTarget = { azimuth: 0, polar: 1.15, distance: 0.84 };
-    this._gazeOrbitCurrent = { azimuth: 0, polar: 1.15, distance: 0.84 };
-    this._isGazeOrbiting = false;
     this._log('🎯 Reset Camera & Orbit', 'info');
   }
 
@@ -1073,26 +1049,6 @@ export class HandModule3D {
       if (this._targetPulseArrow?.userData) {
         const pulse = 0.35 + Math.sin(Date.now() * 0.01) * 0.45;
         this._targetPulseArrow.userData.mat.emissiveIntensity = pulse;
-      }
-
-      // Smooth Eye Gaze Camera Orbiting
-      if (this._isGazeOrbiting && !this._orbit.autoRotate) {
-        const alpha = 0.09;
-        this._gazeOrbitCurrent.azimuth += (this._gazeOrbitTarget.azimuth - this._gazeOrbitCurrent.azimuth) * alpha;
-        this._gazeOrbitCurrent.polar += (this._gazeOrbitTarget.polar - this._gazeOrbitCurrent.polar) * alpha;
-
-        const r = this._gazeOrbitCurrent.distance || 0.84;
-        const targetY = 0.05;
-        const sinP = Math.sin(this._gazeOrbitCurrent.polar);
-        const cosP = Math.cos(this._gazeOrbitCurrent.polar);
-        const sinA = Math.sin(this._gazeOrbitCurrent.azimuth);
-        const cosA = Math.cos(this._gazeOrbitCurrent.azimuth);
-
-        this._camera.position.x = r * sinP * sinA;
-        this._camera.position.y = targetY + r * cosP;
-        this._camera.position.z = r * sinP * cosA;
-
-        this._orbit.target.set(0, targetY, 0);
       }
 
       this._orbit.update();
