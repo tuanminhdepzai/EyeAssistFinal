@@ -211,19 +211,54 @@ let _sensorsStarted = false;
 
 async function startSensorsAfterLogin() {
   if (_sensorsStarted) return;
-  _sensorsStarted = true;
 
-  try {
-    // 1. Khởi động webcam (yêu cầu quyền Camera)
-    await initWebcam();
+  const permModal = document.getElementById('permission-modal');
+  const btnGrant = document.getElementById('btn-grant-permissions');
 
-    // 2. Bắt đầu vòng lặp theo dõi ánh mắt
-    startGazeLoop();
+  if (permModal && btnGrant) {
+    permModal.style.display = 'flex';
+    btnGrant.onclick = async () => {
+      btnGrant.disabled = true;
+      btnGrant.innerHTML = '<span>⏳ Đang yêu cầu quyền...</span>';
+      try {
+        // Yêu cầu trực tiếp từ trình duyệt cả Camera & Micro
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+          audio: true
+        });
 
-    // 3. Bắt đầu nhận diện giọng nói (yêu cầu quyền Micro)
-    voice.start();
-  } catch (err) {
-    console.warn('Sensors start error:', err);
+        // Ẩn modal và đánh dấu cảm biến đã bật
+        permModal.style.display = 'none';
+        _sensorsStarted = true;
+
+        // 1. Gán stream cho webcam
+        if (dom.webcam) {
+          dom.webcam.srcObject = stream;
+          await dom.webcam.play();
+        }
+        if (dom.camStatus) dom.camStatus.classList.add('active');
+
+        // 2. Bắt đầu vòng lặp theo dõi ánh mắt
+        startGazeLoop();
+
+        // 3. Bắt đầu nhận diện giọng nói
+        voice.start();
+      } catch (err) {
+        console.warn('Permission denied / error:', err);
+        btnGrant.disabled = false;
+        btnGrant.innerHTML = '<span>⚠️ Chưa lấy được quyền. Bấm để thử lại!</span>';
+        alert('Trình duyệt chưa cấp đủ quyền Camera & Micro. Vui lòng nhấn vào biểu tượng 🔒 Khóa ở thanh địa chỉ để Cho Phép (Allow) Camera & Micro.');
+      }
+    };
+  } else {
+    _sensorsStarted = true;
+    try {
+      await initWebcam();
+      startGazeLoop();
+      voice.start();
+    } catch (err) {
+      console.warn('Sensors start error:', err);
+    }
   }
 }
 
