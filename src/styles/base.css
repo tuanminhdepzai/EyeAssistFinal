@@ -91,7 +91,7 @@ button {
 /* ===== App Layout: rail dọc bên trái + stage chính ===== */
 #app {
   display: grid;
-  grid-template-columns: 252px 1fr;
+  grid-template-columns: 214px 1fr;
   height: 100vh;
   overflow: hidden;
 }
@@ -104,7 +104,7 @@ button {
   min-width: 0;
 }
 
-/* ===== Rail Navigation ===== */
+/* ===== Rail Navigation (Scaled to 85%) ===== */
 #top-nav {
   display: flex;
   flex-direction: column;
@@ -114,6 +114,8 @@ button {
   backdrop-filter: var(--glass-blur);
   border-right: 1px solid var(--glass-border);
   overflow-y: auto;
+  zoom: 0.85;
+  width: 252px;
 }
 .nav-brand {
   display: flex; align-items: center; gap: 12px;
@@ -503,6 +505,7 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
   gap: 10px;
   width: 310px;
   flex-shrink: 0;
+  zoom: 0.85;
 }
 
 .casio-guide-card {
