@@ -1005,16 +1005,10 @@ export class HandModule3D {
     this._log(`🔲 Wireframe mode: ${this._wireOn ? 'BẬT' : 'TẮT'}`, 'info');
   }
 
-  toggleRot(forceState) {
-    if (!this._orbit) return;
-    if (typeof forceState === 'boolean') {
-      this._orbit.autoRotate = forceState;
-    } else {
-      this._orbit.autoRotate = !this._orbit.autoRotate;
-    }
+  toggleRot() {
+    this._orbit.autoRotate = !this._orbit.autoRotate;
     this._orbit.autoRotateSpeed = 4.0;
-    const btn = document.getElementById('hand-tb-rot');
-    if (btn) btn.classList.toggle('on', this._orbit.autoRotate);
+    document.getElementById('hand-tb-rot').classList.toggle('on', this._orbit.autoRotate);
     this._log(`🔄 Tự động xoay: ${this._orbit.autoRotate ? 'BẬT' : 'TẮT'}`, 'info');
   }
 
