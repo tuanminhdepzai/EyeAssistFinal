@@ -359,46 +359,6 @@ const MODES = [
     iconHTML: `<div class="casio-mode-math-icon"><div class="math-top">01</div><div class="math-bot">HEX</div></div>`
   },
   {
-    id: 4,
-    key: '4',
-    isLetter: false,
-    name: 'Matrix',
-    short: 'MAT',
-    iconHTML: `<svg viewBox="0 0 24 16" width="22" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2H2v12h2M20 2h2v12h-2"/><rect x="6" y="4" width="3" height="3" fill="currentColor"/><rect x="15" y="4" width="3" height="3" fill="currentColor"/><rect x="6" y="9" width="3" height="3" fill="currentColor"/><rect x="15" y="9" width="3" height="3" fill="currentColor"/></svg>`
-  },
-  {
-    id: 5,
-    key: '5',
-    isLetter: false,
-    name: 'Vector',
-    short: 'VCT',
-    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14L6 4M6 4L3 7M6 4L9 7"/><path d="M6 14L18 3M18 3L13 4M18 3L17 9"/></svg>`
-  },
-  {
-    id: 6,
-    key: '6',
-    isLetter: false,
-    name: 'Statistics',
-    short: 'STAT',
-    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 14h20"/><rect x="4" y="6" width="3.5" height="8" fill="currentColor"/><rect x="10.5" y="2" width="3.5" height="12" fill="currentColor"/><rect x="17" y="9" width="3.5" height="5" fill="currentColor"/></svg>`
-  },
-  {
-    id: 7,
-    key: '7',
-    isLetter: false,
-    name: 'Distribution',
-    short: 'DIST',
-    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 14h20"/><path d="M3 14c3 0 5-1 7-7 1-3 2-4 2-4s1 1 2 4c2 6 4 7 7 7" stroke-width="1.8"/></svg>`
-  },
-  {
-    id: 8,
-    key: '8',
-    isLetter: false,
-    name: 'Spreadsheet',
-    short: 'SHEET',
-    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="1" width="18" height="14" rx="1"/><path d="M3 6h18M12 1v14"/></svg>`
-  },
-  {
     id: 9,
     key: '9',
     isLetter: false,
@@ -413,22 +373,6 @@ const MODES = [
     name: 'Inequality',
     short: 'INEQ',
     iconHTML: `<div class="casio-mode-math-icon"><div class="math-top">xy</div><div class="math-bot">&gt; 0</div></div>`
-  },
-  {
-    id: 11,
-    key: 'B',
-    isLetter: true,
-    name: 'Ratio',
-    short: 'RATIO',
-    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M12 2v12M8 14h8"/><path d="M4 5l8-1 8 1"/><path d="M4 5l-2 5h4zM20 5l-2 5h4z" fill="currentColor"/></svg>`
-  },
-  {
-    id: 12,
-    key: 'C',
-    isLetter: true,
-    name: 'Table',
-    short: 'TABLE',
-    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="7" height="8"/><circle cx="12" cy="6.5" r="1" fill="currentColor"/><circle cx="12" cy="9.5" r="1" fill="currentColor"/><rect x="14" y="4" width="7" height="8"/></svg>`
   }
 ];
 
@@ -3636,38 +3580,28 @@ function handleMenuKey(key) {
       State.inMenu = false;
       return;
     case '1':
+      selectMode(0); // COMP (id: 1)
+      return;
     case '2':
+      selectMode(1); // CMPLX (id: 2)
+      return;
     case '3':
-    case '4':
-    case '5':
-    case '6':
-    case '7':
-    case '8':
+      selectMode(2); // BASE-N (id: 3)
+      return;
     case '9':
-      selectMode(parseInt(key) - 1);
+      selectMode(3); // EQN (id: 9)
       return;
     case 'ALPHA_NEGATION':
     case 'NEGATION':
     case 'A':
     case 'a':
-      selectMode(9);
-      return;
-    case 'ALPHA_DEGREE':
-    case 'DEGREE':
-    case 'B':
-    case 'b':
-      selectMode(10);
-      return;
-    case 'ALPHA_INVERSE':
-    case 'INVERSE':
-    case 'C':
-    case 'c':
-      selectMode(11);
+      selectMode(4); // INEQ (id: 10)
       return;
   }
 }
 
 function selectMode(idx) {
+  if (idx < 0 || idx >= MODES.length) return;
   State.mode = MODES[idx].id;
   State.inMenu = false;
   clearAll();
