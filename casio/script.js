@@ -3505,24 +3505,15 @@ function handleSolveInputKey(key) {
 // 18. CONSTANTS & CONVERSIONS
 // ============================================================
 function showConstants() {
-  const constants = {
-    '1': 'c (speed of light) = 299792458',
-    '2': 'h (Planck) = 6.62607015×10^-34',
-    '3': 'e (elementary charge) = 1.602176634×10^-19',
-    '4': 'me (electron mass) = 9.1093837×10^-31',
-    '5': 'mp (proton mass) = 1.67262192×10^-27',
-    '6': 'NA (Avogadro) = 6.02214076×10^23',
-    '7': 'k (Boltzmann) = 1.380649×10^-23',
-    '8': 'G (gravitational) = 6.67430×10^-11',
-    '9': 'R (gas constant) = 8.314462618',
-  };
-function showConstants() {
   insertToken('299792458');
   renderAll();
 }
 
 function showConversions() {
-  renderAll();
+    '5: g→oz  6: L→gal  7: °C→°F  8: Pa→atm');
+  if (key && conversions[key]) {
+    dom.screenOutput.textContent = conversions[key];
+  }
 }
 
 // ============================================================
