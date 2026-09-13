@@ -154,8 +154,6 @@ const State = {
 
   isPowerOff: false,
   inMenu: false,
-  inSetup: false,
-  setupPage: 1,
   inOptnMenu: false,
   menuCursor: 0,
 
@@ -486,8 +484,6 @@ function renderAll() {
 
   if (State.inMenu) {
     renderMenuScreen();
-  } else if (State.inSetup) {
-    renderSetupScreen();
   } else {
     renderExpression();
     renderOutput();
@@ -768,101 +764,6 @@ function renderMenuScreen() {
   const selectedMode = MODES[State.menuCursor];
   if (selectedMode) {
     dom.menuStatusBar.textContent = `${selectedMode.key}:${selectedMode.name}`;
-  }
-}
-
-function renderSetupScreen() {
-  dom.menuScreen.classList.add('active');
-  dom.errorScreen.classList.remove('active');
-  dom.menuGrid.innerHTML = '';
-
-  const p = State.setupPage || 1;
-  let title = '';
-  let items = [];
-
-  if (p === 1) {
-    title = 'SETUP MENU';
-    items = [
-      { key: '1', name: 'Angle Unit (' + State.settings.angle + ')', action: () => { State.setupPage = 2; renderAll(); } },
-      { key: '2', name: 'Number Format (' + State.settings.format + ')', action: () => { State.setupPage = 3; renderAll(); } },
-      { key: '3', name: 'Complex (' + (State.settings.complexFormat === 'polar' ? 'r∠θ' : 'a+bi') + ')', action: () => { State.setupPage = 4; renderAll(); } },
-      { key: '4', name: 'Reset Settings', action: () => { handleReset(); State.inSetup = false; renderAll(); } }
-    ];
-  } else if (p === 2) {
-    title = 'SETUP > Angle Unit';
-    items = [
-      { key: '1', name: 'Degree (D)', action: () => { State.settings.angle = 'D'; State.inSetup = false; renderAll(); } },
-      { key: '2', name: 'Radian (R)', action: () => { State.settings.angle = 'R'; State.inSetup = false; renderAll(); } },
-      { key: '3', name: 'Gradian (G)', action: () => { State.settings.angle = 'G'; State.inSetup = false; renderAll(); } }
-    ];
-  } else if (p === 3) {
-    title = 'SETUP > Number Format';
-    items = [
-      { key: '1', name: 'Norm (Normal)', action: () => { State.settings.format = 'Norm'; State.settings.formatN = 2; State.inSetup = false; renderAll(); } },
-      { key: '2', name: 'Fix (Decimal places)', action: () => { State.settings.format = 'Fix'; State.settings.formatN = 2; State.inSetup = false; renderAll(); } },
-      { key: '3', name: 'Sci (Scientific)', action: () => { State.settings.format = 'Sci'; State.settings.formatN = 2; State.inSetup = false; renderAll(); } }
-    ];
-  } else if (p === 4) {
-    title = 'SETUP > Complex Format';
-    items = [
-      { key: '1', name: 'a+bi (Rectangular)', action: () => { State.settings.complexFormat = 'algebraic'; State.inSetup = false; renderAll(); } },
-      { key: '2', name: 'r∠θ (Polar)', action: () => { State.settings.complexFormat = 'polar'; State.inSetup = false; renderAll(); } }
-    ];
-  }
-
-  const container = document.createElement('div');
-  container.style.cssText = 'padding:6px 10px; font-family:var(--font-mono, monospace); font-size:12px; color:#0f2b1d; width:100%; height:100%; box-sizing:border-box; display:flex; flex-direction:column; gap:4px;';
-  
-  const header = document.createElement('div');
-  header.style.cssText = 'font-weight:bold; border-bottom:1px solid #1a4d33; padding-bottom:3px; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center;';
-  header.innerHTML = `<span>${title}</span><span style="font-size:10px; opacity:0.8;">[AC:Thoát]</span>`;
-  container.appendChild(header);
-
-  items.forEach(item => {
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex; align-items:center; gap:8px; padding:3px 6px; border-radius:4px; cursor:pointer; background:rgba(0,0,0,0.04); transition:background 0.15s;';
-    row.onmouseenter = () => { row.style.background = 'rgba(0,0,0,0.12)'; };
-    row.onmouseleave = () => { row.style.background = 'rgba(0,0,0,0.04)'; };
-    row.innerHTML = `<span style="font-weight:bold; background:#0f2b1d; color:#8ba888; padding:1px 5px; border-radius:3px;">${item.key}</span><span>${item.name}</span>`;
-    row.onclick = item.action;
-    container.appendChild(row);
-  });
-
-  dom.menuGrid.appendChild(container);
-  if (dom.menuStatusBar) dom.menuStatusBar.textContent = title;
-}
-
-function handleSetupKey(key) {
-  if (key === 'AC' || key === 'ON' || key === 'EXIT' || key === 'SHIFT_MENU' || key === 'MENU') {
-    State.inSetup = false;
-    State.setupPage = 1;
-    return;
-  }
-
-  const p = State.setupPage || 1;
-
-  if (p === 1) {
-    if (key === '1') State.setupPage = 2;
-    else if (key === '2') State.setupPage = 3;
-    else if (key === '3') State.setupPage = 4;
-    else if (key === '4') { handleReset(); State.inSetup = false; }
-  } else if (p === 2) {
-    if (key === '1') State.settings.angle = 'D';
-    else if (key === '2') State.settings.angle = 'R';
-    else if (key === '3') State.settings.angle = 'G';
-    State.inSetup = false;
-    State.setupPage = 1;
-  } else if (p === 3) {
-    if (key === '1') { State.settings.format = 'Norm'; State.settings.formatN = 2; }
-    else if (key === '2') { State.settings.format = 'Fix'; State.settings.formatN = 2; }
-    else if (key === '3') { State.settings.format = 'Sci'; State.settings.formatN = 2; }
-    State.inSetup = false;
-    State.setupPage = 1;
-  } else if (p === 4) {
-    if (key === '1') State.settings.complexFormat = 'algebraic';
-    else if (key === '2') State.settings.complexFormat = 'polar';
-    State.inSetup = false;
-    State.setupPage = 1;
   }
 }
 
@@ -2433,12 +2334,6 @@ function handleKey(key) {
     return;
   }
 
-  if (State.inSetup) {
-    handleSetupKey(key);
-    renderAll();
-    return;
-  }
-
   if (State.inMenu) {
     handleMenuKey(key);
     renderAll();
@@ -3666,13 +3561,42 @@ function handleSolveInputKey(key) {
 // 18. CONSTANTS & CONVERSIONS
 // ============================================================
 function showConstants() {
-  insertToken('299792458');
-  renderAll();
+  const constants = {
+    '1': 'c (speed of light) = 299792458',
+    '2': 'h (Planck) = 6.62607015×10^-34',
+    '3': 'e (elementary charge) = 1.602176634×10^-19',
+    '4': 'me (electron mass) = 9.1093837×10^-31',
+    '5': 'mp (proton mass) = 1.67262192×10^-27',
+    '6': 'NA (Avogadro) = 6.02214076×10^23',
+    '7': 'k (Boltzmann) = 1.380649×10^-23',
+    '8': 'G (gravitational) = 6.67430×10^-11',
+    '9': 'R (gas constant) = 8.314462618',
+  };
+  const key = prompt('Select constant (1-9):\n' +
+    '1: c  2: h  3: e  4: me  5: mp\n' +
+    '6: NA  7: k  8: G  9: R');
+  if (key && constants[key]) {
+    dom.screenOutput.textContent = constants[key];
+  }
 }
 
 function showConversions() {
-  insertToken('0.393701');
-  renderAll();
+  const conversions = {
+    '1': 'cm → in: ×0.393701',
+    '2': 'm → ft: ×3.28084',
+    '3': 'km → mi: ×0.621371',
+    '4': 'kg → lb: ×2.20462',
+    '5': 'g → oz: ×0.035274',
+    '6': 'L → gal: ×0.264172',
+    '7': '°C → °F: ×1.8+32',
+    '8': 'Pa → atm: /101325',
+  };
+  const key = prompt('Select conversion (1-8):\n' +
+    '1: cm→in  2: m→ft  3: km→mi  4: kg→lb\n' +
+    '5: g→oz  6: L→gal  7: °C→°F  8: Pa→atm');
+  if (key && conversions[key]) {
+    dom.screenOutput.textContent = conversions[key];
+  }
 }
 
 // ============================================================
@@ -5001,11 +4925,40 @@ function solveInequalityEngine(degree, type, coeffs) {
 // 20. SETUP MENU
 // ============================================================
 function openSetup() {
-  State.inSetup = true;
-  State.setupPage = 1;
-  State.isShift = false;
-  State.isAlpha = false;
-  renderAll();
+  const options = ['Angle: D', 'Angle: R', 'Angle: G', 'Norm', 'Fix', 'Sci', 'Complex: a+bi', 'Complex: r∠θ'];
+  const current = State.settings.angle === 'D' ? 0 :
+    State.settings.angle === 'R' ? 1 : 2;
+  const format = State.settings.format === 'Norm' ? 3 :
+    State.settings.format === 'Fix' ? 4 : 5;
+  const complexFormatIdx = (State.settings.complexFormat || 'algebraic') === 'algebraic' ? 6 : 7;
+
+  const choice = prompt('Setup Menu:\n' +
+    '0: Angle D  1: Angle R  2: Angle G\n' +
+    '3: Norm  4: Fix  5: Sci\n' +
+    '6: Complex a+bi  7: Complex r∠θ\n' +
+    'Current: ' + options[current] + ', ' + options[format] + ', ' + options[complexFormatIdx]);
+
+  if (choice !== null) {
+    const c = parseInt(choice);
+    if (c >= 0 && c <= 2) {
+      State.settings.angle = ['D', 'R', 'G'][c];
+    } else if (c >= 3 && c <= 5) {
+      State.settings.format = ['Norm', 'Fix', 'Sci'][c - 3];
+      if (c === 4 || c === 5) {
+        const n = prompt('Number of digits (0-9):');
+        if (n !== null) {
+          const digits = parseInt(n);
+          if (!isNaN(digits) && digits >= 0 && digits <= 9) {
+            State.settings.formatN = digits;
+          }
+        }
+      }
+    } else if (c === 6) {
+      State.settings.complexFormat = 'algebraic';
+    } else if (c === 7) {
+      State.settings.complexFormat = 'polar';
+    }
+  }
 }
 
 // ============================================================
