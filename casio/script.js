@@ -3561,42 +3561,13 @@ function handleSolveInputKey(key) {
 // 18. CONSTANTS & CONVERSIONS
 // ============================================================
 function showConstants() {
-  const constants = {
-    '1': 'c (speed of light) = 299792458',
-    '2': 'h (Planck) = 6.62607015×10^-34',
-    '3': 'e (elementary charge) = 1.602176634×10^-19',
-    '4': 'me (electron mass) = 9.1093837×10^-31',
-    '5': 'mp (proton mass) = 1.67262192×10^-27',
-    '6': 'NA (Avogadro) = 6.02214076×10^23',
-    '7': 'k (Boltzmann) = 1.380649×10^-23',
-    '8': 'G (gravitational) = 6.67430×10^-11',
-    '9': 'R (gas constant) = 8.314462618',
-  };
-  const key = prompt('Select constant (1-9):\n' +
-    '1: c  2: h  3: e  4: me  5: mp\n' +
-    '6: NA  7: k  8: G  9: R');
-  if (key && constants[key]) {
-    dom.screenOutput.textContent = constants[key];
-  }
+  insertToken('299792458');
+  renderAll();
 }
 
 function showConversions() {
-  const conversions = {
-    '1': 'cm → in: ×0.393701',
-    '2': 'm → ft: ×3.28084',
-    '3': 'km → mi: ×0.621371',
-    '4': 'kg → lb: ×2.20462',
-    '5': 'g → oz: ×0.035274',
-    '6': 'L → gal: ×0.264172',
-    '7': '°C → °F: ×1.8+32',
-    '8': 'Pa → atm: /101325',
-  };
-  const key = prompt('Select conversion (1-8):\n' +
-    '1: cm→in  2: m→ft  3: km→mi  4: kg→lb\n' +
-    '5: g→oz  6: L→gal  7: °C→°F  8: Pa→atm');
-  if (key && conversions[key]) {
-    dom.screenOutput.textContent = conversions[key];
-  }
+  insertToken('0.393701');
+  renderAll();
 }
 
 // ============================================================
@@ -4925,40 +4896,9 @@ function solveInequalityEngine(degree, type, coeffs) {
 // 20. SETUP MENU
 // ============================================================
 function openSetup() {
-  const options = ['Angle: D', 'Angle: R', 'Angle: G', 'Norm', 'Fix', 'Sci', 'Complex: a+bi', 'Complex: r∠θ'];
-  const current = State.settings.angle === 'D' ? 0 :
-    State.settings.angle === 'R' ? 1 : 2;
-  const format = State.settings.format === 'Norm' ? 3 :
-    State.settings.format === 'Fix' ? 4 : 5;
-  const complexFormatIdx = (State.settings.complexFormat || 'algebraic') === 'algebraic' ? 6 : 7;
-
-  const choice = prompt('Setup Menu:\n' +
-    '0: Angle D  1: Angle R  2: Angle G\n' +
-    '3: Norm  4: Fix  5: Sci\n' +
-    '6: Complex a+bi  7: Complex r∠θ\n' +
-    'Current: ' + options[current] + ', ' + options[format] + ', ' + options[complexFormatIdx]);
-
-  if (choice !== null) {
-    const c = parseInt(choice);
-    if (c >= 0 && c <= 2) {
-      State.settings.angle = ['D', 'R', 'G'][c];
-    } else if (c >= 3 && c <= 5) {
-      State.settings.format = ['Norm', 'Fix', 'Sci'][c - 3];
-      if (c === 4 || c === 5) {
-        const n = prompt('Number of digits (0-9):');
-        if (n !== null) {
-          const digits = parseInt(n);
-          if (!isNaN(digits) && digits >= 0 && digits <= 9) {
-            State.settings.formatN = digits;
-          }
-        }
-      }
-    } else if (c === 6) {
-      State.settings.complexFormat = 'algebraic';
-    } else if (c === 7) {
-      State.settings.complexFormat = 'polar';
-    }
-  }
+  const nextAngle = State.settings.angle === 'D' ? 'R' : State.settings.angle === 'R' ? 'G' : 'D';
+  State.settings.angle = nextAngle;
+  renderAll();
 }
 
 // ============================================================
