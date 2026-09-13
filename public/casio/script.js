@@ -154,6 +154,8 @@ const State = {
 
   isPowerOff: false,
   inMenu: false,
+  inSetup: false,
+  setupPage: 1,
   inOptnMenu: false,
   menuCursor: 0,
 
@@ -359,8 +361,48 @@ const MODES = [
     iconHTML: `<div class="casio-mode-math-icon"><div class="math-top">01</div><div class="math-bot">HEX</div></div>`
   },
   {
-    id: 9,
+    id: 4,
     key: '4',
+    isLetter: false,
+    name: 'Matrix',
+    short: 'MAT',
+    iconHTML: `<svg viewBox="0 0 24 16" width="22" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2H2v12h2M20 2h2v12h-2"/><rect x="6" y="4" width="3" height="3" fill="currentColor"/><rect x="15" y="4" width="3" height="3" fill="currentColor"/><rect x="6" y="9" width="3" height="3" fill="currentColor"/><rect x="15" y="9" width="3" height="3" fill="currentColor"/></svg>`
+  },
+  {
+    id: 5,
+    key: '5',
+    isLetter: false,
+    name: 'Vector',
+    short: 'VCT',
+    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14L6 4M6 4L3 7M6 4L9 7"/><path d="M6 14L18 3M18 3L13 4M18 3L17 9"/></svg>`
+  },
+  {
+    id: 6,
+    key: '6',
+    isLetter: false,
+    name: 'Statistics',
+    short: 'STAT',
+    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 14h20"/><rect x="4" y="6" width="3.5" height="8" fill="currentColor"/><rect x="10.5" y="2" width="3.5" height="12" fill="currentColor"/><rect x="17" y="9" width="3.5" height="5" fill="currentColor"/></svg>`
+  },
+  {
+    id: 7,
+    key: '7',
+    isLetter: false,
+    name: 'Distribution',
+    short: 'DIST',
+    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 14h20"/><path d="M3 14c3 0 5-1 7-7 1-3 2-4 2-4s1 1 2 4c2 6 4 7 7 7" stroke-width="1.8"/></svg>`
+  },
+  {
+    id: 8,
+    key: '8',
+    isLetter: false,
+    name: 'Spreadsheet',
+    short: 'SHEET',
+    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="1" width="18" height="14" rx="1"/><path d="M3 6h18M12 1v14"/></svg>`
+  },
+  {
+    id: 9,
+    key: '9',
     isLetter: false,
     name: 'Equation/Func',
     short: 'EQN',
@@ -368,11 +410,27 @@ const MODES = [
   },
   {
     id: 10,
-    key: '5',
-    isLetter: false,
+    key: 'A',
+    isLetter: true,
     name: 'Inequality',
     short: 'INEQ',
     iconHTML: `<div class="casio-mode-math-icon"><div class="math-top">xy</div><div class="math-bot">&gt; 0</div></div>`
+  },
+  {
+    id: 11,
+    key: 'B',
+    isLetter: true,
+    name: 'Ratio',
+    short: 'RATIO',
+    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M12 2v12M8 14h8"/><path d="M4 5l8-1 8 1"/><path d="M4 5l-2 5h4zM20 5l-2 5h4z" fill="currentColor"/></svg>`
+  },
+  {
+    id: 12,
+    key: 'C',
+    isLetter: true,
+    name: 'Table',
+    short: 'TABLE',
+    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="7" height="8"/><circle cx="12" cy="6.5" r="1" fill="currentColor"/><circle cx="12" cy="9.5" r="1" fill="currentColor"/><rect x="14" y="4" width="7" height="8"/></svg>`
   }
 ];
 
@@ -428,6 +486,8 @@ function renderAll() {
 
   if (State.inMenu) {
     renderMenuScreen();
+  } else if (State.inSetup) {
+    renderSetupScreen();
   } else {
     renderExpression();
     renderOutput();
@@ -678,12 +738,20 @@ function renderMenuScreen() {
   dom.errorScreen.classList.remove('active');
   dom.menuGrid.innerHTML = '';
 
+  // 2-row paginated view (4 items per row, 8 items visible)
+  // Row 0: Modes 1..4 (0..3)
+  // Row 1: Modes 5..8 (4..7)
+  // Row 2: Modes 9..C (8..11)
+  const isScrolledDown = State.menuCursor >= 8;
+  const startIdx = isScrolledDown ? 4 : 0;
+  const endIdx = startIdx + 8;
+
   const scrollInd = document.getElementById('menu-scroll-ind');
   if (scrollInd) {
-    scrollInd.textContent = '';
+    scrollInd.textContent = isScrolledDown ? '▲' : '▼';
   }
 
-  for (let i = 0; i < MODES.length; i++) {
+  for (let i = startIdx; i < endIdx; i++) {
     const m = MODES[i];
     if (!m) continue;
     const isSelected = (i === State.menuCursor);
@@ -700,6 +768,101 @@ function renderMenuScreen() {
   const selectedMode = MODES[State.menuCursor];
   if (selectedMode) {
     dom.menuStatusBar.textContent = `${selectedMode.key}:${selectedMode.name}`;
+  }
+}
+
+function renderSetupScreen() {
+  dom.menuScreen.classList.add('active');
+  dom.errorScreen.classList.remove('active');
+  dom.menuGrid.innerHTML = '';
+
+  const p = State.setupPage || 1;
+  let title = '';
+  let items = [];
+
+  if (p === 1) {
+    title = 'SETUP MENU';
+    items = [
+      { key: '1', name: 'Angle Unit (' + State.settings.angle + ')', action: () => { State.setupPage = 2; renderAll(); } },
+      { key: '2', name: 'Number Format (' + State.settings.format + ')', action: () => { State.setupPage = 3; renderAll(); } },
+      { key: '3', name: 'Complex (' + (State.settings.complexFormat === 'polar' ? 'r∠θ' : 'a+bi') + ')', action: () => { State.setupPage = 4; renderAll(); } },
+      { key: '4', name: 'Reset Settings', action: () => { handleReset(); State.inSetup = false; renderAll(); } }
+    ];
+  } else if (p === 2) {
+    title = 'SETUP > Angle Unit';
+    items = [
+      { key: '1', name: 'Degree (D)', action: () => { State.settings.angle = 'D'; State.inSetup = false; renderAll(); } },
+      { key: '2', name: 'Radian (R)', action: () => { State.settings.angle = 'R'; State.inSetup = false; renderAll(); } },
+      { key: '3', name: 'Gradian (G)', action: () => { State.settings.angle = 'G'; State.inSetup = false; renderAll(); } }
+    ];
+  } else if (p === 3) {
+    title = 'SETUP > Number Format';
+    items = [
+      { key: '1', name: 'Norm (Normal)', action: () => { State.settings.format = 'Norm'; State.settings.formatN = 2; State.inSetup = false; renderAll(); } },
+      { key: '2', name: 'Fix (Decimal places)', action: () => { State.settings.format = 'Fix'; State.settings.formatN = 2; State.inSetup = false; renderAll(); } },
+      { key: '3', name: 'Sci (Scientific)', action: () => { State.settings.format = 'Sci'; State.settings.formatN = 2; State.inSetup = false; renderAll(); } }
+    ];
+  } else if (p === 4) {
+    title = 'SETUP > Complex Format';
+    items = [
+      { key: '1', name: 'a+bi (Rectangular)', action: () => { State.settings.complexFormat = 'algebraic'; State.inSetup = false; renderAll(); } },
+      { key: '2', name: 'r∠θ (Polar)', action: () => { State.settings.complexFormat = 'polar'; State.inSetup = false; renderAll(); } }
+    ];
+  }
+
+  const container = document.createElement('div');
+  container.style.cssText = 'padding:6px 10px; font-family:var(--font-mono, monospace); font-size:12px; color:#0f2b1d; width:100%; height:100%; box-sizing:border-box; display:flex; flex-direction:column; gap:4px;';
+  
+  const header = document.createElement('div');
+  header.style.cssText = 'font-weight:bold; border-bottom:1px solid #1a4d33; padding-bottom:3px; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center;';
+  header.innerHTML = `<span>${title}</span><span style="font-size:10px; opacity:0.8;">[AC:Thoát]</span>`;
+  container.appendChild(header);
+
+  items.forEach(item => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; align-items:center; gap:8px; padding:3px 6px; border-radius:4px; cursor:pointer; background:rgba(0,0,0,0.04); transition:background 0.15s;';
+    row.onmouseenter = () => { row.style.background = 'rgba(0,0,0,0.12)'; };
+    row.onmouseleave = () => { row.style.background = 'rgba(0,0,0,0.04)'; };
+    row.innerHTML = `<span style="font-weight:bold; background:#0f2b1d; color:#8ba888; padding:1px 5px; border-radius:3px;">${item.key}</span><span>${item.name}</span>`;
+    row.onclick = item.action;
+    container.appendChild(row);
+  });
+
+  dom.menuGrid.appendChild(container);
+  if (dom.menuStatusBar) dom.menuStatusBar.textContent = title;
+}
+
+function handleSetupKey(key) {
+  if (key === 'AC' || key === 'ON' || key === 'EXIT' || key === 'SHIFT_MENU' || key === 'MENU') {
+    State.inSetup = false;
+    State.setupPage = 1;
+    return;
+  }
+
+  const p = State.setupPage || 1;
+
+  if (p === 1) {
+    if (key === '1') State.setupPage = 2;
+    else if (key === '2') State.setupPage = 3;
+    else if (key === '3') State.setupPage = 4;
+    else if (key === '4') { handleReset(); State.inSetup = false; }
+  } else if (p === 2) {
+    if (key === '1') State.settings.angle = 'D';
+    else if (key === '2') State.settings.angle = 'R';
+    else if (key === '3') State.settings.angle = 'G';
+    State.inSetup = false;
+    State.setupPage = 1;
+  } else if (p === 3) {
+    if (key === '1') { State.settings.format = 'Norm'; State.settings.formatN = 2; }
+    else if (key === '2') { State.settings.format = 'Fix'; State.settings.formatN = 2; }
+    else if (key === '3') { State.settings.format = 'Sci'; State.settings.formatN = 2; }
+    State.inSetup = false;
+    State.setupPage = 1;
+  } else if (p === 4) {
+    if (key === '1') State.settings.complexFormat = 'algebraic';
+    else if (key === '2') State.settings.complexFormat = 'polar';
+    State.inSetup = false;
+    State.setupPage = 1;
   }
 }
 
@@ -2270,6 +2433,12 @@ function handleKey(key) {
     return;
   }
 
+  if (State.inSetup) {
+    handleSetupKey(key);
+    renderAll();
+    return;
+  }
+
   if (State.inMenu) {
     handleMenuKey(key);
     renderAll();
@@ -3497,42 +3666,13 @@ function handleSolveInputKey(key) {
 // 18. CONSTANTS & CONVERSIONS
 // ============================================================
 function showConstants() {
-  const constants = {
-    '1': 'c (speed of light) = 299792458',
-    '2': 'h (Planck) = 6.62607015×10^-34',
-    '3': 'e (elementary charge) = 1.602176634×10^-19',
-    '4': 'me (electron mass) = 9.1093837×10^-31',
-    '5': 'mp (proton mass) = 1.67262192×10^-27',
-    '6': 'NA (Avogadro) = 6.02214076×10^23',
-    '7': 'k (Boltzmann) = 1.380649×10^-23',
-    '8': 'G (gravitational) = 6.67430×10^-11',
-    '9': 'R (gas constant) = 8.314462618',
-  };
-  const key = prompt('Select constant (1-9):\n' +
-    '1: c  2: h  3: e  4: me  5: mp\n' +
-    '6: NA  7: k  8: G  9: R');
-  if (key && constants[key]) {
-    dom.screenOutput.textContent = constants[key];
-  }
+  insertToken('299792458');
+  renderAll();
 }
 
 function showConversions() {
-  const conversions = {
-    '1': 'cm → in: ×0.393701',
-    '2': 'm → ft: ×3.28084',
-    '3': 'km → mi: ×0.621371',
-    '4': 'kg → lb: ×2.20462',
-    '5': 'g → oz: ×0.035274',
-    '6': 'L → gal: ×0.264172',
-    '7': '°C → °F: ×1.8+32',
-    '8': 'Pa → atm: /101325',
-  };
-  const key = prompt('Select conversion (1-8):\n' +
-    '1: cm→in  2: m→ft  3: km→mi  4: kg→lb\n' +
-    '5: g→oz  6: L→gal  7: °C→°F  8: Pa→atm');
-  if (key && conversions[key]) {
-    dom.screenOutput.textContent = conversions[key];
-  }
+  insertToken('0.393701');
+  renderAll();
 }
 
 // ============================================================
@@ -3572,24 +3712,33 @@ function handleMenuKey(key) {
       State.inMenu = false;
       return;
     case '1':
-      selectMode(0); // COMP
-      return;
     case '2':
-      selectMode(1); // CMPLX
-      return;
     case '3':
-      selectMode(2); // BASE-N
-      return;
     case '4':
-    case '9':
-      selectMode(3); // EQN
-      return;
     case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+      selectMode(parseInt(key) - 1);
+      return;
     case 'ALPHA_NEGATION':
     case 'NEGATION':
     case 'A':
     case 'a':
-      selectMode(4); // INEQ
+      selectMode(9);
+      return;
+    case 'ALPHA_DEGREE':
+    case 'DEGREE':
+    case 'B':
+    case 'b':
+      selectMode(10);
+      return;
+    case 'ALPHA_INVERSE':
+    case 'INVERSE':
+    case 'C':
+    case 'c':
+      selectMode(11);
       return;
   }
 }
@@ -4852,40 +5001,11 @@ function solveInequalityEngine(degree, type, coeffs) {
 // 20. SETUP MENU
 // ============================================================
 function openSetup() {
-  const options = ['Angle: D', 'Angle: R', 'Angle: G', 'Norm', 'Fix', 'Sci', 'Complex: a+bi', 'Complex: r∠θ'];
-  const current = State.settings.angle === 'D' ? 0 :
-    State.settings.angle === 'R' ? 1 : 2;
-  const format = State.settings.format === 'Norm' ? 3 :
-    State.settings.format === 'Fix' ? 4 : 5;
-  const complexFormatIdx = (State.settings.complexFormat || 'algebraic') === 'algebraic' ? 6 : 7;
-
-  const choice = prompt('Setup Menu:\n' +
-    '0: Angle D  1: Angle R  2: Angle G\n' +
-    '3: Norm  4: Fix  5: Sci\n' +
-    '6: Complex a+bi  7: Complex r∠θ\n' +
-    'Current: ' + options[current] + ', ' + options[format] + ', ' + options[complexFormatIdx]);
-
-  if (choice !== null) {
-    const c = parseInt(choice);
-    if (c >= 0 && c <= 2) {
-      State.settings.angle = ['D', 'R', 'G'][c];
-    } else if (c >= 3 && c <= 5) {
-      State.settings.format = ['Norm', 'Fix', 'Sci'][c - 3];
-      if (c === 4 || c === 5) {
-        const n = prompt('Number of digits (0-9):');
-        if (n !== null) {
-          const digits = parseInt(n);
-          if (!isNaN(digits) && digits >= 0 && digits <= 9) {
-            State.settings.formatN = digits;
-          }
-        }
-      }
-    } else if (c === 6) {
-      State.settings.complexFormat = 'algebraic';
-    } else if (c === 7) {
-      State.settings.complexFormat = 'polar';
-    }
-  }
+  State.inSetup = true;
+  State.setupPage = 1;
+  State.isShift = false;
+  State.isAlpha = false;
+  renderAll();
 }
 
 // ============================================================
