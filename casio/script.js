@@ -359,6 +359,46 @@ const MODES = [
     iconHTML: `<div class="casio-mode-math-icon"><div class="math-top">01</div><div class="math-bot">HEX</div></div>`
   },
   {
+    id: 4,
+    key: '4',
+    isLetter: false,
+    name: 'Matrix',
+    short: 'MAT',
+    iconHTML: `<svg viewBox="0 0 24 16" width="22" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2H2v12h2M20 2h2v12h-2"/><rect x="6" y="4" width="3" height="3" fill="currentColor"/><rect x="15" y="4" width="3" height="3" fill="currentColor"/><rect x="6" y="9" width="3" height="3" fill="currentColor"/><rect x="15" y="9" width="3" height="3" fill="currentColor"/></svg>`
+  },
+  {
+    id: 5,
+    key: '5',
+    isLetter: false,
+    name: 'Vector',
+    short: 'VCT',
+    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14L6 4M6 4L3 7M6 4L9 7"/><path d="M6 14L18 3M18 3L13 4M18 3L17 9"/></svg>`
+  },
+  {
+    id: 6,
+    key: '6',
+    isLetter: false,
+    name: 'Statistics',
+    short: 'STAT',
+    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 14h20"/><rect x="4" y="6" width="3.5" height="8" fill="currentColor"/><rect x="10.5" y="2" width="3.5" height="12" fill="currentColor"/><rect x="17" y="9" width="3.5" height="5" fill="currentColor"/></svg>`
+  },
+  {
+    id: 7,
+    key: '7',
+    isLetter: false,
+    name: 'Distribution',
+    short: 'DIST',
+    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 14h20"/><path d="M3 14c3 0 5-1 7-7 1-3 2-4 2-4s1 1 2 4c2 6 4 7 7 7" stroke-width="1.8"/></svg>`
+  },
+  {
+    id: 8,
+    key: '8',
+    isLetter: false,
+    name: 'Spreadsheet',
+    short: 'SHEET',
+    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="1" width="18" height="14" rx="1"/><path d="M3 6h18M12 1v14"/></svg>`
+  },
+  {
     id: 9,
     key: '9',
     isLetter: false,
@@ -373,6 +413,22 @@ const MODES = [
     name: 'Inequality',
     short: 'INEQ',
     iconHTML: `<div class="casio-mode-math-icon"><div class="math-top">xy</div><div class="math-bot">&gt; 0</div></div>`
+  },
+  {
+    id: 11,
+    key: 'B',
+    isLetter: true,
+    name: 'Ratio',
+    short: 'RATIO',
+    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M12 2v12M8 14h8"/><path d="M4 5l8-1 8 1"/><path d="M4 5l-2 5h4zM20 5l-2 5h4z" fill="currentColor"/></svg>`
+  },
+  {
+    id: 12,
+    key: 'C',
+    isLetter: true,
+    name: 'Table',
+    short: 'TABLE',
+    iconHTML: `<svg viewBox="0 0 24 16" width="24" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="7" height="8"/><circle cx="12" cy="6.5" r="1" fill="currentColor"/><circle cx="12" cy="9.5" r="1" fill="currentColor"/><rect x="14" y="4" width="7" height="8"/></svg>`
   }
 ];
 
@@ -3505,11 +3561,38 @@ function handleSolveInputKey(key) {
 // 18. CONSTANTS & CONVERSIONS
 // ============================================================
 function showConstants() {
-  insertToken('299792458');
-  renderAll();
+  const constants = {
+    '1': 'c (speed of light) = 299792458',
+    '2': 'h (Planck) = 6.62607015×10^-34',
+    '3': 'e (elementary charge) = 1.602176634×10^-19',
+    '4': 'me (electron mass) = 9.1093837×10^-31',
+    '5': 'mp (proton mass) = 1.67262192×10^-27',
+    '6': 'NA (Avogadro) = 6.02214076×10^23',
+    '7': 'k (Boltzmann) = 1.380649×10^-23',
+    '8': 'G (gravitational) = 6.67430×10^-11',
+    '9': 'R (gas constant) = 8.314462618',
+  };
+  const key = prompt('Select constant (1-9):\n' +
+    '1: c  2: h  3: e  4: me  5: mp\n' +
+    '6: NA  7: k  8: G  9: R');
+  if (key && constants[key]) {
+    dom.screenOutput.textContent = constants[key];
+  }
 }
 
 function showConversions() {
+  const conversions = {
+    '1': 'cm → in: ×0.393701',
+    '2': 'm → ft: ×3.28084',
+    '3': 'km → mi: ×0.621371',
+    '4': 'kg → lb: ×2.20462',
+    '5': 'g → oz: ×0.035274',
+    '6': 'L → gal: ×0.264172',
+    '7': '°C → °F: ×1.8+32',
+    '8': 'Pa → atm: /101325',
+  };
+  const key = prompt('Select conversion (1-8):\n' +
+    '1: cm→in  2: m→ft  3: km→mi  4: kg→lb\n' +
     '5: g→oz  6: L→gal  7: °C→°F  8: Pa→atm');
   if (key && conversions[key]) {
     dom.screenOutput.textContent = conversions[key];
@@ -3553,28 +3636,38 @@ function handleMenuKey(key) {
       State.inMenu = false;
       return;
     case '1':
-      selectMode(0); // COMP (id: 1)
-      return;
     case '2':
-      selectMode(1); // CMPLX (id: 2)
-      return;
     case '3':
-      selectMode(2); // BASE-N (id: 3)
-      return;
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
     case '9':
-      selectMode(3); // EQN (id: 9)
+      selectMode(parseInt(key) - 1);
       return;
     case 'ALPHA_NEGATION':
     case 'NEGATION':
     case 'A':
     case 'a':
-      selectMode(4); // INEQ (id: 10)
+      selectMode(9);
+      return;
+    case 'ALPHA_DEGREE':
+    case 'DEGREE':
+    case 'B':
+    case 'b':
+      selectMode(10);
+      return;
+    case 'ALPHA_INVERSE':
+    case 'INVERSE':
+    case 'C':
+    case 'c':
+      selectMode(11);
       return;
   }
 }
 
 function selectMode(idx) {
-  if (idx < 0 || idx >= MODES.length) return;
   State.mode = MODES[idx].id;
   State.inMenu = false;
   clearAll();
@@ -4832,9 +4925,40 @@ function solveInequalityEngine(degree, type, coeffs) {
 // 20. SETUP MENU
 // ============================================================
 function openSetup() {
-  const nextAngle = State.settings.angle === 'D' ? 'R' : State.settings.angle === 'R' ? 'G' : 'D';
-  State.settings.angle = nextAngle;
-  renderAll();
+  const options = ['Angle: D', 'Angle: R', 'Angle: G', 'Norm', 'Fix', 'Sci', 'Complex: a+bi', 'Complex: r∠θ'];
+  const current = State.settings.angle === 'D' ? 0 :
+    State.settings.angle === 'R' ? 1 : 2;
+  const format = State.settings.format === 'Norm' ? 3 :
+    State.settings.format === 'Fix' ? 4 : 5;
+  const complexFormatIdx = (State.settings.complexFormat || 'algebraic') === 'algebraic' ? 6 : 7;
+
+  const choice = prompt('Setup Menu:\n' +
+    '0: Angle D  1: Angle R  2: Angle G\n' +
+    '3: Norm  4: Fix  5: Sci\n' +
+    '6: Complex a+bi  7: Complex r∠θ\n' +
+    'Current: ' + options[current] + ', ' + options[format] + ', ' + options[complexFormatIdx]);
+
+  if (choice !== null) {
+    const c = parseInt(choice);
+    if (c >= 0 && c <= 2) {
+      State.settings.angle = ['D', 'R', 'G'][c];
+    } else if (c >= 3 && c <= 5) {
+      State.settings.format = ['Norm', 'Fix', 'Sci'][c - 3];
+      if (c === 4 || c === 5) {
+        const n = prompt('Number of digits (0-9):');
+        if (n !== null) {
+          const digits = parseInt(n);
+          if (!isNaN(digits) && digits >= 0 && digits <= 9) {
+            State.settings.formatN = digits;
+          }
+        }
+      }
+    } else if (c === 6) {
+      State.settings.complexFormat = 'algebraic';
+    } else if (c === 7) {
+      State.settings.complexFormat = 'polar';
+    }
+  }
 }
 
 // ============================================================
