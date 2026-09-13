@@ -1606,8 +1606,7 @@ function scaleCalculator() {
 
   if (availW <= 0 || availH <= 0) return;
 
-  const baseScale = Math.min(1, availH / naturalH, availW / naturalW);
-  const scale = baseScale * 0.85; // Thu nhỏ 85% kích thước so với bản gốc
+  const scale = Math.min(1, availH / naturalH, availW / naturalW) * 0.9;
   casioApp.style.transform = `scale(${scale})`;
 }
 

@@ -91,7 +91,7 @@ button {
 /* ===== App Layout: rail dọc bên trái + stage chính ===== */
 #app {
   display: grid;
-  grid-template-columns: 214px 1fr;
+  grid-template-columns: 227px 1fr;
   height: 100vh;
   overflow: hidden;
 }
@@ -104,36 +104,34 @@ button {
   min-width: 0;
 }
 
-/* ===== Rail Navigation (Scaled to 85%) ===== */
+/* ===== Rail Navigation (Thu nhỏ 90%) ===== */
 #top-nav {
   display: flex;
   flex-direction: column;
-  padding: 22px 18px 18px;
-  gap: 8px;
+  padding: 16px 14px 14px;
+  gap: 6px;
   background: linear-gradient(160deg, rgba(255,255,255,.035), rgba(255,255,255,.008)), var(--bg-secondary);
   backdrop-filter: var(--glass-blur);
   border-right: 1px solid var(--glass-border);
   overflow-y: auto;
-  zoom: 0.85;
-  width: 252px;
 }
 .nav-brand {
-  display: flex; align-items: center; gap: 12px;
-  padding: 2px 6px 18px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 2px 4px 14px;
   border-bottom: 1px solid var(--border-color);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 .nav-logo {
-  width: 44px; height: 44px; flex: 0 0 44px;
+  width: 38px; height: 38px; flex: 0 0 38px;
   border-radius: 50%;
   border: 2px solid var(--accent-amber);
   display: flex; align-items: center; justify-content: center;
   color: var(--accent-amber-hi);
 }
-.nav-logo svg { fill: none; stroke: currentColor; stroke-width: 1.8; }
-.nav-title { font-size: 16.5px; font-weight: 700; line-height: 1.2; letter-spacing: 0.2px; }
+.nav-logo svg { fill: none; stroke: currentColor; stroke-width: 1.8; width: 20px; height: 20px; }
+.nav-title { font-size: 14.5px; font-weight: 700; line-height: 1.2; letter-spacing: 0.2px; }
 
-.nav-tabs { display: flex; flex-direction: column; gap: 8px; position: relative; }
+.nav-tabs { display: flex; flex-direction: column; gap: 6px; position: relative; }
 /* Pill trượt dọc — nền của tab active (transitions.dev tabs-sliding, dọc hóa:
    JS viết translateY/height từ offsetTop/offsetHeight, CSS tween) */
 .nav-tabs-pill {
@@ -154,13 +152,13 @@ button {
 }
 .nav-tab {
   position: relative; z-index: 1;
-  display: flex; align-items: center; gap: 14px;
-  min-height: 58px; padding: 10px 14px;
+  display: flex; align-items: center; gap: 10px;
+  min-height: 50px; padding: 8px 10px;
   border-radius: var(--radius);
   background: transparent;
   border: 1px solid transparent;
   color: #d9d0bc;
-  font-size: 15.5px; font-weight: 600;
+  font-size: 13.5px; font-weight: 600;
   text-align: left; width: 100%;
   transition: background var(--transition), border-color var(--transition), transform var(--transition), color var(--tabs-dur) var(--tabs-ease);
 }
@@ -171,12 +169,12 @@ button {
   color: var(--accent-amber-hi);
 }
 .tab-icon {
-  width: 38px; height: 38px; flex: 0 0 38px;
+  width: 32px; height: 32px; flex: 0 0 32px;
   border-radius: 50%;
   border: 2px solid var(--ring-track);
   display: flex; align-items: center; justify-content: center;
 }
-.tab-icon svg { fill: none; stroke: currentColor; stroke-width: 1.8; }
+.tab-icon svg { fill: none; stroke: currentColor; stroke-width: 1.8; width: 19px; height: 19px; }
 .nav-tab.active .tab-icon { border-color: var(--accent-amber); }
 
 /* ===== Status Cluster (feedback kép: dot + tên + giá trị) ===== */
@@ -185,34 +183,34 @@ button {
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
-  border-radius: 14px;
-  padding: 8px 14px 10px;
+  border-radius: 12px;
+  padding: 6px 10px 8px;
   display: flex; flex-direction: column;
   box-shadow: var(--shadow-glass);
 }
 .status-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 7px 2px; min-height: 36px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 2px; min-height: 30px;
 }
 .status-dot {
-  width: 12px; height: 12px; flex: 0 0 12px;
+  width: 10px; height: 10px; flex: 0 0 10px;
   border-radius: 50%;
   background: var(--text-muted);
-  box-shadow: 0 0 0 4px rgba(139, 130, 114, 0.16);
+  box-shadow: 0 0 0 3px rgba(139, 130, 114, 0.16);
   transition: background var(--transition), box-shadow var(--transition);
 }
 .status-row.active .status-dot {
   background: var(--accent-green-hi);
-  box-shadow: 0 0 0 4px rgba(127, 206, 109, 0.18);
+  box-shadow: 0 0 0 3px rgba(127, 206, 109, 0.18);
 }
 .status-row.error .status-dot {
   background: var(--accent-red);
-  box-shadow: 0 0 0 4px rgba(217, 138, 112, 0.2);
+  box-shadow: 0 0 0 3px rgba(217, 138, 112, 0.2);
 }
-.status-name { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.status-name { font-size: 12.5px; font-weight: 600; color: var(--text-primary); }
 .status-val {
   margin-left: auto;
-  font-size: 12.5px; font-family: var(--font-mono); font-weight: 600;
+  font-size: 11px; font-family: var(--font-mono); font-weight: 600;
   color: var(--text-muted);
 }
 .status-row.active .status-val { color: var(--accent-green-hi); }
@@ -220,19 +218,19 @@ button {
 
 /* Mic toggle — full-width cuối rail */
 .mic-btn {
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-  min-height: 56px; width: 100%;
-  margin-top: 10px;
-  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 48px; width: 100%;
+  margin-top: 8px;
+  border-radius: 12px;
   background: rgba(45, 39, 32, 0.6);
   backdrop-filter: blur(12px);
   border: 2px solid var(--accent-amber);
   color: var(--accent-amber-hi);
-  font-size: 15px; font-weight: 700;
+  font-size: 13.5px; font-weight: 700;
   transition: transform var(--transition), background var(--transition), box-shadow var(--transition);
 }
 .mic-btn:hover { transform: scale(1.03); background: rgba(51, 44, 35, 0.8); }
-.mic-btn svg { fill: none; stroke: currentColor; stroke-width: 1.8; flex: 0 0 22px; }
+.mic-btn svg { fill: none; stroke: currentColor; stroke-width: 1.8; flex: 0 0 19px; width: 19px; height: 19px; }
 .mic-btn.active { background: rgba(232, 184, 75, 0.12); box-shadow: 0 0 14px rgba(232, 184, 75, 0.25); }
 .mic-btn.listening { animation: mic-pulse 1.6s ease-in-out infinite; }
 @keyframes mic-pulse {
@@ -505,7 +503,6 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
   gap: 10px;
   width: 310px;
   flex-shrink: 0;
-  zoom: 0.85;
 }
 
 .casio-guide-card {
