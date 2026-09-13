@@ -5037,6 +5037,19 @@ function bindEvents() {
   });
 
   document.addEventListener('keydown', (e) => {
+    const target = e.target || document.activeElement;
+    if (target) {
+      const tag = target.tagName ? target.tagName.toLowerCase() : '';
+      if (
+        tag === 'input' ||
+        tag === 'textarea' ||
+        target.isContentEditable ||
+        (target.closest && target.closest('.auth-modal-overlay, #auth-modal, .auth-modal-card'))
+      ) {
+        return;
+      }
+    }
+
     if (e.key === 'i' || e.key === 'I') {
       e.preventDefault();
       if (State.mode === 2) {
