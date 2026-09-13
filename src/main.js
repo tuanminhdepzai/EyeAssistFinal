@@ -1020,9 +1020,15 @@ function parseAllowedVoiceCommand(rawText) {
   if (
     t.includes('xoay bàn tay') ||
     t.includes('xoay tay') ||
+    t.includes('xoay mô hình') ||
+    t.includes('xoay 3d') ||
+    t.includes('xoay đi') ||
     t.includes('bật xoay') ||
     t.includes('tắt xoay') ||
-    t.includes('tự động xoay')
+    t.includes('tự động xoay') ||
+    t.includes('quay bàn tay') ||
+    t.includes('quay tay') ||
+    t === 'xoay'
   ) {
     return { type: 'hand_control', action: 'rotate', display: 'Xoay bàn tay' };
   }
@@ -1085,7 +1091,12 @@ function executeVoiceCommand(match) {
       switchTab(match.target);
     }
   } else if (match.type === 'hand_control') {
-    if (state.currentTab === 'hand') {
+    // Nếu chưa ở tab hand, tự động chuyển sang tab hand trước
+    if (state.currentTab !== 'hand') {
+      switchTab('hand');
+    }
+
+    const runAction = () => {
       if (match.action === 'rotate') {
         handModule.toggleRot();
       } else if (match.action === 'reset_cam') {
@@ -1093,6 +1104,12 @@ function executeVoiceCommand(match) {
       } else if (match.action === 'toggle_arrows') {
         handModule.toggleArrows();
       }
+    };
+
+    if (handModuleInited) {
+      runAction();
+    } else {
+      setTimeout(runAction, 150);
     }
   }
 }
