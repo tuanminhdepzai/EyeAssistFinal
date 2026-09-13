@@ -1606,8 +1606,8 @@ function scaleCalculator() {
 
   if (availW <= 0 || availH <= 0) return;
 
-  const scale = Math.min(1, availH / naturalH, availW / naturalW);
-  casioApp.style.transform = `scale(${scale})`;
+  const scale = Math.min(1, availH / naturalH, availW / naturalW) * 0.85;
+  casioApp.style.transform = `scale(${scale.toFixed(4)})`;
 }
 
 // ============ AUTH UI INTEGRATION ============
