@@ -5037,17 +5037,9 @@ function bindEvents() {
   });
 
   document.addEventListener('keydown', (e) => {
-    const target = e.target || document.activeElement;
-    if (target) {
-      const tag = target.tagName ? target.tagName.toLowerCase() : '';
-      if (
-        tag === 'input' ||
-        tag === 'textarea' ||
-        target.isContentEditable ||
-        (target.closest && target.closest('.auth-modal-overlay, #auth-modal, .auth-modal-card'))
-      ) {
-        return;
-      }
+    // Nếu người dùng đang gõ trong các ô nhập liệu (Input, Textarea, Select, Auth Modal...) -> cho phép gõ bình thường
+    if (e.target && (e.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName))) {
+      return;
     }
 
     if (e.key === 'i' || e.key === 'I') {

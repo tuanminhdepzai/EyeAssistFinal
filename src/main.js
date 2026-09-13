@@ -452,19 +452,7 @@ function initModules() {
   
   // Debug: press F to toggle flipX (mirror mode)
   document.addEventListener('keydown', (e) => {
-    const target = e.target || document.activeElement;
-    if (target) {
-      const tag = target.tagName ? target.tagName.toLowerCase() : '';
-      if (
-        tag === 'input' ||
-        tag === 'textarea' ||
-        target.isContentEditable ||
-        (target.closest && target.closest('.auth-modal-overlay, #auth-modal, .auth-modal-card'))
-      ) {
-        return;
-      }
-    }
-
+    if (e.target && (e.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName))) return;
     if (e.key === 'f' || e.key === 'F') {
       const old = gazeMapper.flipX;
       if (gazeMapper.flipX === null) gazeMapper.flipX = true;
