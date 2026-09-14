@@ -738,17 +738,12 @@ export class HandModule3D {
     else if (res.missingElement === 'I') this._targetPulseArrow = this._arrowI;
     else if (res.missingElement === 'F') this._targetPulseArrow = this._arrowF;
 
-    const palmHint = this._getPalmOrientationHint(res.arrowOverlay.arrowB.direction, res.arrowOverlay.arrowI.direction);
     resDiv.style.display = 'block';
     resDiv.className = isCorrect ? 'stem-res' : 'stem-res err';
     resDiv.innerHTML = `
       <strong>${isCorrect ? '🎉 CHÍNH XÁC!' : '❌ CHƯA CHÍNH XÁC!'}</strong><br>
-      <span style="font-size:.77rem">
-      🎯 Đáp án đúng: <strong>${res.resultLabel}</strong><br>
-      ✋ Quy tắc: <em>${res.handType === 'RIGHT_HAND' ? 'Bàn tay phải' : 'Bàn tay trái'}</em><br>
-      <hr style="border:none;border-top:1px solid rgba(255,255,255,.07);margin:5px 0">
-      🖐️ <strong>Cách đặt bàn tay:</strong><br>
-      ${palmHint}
+      <span style="font-size:.85rem">
+      🎯 Đáp án đúng: <strong>${res.resultLabel}</strong>
       </span>
     `;
     btnRestart.style.display = 'flex';
