@@ -986,27 +986,67 @@ function parseAllowedVoiceCommand(rawText) {
   if (!rawText) return null;
   const t = rawText.toLowerCase().trim().replace(/[.,?!]/g, '');
 
-  // 1. Chuyển qua Casio ảo (Ưu tiên kiểm tra trước)
+  // 1. Chuyển Tab / Chuyển Tầng (Ưu tiên hàng đầu để tránh xung đột substring)
   if (
     t.includes('casio') ||
     t.includes('ca si ô') ||
     t.includes('ca sio') ||
     t.includes('ca xi ô') ||
     t.includes('máy tính') ||
-    t.includes('máy tính ảo')
+    t.includes('máy tính ảo') ||
+    t.includes('tab casio') ||
+    t.includes('tầng casio')
   ) {
     return { type: 'switch_tab', target: 'casio', display: 'chuyển qua Casio ảo' };
   }
 
-  // 2. Điều khiển Bàn tay 3D (ƯU TIÊN KIỂM TRA TRƯỚC LỆNH "bàn tay" ĐỂ TRÁNH XUNG ĐỘT SUBSTRING)
   if (
+    t.includes('chuyển qua bàn tay') ||
+    t.includes('chuyển sang bàn tay') ||
+    t.includes('chuyển bàn tay') ||
+    t.includes('sang bàn tay') ||
+    t.includes('qua bàn tay') ||
+    t.includes('mở bàn tay') ||
+    t.includes('bàn tay 3d') ||
+    t.includes('bàn tay ba đê') ||
+    t.includes('bàn tay 3 d') ||
+    t.includes('bàn tay ba d') ||
+    t.includes('mở tay 3d') ||
+    t.includes('mở tay ba đê') ||
+    t.includes('chuyển tầng') ||
+    t.includes('chuyển tab') ||
+    t.includes('tab bàn tay') ||
+    t.includes('tầng bàn tay') ||
+    t.includes('tầng 3d') ||
+    t === 'bàn tay'
+  ) {
+    return { type: 'switch_tab', target: 'hand', display: 'chuyển qua bàn tay 3D' };
+  }
+
+  if (
+    t.includes('hiệu chỉnh') ||
+    t.includes('cân chỉnh') ||
+    t.includes('calib') ||
+    t.includes('tab hiệu chỉnh') ||
+    t.includes('tầng hiệu chỉnh')
+  ) {
+    return { type: 'switch_tab', target: 'calibration', display: 'chuyển sang hiệu chỉnh' };
+  }
+
+  // 2. Điều khiển Bàn tay 3D
+  if (
+    t === 'xoay' ||
+    t === 'quay' ||
+    t === 'xoay xoay' ||
     t.includes('xoay bàn tay') ||
     t.includes('xoay tay') ||
     t.includes('bật xoay') ||
     t.includes('tắt xoay') ||
+    t.includes('dừng xoay') ||
     t.includes('tự động xoay') ||
     t.includes('xoay mô hình') ||
-    t.includes('xoay 3d')
+    t.includes('xoay 3d') ||
+    t.includes('quay mô hình')
   ) {
     return { type: 'hand_control', action: 'rotate', display: 'Xoay bàn tay' };
   }
@@ -1032,34 +1072,6 @@ function parseAllowedVoiceCommand(rawText) {
     t.includes('tắt vectơ')
   ) {
     return { type: 'hand_control', action: 'toggle_arrows', display: 'Mũi tên Vectơ' };
-  }
-
-  // 3. Chuyển qua bàn tay 3D (Kiểm tra cụ thể)
-  if (
-    t.includes('chuyển qua bàn tay') ||
-    t.includes('chuyển sang bàn tay') ||
-    t.includes('chuyển bàn tay') ||
-    t.includes('sang bàn tay') ||
-    t.includes('qua bàn tay') ||
-    t.includes('mở bàn tay') ||
-    t.includes('bàn tay 3d') ||
-    t.includes('bàn tay ba đê') ||
-    t.includes('bàn tay 3 d') ||
-    t.includes('bàn tay ba d') ||
-    t.includes('mở tay 3d') ||
-    t.includes('mở tay ba đê') ||
-    t === 'bàn tay'
-  ) {
-    return { type: 'switch_tab', target: 'hand', display: 'chuyển qua bàn tay 3D' };
-  }
-
-  // 4. Chuyển sang hiệu chỉnh
-  if (
-    t.includes('hiệu chỉnh') ||
-    t.includes('cân chỉnh') ||
-    t.includes('calib')
-  ) {
-    return { type: 'switch_tab', target: 'calibration', display: 'chuyển sang hiệu chỉnh' };
   }
 
   return null;

@@ -119,6 +119,7 @@ export class HandModule3D {
 
     // Expose for gaze engine
     this.onLog = null; // optional callback: (msg, type) => {}
+    this._currentStep = 1;
 
     // Init pose
     Object.keys(FINGER_CONFIG).forEach(k => {
@@ -143,6 +144,7 @@ export class HandModule3D {
     // Expose globals needed by HTML onclick handlers
     window._handModule = this;
     this._exposeGlobals();
+    this.goToStep(1);
   }
 
   dispose() {
@@ -604,6 +606,24 @@ export class HandModule3D {
       }
     }
     if (stepNum === 2) this._updateStep2Inputs();
+
+    // Disable rotation button visually & stop auto-rotate if not Step 3
+    const rotBtn = document.getElementById('hand-tb-rot');
+    if (rotBtn) {
+      if (stepNum !== 3) {
+        if (this._orbit) this._orbit.autoRotate = false;
+        rotBtn.classList.remove('on');
+        rotBtn.classList.add('disabled');
+        rotBtn.style.opacity = '0.4';
+        rotBtn.style.cursor = 'not-allowed';
+        rotBtn.title = 'Chức năng xoay chỉ có thể sử dụng ở Bước 3';
+      } else {
+        rotBtn.classList.remove('disabled');
+        rotBtn.style.opacity = '1';
+        rotBtn.style.cursor = 'pointer';
+        rotBtn.title = 'Tự động xoay mô hình 3D';
+      }
+    }
   }
 
   updateStemLabels() {
@@ -1000,25 +1020,47 @@ export class HandModule3D {
     this._log(`🔲 Wireframe mode: ${this._wireOn ? 'BẬT' : 'TẮT'}`, 'info');
   }
 
-  toggleRot() {
-    this._orbit.autoRotate = !this._orbit.autoRotate;
+  toggleRot(forceState) {
+    if (this._currentStep !== 3) {
+      if (this._orbit) this._orbit.autoRotate = false;
+      const rotBtn = document.getElementById('hand-tb-rot');
+      if (rotBtn) rotBtn.classList.remove('on');
+      this._log('⚠️ Chức năng xoay chỉ có thể sử dụng sau khi hoàn thành Bước 3!', 'warn');
+      if (typeof window !== 'undefined' && window.dom && window.dom.voiceFeedback) {
+        window.dom.voiceFeedback.textContent = '⚠️ Chỉ xoay được sau khi hoàn thành Bước 3';
+        window.dom.voiceFeedback.classList.add('visible');
+        setTimeout(() => window.dom.voiceFeedback?.classList.remove('visible'), 2500);
+      }
+      return;
+    }
+    if (typeof forceState === 'boolean') {
+      this._orbit.autoRotate = forceState;
+    } else {
+      this._orbit.autoRotate = !this._orbit.autoRotate;
+    }
     this._orbit.autoRotateSpeed = 4.0;
-    document.getElementById('hand-tb-rot').classList.toggle('on', this._orbit.autoRotate);
+    const rotBtn = document.getElementById('hand-tb-rot');
+    if (rotBtn) rotBtn.classList.toggle('on', this._orbit.autoRotate);
     this._log(`🔄 Tự động xoay: ${this._orbit.autoRotate ? 'BẬT' : 'TẮT'}`, 'info');
   }
 
   toggleArrows() {
     this._arrowsVisible = !this._arrowsVisible;
     if (this._arrowsGroup) this._arrowsGroup.visible = this._arrowsVisible;
-    document.getElementById('hand-tb-arrows').classList.toggle('on', this._arrowsVisible);
+    document.getElementById('hand-tb-arrows')?.classList.toggle('on', this._arrowsVisible);
     this._log(`🎯 Mũi tên Vectơ 3D: ${this._arrowsVisible ? 'HIỆN' : 'ẨN'}`, 'info');
   }
 
   resetCam() {
+    if (this._orbit) {
+      this._orbit.autoRotate = false;
+    }
+    const rotBtn = document.getElementById('hand-tb-rot');
+    if (rotBtn) rotBtn.classList.remove('on');
     this._camera.position.set(0, 0.38, 0.75);
     this._orbit.target.set(0, 0.05, 0);
     this._orbit.update();
-    this._log('🎯 Reset Camera & Orbit', 'info');
+    this._log('🎯 Reset Camera & Orbit (Đã dừng xoay)', 'info');
   }
 
   // ─────────────────────────────────────────
