@@ -2704,7 +2704,7 @@ function dispatchAction(key) {
       return;
 
     case 'SHIFT_MENU':
-      openSetup();
+      // Bỏ chức năng shift mode (setup menu) theo yêu cầu
       return;
 
     case 'EQUALS':
