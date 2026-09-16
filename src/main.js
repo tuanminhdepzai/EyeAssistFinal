@@ -1961,14 +1961,8 @@ function drawOverlay(landmarks) {
 // ============ BLINK STATS UI ============
 function updateBlinkStatsUI() {
   if (!dom.blinkStats) return;
-
-  const s = blinkDetector.stats;
-  const baseline = adaptiveLearner.getBaselineSummary();
-  const ready = baseline.isReady ? '✓' : '⏳';
-
-  dom.blinkStats.textContent =
-    `Nháy: ${s.totalNatural} tự nhiên · ${s.totalIntentional} chủ đích · ${s.totalWinks} nháy 1 mắt` +
-    ` | Baseline ${ready}${baseline.isReady ? ` (${baseline.naturalCount} mẫu)` : ` ${baseline.naturalCount}/${baseline.readyAfter} mẫu`}`;
+  dom.blinkStats.style.display = 'none';
+  dom.blinkStats.textContent = '';
 }
 
 // ============ ANALYTICS UPDATE LOOP ============
