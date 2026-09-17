@@ -986,7 +986,44 @@ function parseAllowedVoiceCommand(rawText) {
   if (!rawText) return null;
   const t = rawText.toLowerCase().trim().replace(/[.,?!]/g, '');
 
-  // 1. Chuyển Tab / Chuyển Tầng (Ưu tiên hàng đầu để tránh xung đột substring)
+  // 1. Lệnh điều khiển Xoay 3D (Ưu tiên kiểm tra nếu chứa từ khóa 'xoay' hoặc 'quay')
+  if (
+    t.includes('xoay') ||
+    t.includes('quay') ||
+    t.includes('bật xoay') ||
+    t.includes('tắt xoay') ||
+    t.includes('dừng xoay') ||
+    t.includes('tự động xoay')
+  ) {
+    return { type: 'hand_control', action: 'rotate', display: 'Xoay bàn tay' };
+  }
+
+  // 2. Reset góc nhìn camera
+  if (
+    t.includes('reset camera') ||
+    t.includes('reset góc nhìn') ||
+    t.includes('đặt lại camera') ||
+    t.includes('đặt lại góc nhìn') ||
+    t.includes('quay về gốc') ||
+    t.includes('về góc nhìn gốc') ||
+    t.includes('về vị trí gốc') ||
+    t === 'reset'
+  ) {
+    return { type: 'hand_control', action: 'reset_cam', display: 'Reset góc nhìn' };
+  }
+
+  // 3. Bật/tắt Mũi tên Vectơ
+  if (
+    t.includes('mũi tên') ||
+    t.includes('vectơ') ||
+    t.includes('vecto') ||
+    t.includes('bật vectơ') ||
+    t.includes('tắt vectơ')
+  ) {
+    return { type: 'hand_control', action: 'toggle_arrows', display: 'Mũi tên Vectơ' };
+  }
+
+  // 4. Chuyển Tab / Chuyển Tầng
   if (
     t.includes('casio') ||
     t.includes('ca si ô') ||
@@ -1031,47 +1068,6 @@ function parseAllowedVoiceCommand(rawText) {
     t.includes('tầng hiệu chỉnh')
   ) {
     return { type: 'switch_tab', target: 'calibration', display: 'chuyển sang hiệu chỉnh' };
-  }
-
-  // 2. Điều khiển Bàn tay 3D
-  if (
-    t === 'xoay' ||
-    t === 'quay' ||
-    t === 'xoay xoay' ||
-    t.includes('xoay bàn tay') ||
-    t.includes('xoay tay') ||
-    t.includes('bật xoay') ||
-    t.includes('tắt xoay') ||
-    t.includes('dừng xoay') ||
-    t.includes('tự động xoay') ||
-    t.includes('xoay mô hình') ||
-    t.includes('xoay 3d') ||
-    t.includes('quay mô hình')
-  ) {
-    return { type: 'hand_control', action: 'rotate', display: 'Xoay bàn tay' };
-  }
-
-  if (
-    t.includes('reset camera') ||
-    t.includes('reset góc nhìn') ||
-    t.includes('đặt lại camera') ||
-    t.includes('đặt lại góc nhìn') ||
-    t.includes('quay về gốc') ||
-    t.includes('về góc nhìn gốc') ||
-    t.includes('về vị trí gốc') ||
-    t === 'reset'
-  ) {
-    return { type: 'hand_control', action: 'reset_cam', display: 'Reset góc nhìn' };
-  }
-
-  if (
-    t.includes('mũi tên') ||
-    t.includes('vectơ') ||
-    t.includes('vecto') ||
-    t.includes('bật vectơ') ||
-    t.includes('tắt vectơ')
-  ) {
-    return { type: 'hand_control', action: 'toggle_arrows', display: 'Mũi tên Vectơ' };
   }
 
   return null;
