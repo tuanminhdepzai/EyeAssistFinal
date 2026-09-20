@@ -986,19 +986,7 @@ function parseAllowedVoiceCommand(rawText) {
   if (!rawText) return null;
   const t = rawText.toLowerCase().trim().replace(/[.,?!]/g, '');
 
-  // 1. Lệnh điều khiển Xoay 3D (Ưu tiên kiểm tra nếu chứa từ khóa 'xoay' hoặc 'quay')
-  if (
-    t.includes('xoay') ||
-    t.includes('quay') ||
-    t.includes('bật xoay') ||
-    t.includes('tắt xoay') ||
-    t.includes('dừng xoay') ||
-    t.includes('tự động xoay')
-  ) {
-    return { type: 'hand_control', action: 'rotate', display: 'Xoay bàn tay' };
-  }
-
-  // 2. Reset góc nhìn camera
+  // 1. Reset góc nhìn camera (Ưu tiên hàng đầu để bắt 'quay về gốc' trước khi xét từ khóa xoay)
   if (
     t.includes('reset camera') ||
     t.includes('reset góc nhìn') ||
@@ -1007,9 +995,30 @@ function parseAllowedVoiceCommand(rawText) {
     t.includes('quay về gốc') ||
     t.includes('về góc nhìn gốc') ||
     t.includes('về vị trí gốc') ||
+    t.includes('quay về vị trí gốc') ||
+    t.includes('quay về camera') ||
+    t.includes('khôi phục góc nhìn') ||
     t === 'reset'
   ) {
     return { type: 'hand_control', action: 'reset_cam', display: 'Reset góc nhìn' };
+  }
+
+  // 2. Lệnh điều khiển Xoay 3D (Cụ thể từ khóa xoay bàn tay)
+  if (
+    t === 'xoay' ||
+    t === 'xoay xoay' ||
+    t.includes('xoay bàn tay') ||
+    t.includes('xoay tay') ||
+    t.includes('bật xoay') ||
+    t.includes('tắt xoay') ||
+    t.includes('dừng xoay') ||
+    t.includes('tự động xoay') ||
+    t.includes('xoay mô hình') ||
+    t.includes('xoay 3d') ||
+    t.includes('quay bàn tay') ||
+    t.includes('quay mô hình')
+  ) {
+    return { type: 'hand_control', action: 'rotate', display: 'Xoay bàn tay' };
   }
 
   // 3. Bật/tắt Mũi tên Vectơ
@@ -1129,10 +1138,9 @@ voice.on('onResult', (command, raw) => {
 
 voice.on('onInterim', (text) => {
   const match = parseAllowedVoiceCommand(text);
-  if (match) {
-    executeVoiceCommand(match);
-  } else if (dom.voiceFeedback) {
-    dom.voiceFeedback.classList.remove('visible');
+  if (match && dom.voiceFeedback) {
+    dom.voiceFeedback.textContent = `🎤 "${match.display}..."`;
+    dom.voiceFeedback.classList.add('visible', 'listening');
   }
 });
 
