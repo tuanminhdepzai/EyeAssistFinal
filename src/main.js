@@ -986,42 +986,42 @@ function parseAllowedVoiceCommand(rawText) {
   if (!rawText) return null;
   const t = rawText.toLowerCase().trim().replace(/[.,?!]/g, '');
 
-  // 1. Reset góc nhìn camera (Ưu tiên hàng đầu để bắt 'quay về gốc' trước khi xét từ khóa xoay)
+  // 1. Reset góc nhìn camera (Ưu tiên kiểm tra các lệnh Reset/về gốc trước để tránh từ 'quay' bị đè)
   if (
-    t.includes('reset camera') ||
-    t.includes('reset góc nhìn') ||
-    t.includes('đặt lại camera') ||
-    t.includes('đặt lại góc nhìn') ||
-    t.includes('quay về gốc') ||
-    t.includes('về góc nhìn gốc') ||
-    t.includes('về vị trí gốc') ||
-    t.includes('quay về vị trí gốc') ||
-    t.includes('quay về camera') ||
-    t.includes('khôi phục góc nhìn') ||
-    t === 'reset'
+    t.includes('reset') ||
+    t.includes('đặt lại') ||
+    t.includes('về gốc') ||
+    t.includes('vị trí gốc') ||
+    t.includes('góc nhìn gốc')
   ) {
     return { type: 'hand_control', action: 'reset_cam', display: 'Reset góc nhìn' };
   }
 
-  // 2. Lệnh điều khiển Xoay 3D (Cụ thể từ khóa xoay bàn tay)
+  // 2. Dừng / Tắt xoay mô hình
   if (
-    t === 'xoay' ||
-    t === 'xoay xoay' ||
-    t.includes('xoay bàn tay') ||
-    t.includes('xoay tay') ||
-    t.includes('bật xoay') ||
-    t.includes('tắt xoay') ||
     t.includes('dừng xoay') ||
-    t.includes('tự động xoay') ||
-    t.includes('xoay mô hình') ||
-    t.includes('xoay 3d') ||
+    t.includes('tắt xoay') ||
+    t.includes('ngừng xoay') ||
+    t.includes('thôi xoay') ||
+    t.includes('dừng quay') ||
+    t.includes('tắt quay')
+  ) {
+    return { type: 'hand_control', action: 'stop_rotate', display: 'Dừng xoay bàn tay' };
+  }
+
+  // 3. Lệnh Bật / Toggle Xoay 3D
+  if (
+    t.includes('xoay') ||
     t.includes('quay bàn tay') ||
-    t.includes('quay mô hình')
+    t.includes('quay mô hình') ||
+    t.includes('bật xoay') ||
+    t.includes('tự động xoay') ||
+    t === 'quay'
   ) {
     return { type: 'hand_control', action: 'rotate', display: 'Xoay bàn tay' };
   }
 
-  // 3. Bật/tắt Mũi tên Vectơ
+  // 4. Bật/tắt Mũi tên Vectơ
   if (
     t.includes('mũi tên') ||
     t.includes('vectơ') ||
@@ -1032,7 +1032,7 @@ function parseAllowedVoiceCommand(rawText) {
     return { type: 'hand_control', action: 'toggle_arrows', display: 'Mũi tên Vectơ' };
   }
 
-  // 4. Chuyển Tab / Chuyển Tầng
+  // 5. Chuyển Tab / Chuyển Tầng
   if (
     t.includes('casio') ||
     t.includes('ca si ô') ||
@@ -1118,6 +1118,8 @@ function executeVoiceCommand(match) {
     setTimeout(() => {
       if (match.action === 'rotate') {
         handModule.toggleRot();
+      } else if (match.action === 'stop_rotate') {
+        handModule.toggleRot(false);
       } else if (match.action === 'reset_cam') {
         handModule.resetCam();
       } else if (match.action === 'toggle_arrows') {
