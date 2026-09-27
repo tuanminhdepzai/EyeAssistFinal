@@ -2,6 +2,7 @@
    Hướng thiết kế: Tobii Dynavox transfer (Fitzgerald Key color coding,
    rail dọc thiết bị, dwell-ring motif) — xem design-demos/direction-approved.md */
 :root {
+  --app-scale: 1;
   --bg-primary: #191613;      /* than ấm */
   --bg-secondary: #221d17;    /* rail */
   --bg-card: #26211a;
@@ -38,8 +39,12 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 html, body {
-  width: 100%; height: 100%;
-  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden !important;
+  margin: 0;
+  padding: 0;
   font-family: var(--font-ui);
   /* 1 lớp radial ấm tạo chiều sâu phía sau các bề mặt glass */
   background: radial-gradient(1100px 700px at 30% 10%, #241e15 0%, var(--bg-primary) 58%), var(--bg-primary);
@@ -494,6 +499,8 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
   gap: 8px;
   width: 279px;
   flex-shrink: 0;
+  overflow-y: auto;
+  max-height: 100%;
 }
 
 .casio-guide-card {
@@ -852,17 +859,17 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
   width: 32%; min-width: 340px; height: 100%;
   background: rgba(34, 29, 23, 0.94); backdrop-filter: blur(24px);
   border-right: 1px solid var(--border-color);
-  display: flex; flex-direction: column; overflow-y: auto; z-index: 10;
+  display: flex; flex-direction: column; overflow: hidden; z-index: 10;
 }
-.hand-s-header { padding: 22px 22px 16px; border-bottom: 1px solid var(--border-color); }
+.hand-s-header { padding: 18px 20px 14px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
 .hand-s-header h2 { font-size: 1.35rem; font-weight: 800; color: var(--accent-amber-hi); }
 .hand-sub { color: var(--text-secondary); font-size: .88rem; margin-top: 4px; }
-.hand-s-body { padding: 18px 20px; flex: 1; display: flex; flex-direction: column; gap: 14px; }
-.hand-sec-label { font-size: .82rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-secondary); margin-bottom: 6px; }
+.hand-s-body { padding: 14px 18px; flex: 1; display: flex; flex-direction: column; gap: 10px; overflow: hidden; min-height: 0; }
+.hand-sec-label { font-size: .82rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-secondary); margin-bottom: 4px; }
 
-.hand-stem-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.hand-stem-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
 .hand-stem-row label { font-size: .92rem; font-weight: 700; color: var(--text-primary); }
-.stem-select { background: rgba(255,255,255,.04); border: 1px solid var(--border-color); border-radius: 9px; color: var(--text-primary); font-size: .95rem; padding: 12px 14px; outline: none; cursor: pointer; font-family: inherit; width: 100%; transition: border-color 0.2s; min-height: 48px; }
+.stem-select { background: rgba(255,255,255,.04); border: 1px solid var(--border-color); border-radius: 9px; color: var(--text-primary); font-size: .95rem; padding: 10px 14px; outline: none; cursor: pointer; font-family: inherit; width: 100%; transition: border-color 0.2s; min-height: 46px; }
 .stem-select:focus { border-color: var(--accent-amber); }
 
 /* ===== GazeSelect — dropdown vận hành bằng mắt (thay <select> native) =====
@@ -899,26 +906,40 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
   color: var(--accent-amber-hi); font-weight: 600;
 }
 
-.step-progress { display: flex; justify-content: space-between; align-items: center; position: relative; margin-bottom: 6px; }
+.step-progress { display: flex; justify-content: space-between; align-items: center; position: relative; margin-bottom: 4px; flex-shrink: 0; }
 .step-progress::before { content: ''; position: absolute; top: 50%; left: 10%; right: 10%; height: 2px; background: rgba(241, 234, 217, .1); z-index: 1; transform: translateY(-50%); }
 .step-node { width: 38px; height: 38px; border-radius: 50%; background: var(--bg-secondary); border: 2px solid var(--border-color); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: .95rem; font-weight: 700; z-index: 2; transition: all 0.3s; }
 .step-node.active { border-color: var(--accent-amber); background: var(--accent-amber); color: #2b2106; box-shadow: 0 0 12px rgba(232, 184, 75, .35); }
 .step-node.done { border-color: var(--accent-green); background: var(--accent-green); color: #1c2a14; }
 
-.step-card { background: rgba(255,255,255,.02); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-.step-title { font-size: 1rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px; }
+.step-card {
+  background: rgba(255,255,255,.02);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  gap: 10px;
+}
+.step-card::-webkit-scrollbar { width: 4px; }
+.step-card::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 2px; }
+.step-title { font-size: 1rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 
-.th-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-.th-card { background: rgba(255,255,255,.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px 14px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: space-between; min-height: 58px; }
+.th-grid { display: grid; grid-template-columns: 1fr; gap: 8px; flex: 1; overflow-y: auto; min-height: 0; }
+.th-card { background: rgba(255,255,255,.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: space-between; min-height: 52px; }
 .th-card:hover { background: rgba(232, 184, 75, .08); border-color: rgba(232, 184, 75, .3); }
 .th-card.selected { background: rgba(232, 184, 75, .14); border-color: var(--accent-amber); box-shadow: 0 0 12px rgba(232, 184, 75, .25); }
 .th-tag { font-size: .82rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: rgba(232, 184, 75, .18); color: var(--accent-amber-hi); }
 
-.wizard-btn-row { display: flex; gap: 10px; margin-top: 6px; }
-.btn-next, .btn-prev { flex: 1; padding: 14px 12px; border-radius: 10px; font-family: inherit; font-size: .95rem; font-weight: 700; cursor: pointer; transition: all 0.2s; border: none; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 52px; }
-.btn-next { background: var(--accent-amber); color: #2b2106; box-shadow: 0 2px 0 rgba(0,0,0,.3); }
+.wizard-btn-row { display: flex; gap: 10px; margin-top: auto; flex-shrink: 0; }
+.btn-next, .btn-prev { flex: 1; padding: 12px 12px; border-radius: 10px; font-family: inherit; font-size: .95rem; font-weight: 700; cursor: pointer; transition: all 0.2s; border: none; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; }
+.btn-next { background: var(--accent-amber); color: #2b2106; box-shadow: 0 2px 0 rgba(0,0,0,.3); flex-shrink: 0; }
 .btn-next:hover { background: var(--accent-amber-hi); transform: translateY(-1px); }
-.btn-prev { background: rgba(255,255,255,.05); color: var(--text-secondary); border: 1px solid var(--border-color); }
+.btn-prev { background: rgba(255,255,255,.05); color: var(--text-secondary); border: 1px solid var(--border-color); flex-shrink: 0; }
 .btn-prev:hover { background: rgba(255,255,255,.1); color: var(--text-primary); }
 
 .quiz-options { display: flex; flex-direction: column; gap: 10px; }

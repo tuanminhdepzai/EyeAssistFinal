@@ -24,7 +24,7 @@ export class VoiceHandler {
     this.normalizer = new VoiceNormalizer();
     this.commandHistory = [];       // Phase 3.3: last 20 commands
     this.maxHistory = 20;
-    this.minConfidence = 0.4;       // Phase 3.2: ASR confidence threshold
+    this.minConfidence = 0.2;       // Phase 3.2: ASR confidence threshold
     this.callbacks = {
       onResult: () => {},
       onInterim: () => {},
@@ -71,15 +71,15 @@ export class VoiceHandler {
       }
 
       if (final) {
-        // Phase 3.2: filter low-confidence results
-        if (bestConfidence > 0 && bestConfidence < this.minConfidence) {
-          return; // ignore noisy result
-        }
-
         // Phase 1.2: normalize input before parsing
         const normalized = this.normalizer.normalize(final);
         this.lastResult = normalized;
         const command = this._parseCommand(normalized);
+
+        // Phase 3.2: filter low-confidence results only for unknown noise
+        if (command.type === 'unknown' && bestConfidence > 0 && bestConfidence < this.minConfidence) {
+          return; // ignore noisy result
+        }
 
         // Phase 3.2: track unknown commands for noise detection
         if (command.type === 'unknown') {
@@ -236,6 +236,11 @@ export class VoiceHandler {
       text.includes('hiệu chỉnh')
     ) {
       return { type: 'navigation', raw: text };
+    }
+
+    // 0.1 Check Casio grid navigation commands: lên, xuống, trái, phải, ok
+    if (/\b(lên|len|xuống|xuong|suống|suong|uống|xuồng|xuổng|trái|trai|phải|phai|ok|oke|ô kê|chọn)\b/.test(text)) {
+      return { type: 'grid', raw: text };
     }
 
     // 1. Check physics 3D hand commands

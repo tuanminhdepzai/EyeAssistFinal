@@ -443,6 +443,10 @@ function initModules() {
   // Dual-feedback: cập nhật nhãn chữ của cụm trạng thái theo class
   initStatusLabelSync();
 
+  // Auto-scale Zero-Scroll 100vh viewport lock
+  updateAppScale();
+  window.addEventListener('resize', updateAppScale);
+
   // Scale Casio calculator to fill viewport
   scaleCalculator();
   window.addEventListener('resize', scaleCalculator);
@@ -1082,6 +1086,221 @@ function parseAllowedVoiceCommand(rawText) {
   return null;
 }
 
+// ============ VOICE GRID CASIO (tích hợp vào VoiceHandler đã có) ============
+// Trục toạ độ (row, col), gốc (0,0) = phím SHIFT
+const VOICE_GRID = [
+  ['SHIFT', 'ALPHA', 'MENU', 'ON'],
+  ['OPTN', 'CALC', 'INTEGRAL', 'X_VAR'],
+  ['FRAC', 'SQRT', 'SQUARE', 'POWER', 'LOG_BASE', 'LN'],
+  ['NEGATION', 'DEGREE', 'INVERSE', 'SIN', 'COS', 'TAN'],
+  ['STO', 'ENG', 'LPAREN', 'RPAREN', 'SD', 'MPLUS'],
+  ['7', '8', '9', 'DEL', 'AC'],
+  ['4', '5', '6', 'MULTIPLY', 'DIVIDE'],
+  ['1', '2', '3', 'PLUS', 'MINUS'],
+  ['0', 'DOT', 'EXP', 'ANS', 'EQUALS'],
+];
+
+const vgState = { row: 0, col: 0 };
+let _vgExecutedTokensCount = 0;
+let _vgLastInterimText = '';
+let _vgLastActionTime = 0;
+const VG_MIN_INTERVAL = 250; // ms tối thiểu giữa 2 lần di chuyển
+
+/** Tìm button DOM theo data-key trong #casio-app */
+function vgFindBtn(key) {
+  return key ? document.querySelector(`#casio-app [data-key="${CSS.escape(key)}"]`) : null;
+}
+
+/** Cập nhật viền vàng cho phím hiện tại */
+let _vgFocused = null;
+function vgUpdateCursor() {
+  if (_vgFocused) { _vgFocused.classList.remove('voice-focus'); _vgFocused = null; }
+  const key = VOICE_GRID[vgState.row]?.[vgState.col];
+  const btn = vgFindBtn(key);
+  if (!btn) return;
+  btn.classList.add('voice-focus');
+  btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  _vgFocused = btn;
+}
+
+/** Flash cam khi nhấn OK */
+function vgFlash(key) {
+  const btn = vgFindBtn(key);
+  if (!btn) return;
+  btn.classList.add('voice-active');
+  setTimeout(() => btn.classList.remove('voice-active'), 320);
+}
+
+/**
+ * Trích xuất các khẩu lệnh đơn từ text.
+ * CHỈ chấp nhận đúng 5 lệnh: 'up', 'down', 'left', 'right', 'ok'
+ * Không kết hợp lệnh, không nhận số bước.
+ */
+function vgExtractTokens(text) {
+  if (!text) return [];
+  const t = text.toLowerCase().trim().replace(/[.,!?;:]/g, ' ');
+  const words = t.split(/\s+/).filter(Boolean);
+  const tokens = [];
+
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i];
+    // Nhận diện 'ô kê'
+    if (w === 'ô' && words[i + 1] === 'kê') {
+      tokens.push('ok');
+      i++;
+      continue;
+    }
+    // 1. Lên
+    if (w === 'lên' || w === 'len') {
+      tokens.push('up');
+      continue;
+    }
+    // 2. Xuống (bao gồm các biến thể phát âm và lỗi ASR thường gặp: xuong, suống, suong, uống, xuồng, xuổng)
+    if (
+      w === 'xuống' || w === 'xuong' ||
+      w === 'suống' || w === 'suong' ||
+      w === 'uống'  || w === 'xuồng' ||
+      w === 'xuổng'
+    ) {
+      tokens.push('down');
+      continue;
+    }
+    // 3. Trái
+    if (w === 'trái' || w === 'trai') {
+      tokens.push('left');
+      continue;
+    }
+    // 4. Phải
+    if (w === 'phải' || w === 'phai') {
+      tokens.push('right');
+      continue;
+    }
+    // 5. OK / Chọn
+    if (w === 'ok' || w === 'oke' || w === 'okay' || w === 'chọn' || w === 'kê') {
+      tokens.push('ok');
+      continue;
+    }
+  }
+  return tokens;
+}
+
+/**
+ * Thực thi một lệnh duy nhất (di chuyển 1 ô hoặc bấm OK)
+ */
+function vgExecuteToken(token) {
+  const maxRow = VOICE_GRID.length - 1;
+  if (token === 'up') {
+    vgState.row = Math.max(0, vgState.row - 1);
+  } else if (token === 'down') {
+    vgState.row = Math.min(maxRow, vgState.row + 1);
+  } else if (token === 'left') {
+    vgState.col = Math.max(0, vgState.col - 1);
+  } else if (token === 'right') {
+    const colMax = (VOICE_GRID[vgState.row]?.length ?? 1) - 1;
+    vgState.col = Math.min(colMax, vgState.col + 1);
+  } else if (token === 'ok') {
+    const key = VOICE_GRID[vgState.row]?.[vgState.col];
+    if (key && window.handleKey) {
+      vgFlash(key);
+      window.handleKey(key);
+      window.saveState && window.saveState();
+      if (dom.voiceFeedback) {
+        dom.voiceFeedback.textContent = `🎤 "OK → Phím [${key}]"`;
+        dom.voiceFeedback.classList.add('visible', 'listening');
+        setTimeout(() => dom.voiceFeedback?.classList.remove('listening'), 1200);
+      }
+    }
+    return;
+  }
+
+  // Giới hạn cột trong phạm vi của hàng
+  vgState.col = Math.min(vgState.col, (VOICE_GRID[vgState.row]?.length ?? 1) - 1);
+  vgUpdateCursor();
+
+  const key = VOICE_GRID[vgState.row]?.[vgState.col] ?? '?';
+  const dirNames = { up: 'Lên', down: 'Xuống', left: 'Trái', right: 'Phải' };
+  if (dom.voiceFeedback) {
+    dom.voiceFeedback.textContent = `🎤 "${dirNames[token] || token} → [${key}] (${vgState.row},${vgState.col})"`;
+    dom.voiceFeedback.classList.add('visible', 'listening');
+    setTimeout(() => dom.voiceFeedback?.classList.remove('listening'), 1000);
+  }
+}
+
+/**
+ * Xử lý giọng nói tức thì (cả interim lẫn final)
+ * Token-based: mỗi từ khẩu lệnh nói ra chỉ chạy đúng 1 lần, phản hồi tức thì <150ms
+ */
+function vgProcess(text, isFinal = false) {
+  if (!text || state.currentTab !== 'casio') return false;
+
+  const tokens = vgExtractTokens(text);
+  if (tokens.length === 0) return false;
+
+  // Nếu text câu mới bắt đầu hoặc ngắn hơn đáng kể
+  if (text.length < _vgLastInterimText.length * 0.6 || tokens.length < _vgExecutedTokensCount) {
+    _vgExecutedTokensCount = 0;
+  }
+  _vgLastInterimText = text;
+
+  const now = Date.now();
+  // Thực thi các token mới chưa chạy
+  while (_vgExecutedTokensCount < tokens.length) {
+    if (_vgExecutedTokensCount > 0 && (now - _vgLastActionTime < VG_MIN_INTERVAL)) {
+      break;
+    }
+    const tokenToRun = tokens[_vgExecutedTokensCount];
+    _vgExecutedTokensCount++;
+    _vgLastActionTime = now;
+    vgExecuteToken(tokenToRun);
+  }
+
+  // Reset khi có kết quả hoàn tất (final) để sẵn sàng cho câu nói tiếp theo
+  if (isFinal) {
+    _vgExecutedTokensCount = 0;
+    _vgLastInterimText = '';
+  }
+
+  return true;
+}
+
+// CSS cho voice-focus và voice-active (inject vào <head> tránh sửa file)
+(function injectVoiceGridCSS() {
+  if (document.getElementById('voice-grid-style')) return;
+  const s = document.createElement('style');
+  s.id = 'voice-grid-style';
+  s.textContent = `
+    #casio-app [data-key].voice-focus {
+      outline: 3px solid #f5cf6b !important;
+      outline-offset: 3px;
+      box-shadow: 0 0 16px rgba(245,207,107,.75);
+      z-index: 3;
+      transition: outline .1s, box-shadow .1s;
+    }
+    #casio-app [data-key].voice-active {
+      background: #e8955f !important;
+      color: #fff !important;
+      transform: scale(.95);
+      transition: background .05s, transform .05s;
+    }
+  `;
+  document.head.appendChild(s);
+})();
+
+// Khởi tạo viền vàng tại SHIFT sau khi DOM sẵn sàng
+document.addEventListener('DOMContentLoaded', () => vgUpdateCursor(), { once: true });
+if (document.readyState !== 'loading') setTimeout(vgUpdateCursor, 600);
+
+// ── MIC WATCHDOG: tự khởi động lại nếu VoiceHandler bị noise-pause ──
+// VoiceHandler sẽ dừng mic sau ~5 lệnh không nhận dạng được (noise guard).
+// Watchdog gọi voice.start() định kỳ — nếu mic đang chạy thì là no-op.
+setInterval(() => {
+  if (!voice.isListening) {
+    voice.start();
+    console.info('[VoiceGrid watchdog] Khởi động lại mic.');
+  }
+}, 18000); // kiểm tra mỗi 18 giây
+
+
 let _lastVoiceCmdKey = '';
 let _lastVoiceCmdTime = 0;
 
@@ -1130,6 +1349,9 @@ function executeVoiceCommand(match) {
 }
 
 voice.on('onResult', (command, raw) => {
+  // Voice Grid: xử lý với isFinal = true (nếu đã chạy từ interim thì chỉ reset đếm)
+  if (state.currentTab === 'casio' && vgProcess(raw, true)) return;
+
   const match = parseAllowedVoiceCommand(raw);
   if (match) {
     executeVoiceCommand(match);
@@ -1139,6 +1361,9 @@ voice.on('onResult', (command, raw) => {
 });
 
 voice.on('onInterim', (text) => {
+  // Voice Grid: thực thi tức thì ngay trên interim để đạt tốc độ phản hồi cực nhanh (<150ms)
+  if (state.currentTab === 'casio' && vgProcess(text, false)) return;
+
   const match = parseAllowedVoiceCommand(text);
   if (match && dom.voiceFeedback) {
     dom.voiceFeedback.textContent = `🎤 "${match.display}..."`;
@@ -1147,6 +1372,8 @@ voice.on('onInterim', (text) => {
 });
 
 voice.on('onEnd', () => {
+  _vgExecutedTokensCount = 0;
+  _vgLastInterimText = '';
   if (dom.voiceFeedback) dom.voiceFeedback.classList.remove('visible', 'listening');
 });
 
@@ -1608,6 +1835,19 @@ function updateMicUI() {
   }
 }
 
+// ============ ZERO-SCROLL VIEWPORT SCALE ============
+/**
+ * Tự động tính hệ số thu phóng đồng tỉ lệ cho toàn bộ khung nhìn
+ * scale = Math.min(window.innerWidth / 1366, window.innerHeight / 768)
+ * và gắn vào biến CSS --app-scale để container chính co nhỏ vừa khít màn hình nhỏ.
+ */
+function updateAppScale() {
+  const scale = Math.min(window.innerWidth / 1366, window.innerHeight / 768);
+  // Tự co nhỏ vừa khít màn hình khi gặp máy nhỏ (< 1366x768), giữ 1 trên màn hình lớn Full HD/4K
+  const safeScale = scale < 1 ? Math.max(0.35, scale) : 1;
+  document.documentElement.style.setProperty('--app-scale', safeScale.toFixed(4));
+}
+
 // ============ CASIO CALCULATOR SCALING ============
 function scaleCalculator() {
   const casioApp = document.getElementById('casio-app');
@@ -1616,16 +1856,16 @@ function scaleCalculator() {
   if (!casioApp || !wrapper || !tab) return;
 
   const stage = document.querySelector('.casio-center-stage');
-  const naturalW = 380;   // .calculator-wrapper width in px
-  const naturalH = 785;   // actual full rendered height of fx-580VN X in px
+  const naturalW = wrapper.offsetWidth || 380;
+  const naturalH = wrapper.offsetHeight || 720;
   const stageW = stage && stage.clientWidth > 0 ? stage.clientWidth : 380;
   const availW = Math.max(naturalW, stageW);
-  const availH = tab.clientHeight > 0 ? tab.clientHeight - 20 : window.innerHeight - 40;
+  const availH = tab.clientHeight > 0 ? tab.clientHeight - 16 : window.innerHeight - 30;
 
   if (availW <= 0 || availH <= 0) return;
 
-  const scale = Math.min(1, availH / naturalH, availW / naturalW) * 0.9;
-  casioApp.style.transform = `scale(${scale})`;
+  const scale = Math.min(1, availH / naturalH, availW / naturalW);
+  casioApp.style.transform = `scale(${scale.toFixed(4)})`;
 }
 
 // ============ AUTH UI INTEGRATION ============

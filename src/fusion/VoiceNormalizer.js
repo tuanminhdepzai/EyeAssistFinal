@@ -90,6 +90,19 @@ export class VoiceNormalizer {
       ['tạo đề', 'bài mới'],
       ['đặt lại', 'reset'],
       ['quay về gốc', 'reset'],
+
+      // Grid Navigation
+      ['xuong', 'xuống'],
+      ['suống', 'xuống'],
+      ['suong', 'xuống'],
+      ['xuồng', 'xuống'],
+      ['xuổng', 'xuống'],
+      ['len', 'lên'],
+      ['trai', 'trái'],
+      ['phai', 'phải'],
+      ['oke', 'ok'],
+      ['ô kê', 'ok'],
+      ['ô-kê', 'ok'],
     ]);
 
     // Regex chuẩn hóa (biên dịch sẵn)
