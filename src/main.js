@@ -50,6 +50,7 @@ const state = {
   currentTab: 'casio',
   isCalibrated: false,
   gazeWorker: null,
+  gazeCursorEnabled: true,
 };
 
 /** Last good gaze position before blink started (to freeze cursor during blinks) */
@@ -110,8 +111,111 @@ function isInside3DViewportCanvas(cx, cy) {
   return false;
 }
 
+// ============ 3-SECOND EYE CLOSURE TOGGLE FOR GAZE CURSOR ============
+let _eyesClosedStartTime = 0;
+let _eyesLastClosedTime = 0;
+let _eyesClosedTriggered = false;
+let _eyesSec1Beeped = false;
+let _eyesSec2Beeped = false;
+
+function setGazeCursorEnabled(enabled) {
+  state.gazeCursorEnabled = enabled;
+
+  const cursor = dom.gazeCursor;
+  if (cursor) {
+    if (!enabled) {
+      cursor.classList.remove('visible');
+      cursor.style.display = 'none';
+    } else {
+      cursor.style.display = '';
+    }
+  }
+
+  if (!enabled) {
+    if (typeof casioKeys !== 'undefined' && casioKeys) casioKeys.setGazeHover(null);
+    if (typeof updateUIHover === 'function') updateUIHover(null);
+    if (typeof handModule !== 'undefined' && handModule && handModule.updateGazeHover) {
+      handModule.updateGazeHover(-1000, -1000, performance.now());
+    }
+    fusion.lastGazeTarget = null;
+    if (blinkProgress && blinkProgress.isActive) {
+      blinkProgress.cancel('cursor_disabled');
+    }
+    if (audio.playCursorOff) audio.playCursorOff();
+    if (dom.voiceFeedback) {
+      dom.voiceFeedback.textContent = '👁️ Đã tạm tắt con trỏ chuột (nhắm mắt 3 giây để bật lại)';
+      dom.voiceFeedback.classList.add('visible');
+      setTimeout(() => dom.voiceFeedback?.classList.remove('visible'), 3200);
+    }
+  } else {
+    if (audio.playCursorOn) audio.playCursorOn();
+    if (dom.voiceFeedback) {
+      dom.voiceFeedback.textContent = '👁️ Đã bật lại con trỏ chuột màu hổ phách';
+      dom.voiceFeedback.classList.add('visible');
+      setTimeout(() => dom.voiceFeedback?.classList.remove('visible'), 2500);
+    }
+  }
+
+  if (dom.gazeStatus) {
+    const val = dom.gazeStatus.querySelector('.status-val');
+    if (val) {
+      val.textContent = enabled ? 'Đang theo' : 'Đã tắt';
+    }
+    if (!enabled) {
+      dom.gazeStatus.classList.remove('active');
+    } else {
+      dom.gazeStatus.classList.add('active');
+    }
+  }
+}
+
+function toggleGazeCursor() {
+  setGazeCursorEnabled(!state.gazeCursorEnabled);
+}
+window.toggleGazeCursor = toggleGazeCursor;
+
+function check3SecondEyeClosure(isClosed, now) {
+  if (state.currentTab === 'calibration') return; // Không can thiệp khi đang hiệu chỉnh
+
+  if (isClosed) {
+    _eyesLastClosedTime = now;
+    if (!_eyesClosedStartTime) {
+      _eyesClosedStartTime = now;
+      _eyesClosedTriggered = false;
+      _eyesSec1Beeped = false;
+      _eyesSec2Beeped = false;
+    }
+
+    const duration = now - _eyesClosedStartTime;
+
+    // Âm tick báo tiến trình ở giây 1 và giây 2 để người dùng biết hệ thống đang đếm
+    if (duration >= 1000 && !_eyesSec1Beeped) {
+      _eyesSec1Beeped = true;
+      if (audio.playTick) audio.playTick();
+    }
+    if (duration >= 2000 && !_eyesSec2Beeped) {
+      _eyesSec2Beeped = true;
+      if (audio.playTick) audio.playTick();
+    }
+
+    // Đạt đủ 3 giây liên tục → đảo trạng thái con trỏ
+    if (duration >= 3000 && !_eyesClosedTriggered) {
+      _eyesClosedTriggered = true;
+      toggleGazeCursor();
+    }
+  } else {
+    // Chỉ reset khi mắt mở lại liên tục hơn 200ms (tránh gián đoạn vì giật frame)
+    if (now - _eyesLastClosedTime > 200) {
+      _eyesClosedStartTime = 0;
+      _eyesClosedTriggered = false;
+      _eyesSec1Beeped = false;
+      _eyesSec2Beeped = false;
+    }
+  }
+}
+
 blinkDetector.on('onCloseFrame', ({ closedMs }) => {
-  if (dwellLocked || blinkHandledThisCycle) return;
+  if (!state.gazeCursorEnabled || dwellLocked || blinkHandledThisCycle) return;
   if (closedMs < DWELL_MIN_START_MS) return;
 
   if (!dwellData) {
@@ -514,14 +618,24 @@ function onFaceResults(results) {
   // 5. Update blink detector
   blinkDetector.update(ear.left, ear.right, now);
   
+  // 5a. Kiểm tra nhắm mắt 3 giây liên tục → Bật/Tắt con trỏ chuột màu vàng hổ phách
+  const isEyesClosed = (blinkDetector.state === 'CLOSING' || blinkDetector.state === 'CLOSED') ||
+                       (ear.average < (blinkDetector.earThreshold ?? 0.22));
+  check3SecondEyeClosure(isEyesClosed, now);
+
   // 5b. FREEZE gaze during blink — eyes closing/closed = iris landmarks unreliable
   //     Prevents cursor jumping to random position when user blinks to click
   if (blinkDetector.state !== 'OPEN') {
-    // Keep last good gaze position, don't update cursor or snap
-    const frozen = gazeToViewport(lastGoodGaze.x, lastGoodGaze.y);
-    updateGazeCursor(frozen.x, frozen.y);
-    // Phase 3: gaze bị đóng băng → không tính là "rời mục tiêu"
-    blinkProgress.updateGaze(frozen.x, frozen.y);
+    if (state.gazeCursorEnabled) {
+      // Keep last good gaze position, don't update cursor or snap
+      const frozen = gazeToViewport(lastGoodGaze.x, lastGoodGaze.y);
+      updateGazeCursor(frozen.x, frozen.y);
+      // Phase 3: gaze bị đóng băng → không tính là "rời mục tiêu"
+      blinkProgress.updateGaze(frozen.x, frozen.y);
+    } else if (dom.gazeCursor) {
+      dom.gazeCursor.classList.remove('visible');
+      dom.gazeCursor.style.display = 'none';
+    }
     if (dom.gazeStatus) dom.gazeStatus.classList.add('active');
     drawOverlay(landmarks);
     return; // Skip gesture, adaptive learner, snap, hit test
@@ -560,49 +674,61 @@ function onFaceResults(results) {
     lastActionMs: performance.now() - lastActionTime
   });
   
-  // 9. Snap gaze to nearest key/button (magnetic effect)
-  if (state.currentTab === 'casio') {
-    const snap = casioKeys.snapToNearest(vp.x, vp.y);
-    if (snap) {
-      vp.x = snap.cx;
-      vp.y = snap.cy;
+  if (state.gazeCursorEnabled) {
+    // 9. Snap gaze to nearest key/button (magnetic effect)
+    if (state.currentTab === 'casio') {
+      const snap = casioKeys.snapToNearest(vp.x, vp.y);
+      if (snap) {
+        vp.x = snap.cx;
+        vp.y = snap.cy;
+      }
+    } else if (state.currentTab === 'hand' && handModule.snapToNearest) {
+      const snap = handModule.snapToNearest(vp.x, vp.y);
+      if (snap) {
+        vp.x = snap.cx;
+        vp.y = snap.cy;
+      }
     }
-  } else if (state.currentTab === 'hand' && handModule.snapToNearest) {
-    const snap = handModule.snapToNearest(vp.x, vp.y);
-    if (snap) {
-      vp.x = snap.cx;
-      vp.y = snap.cy;
+
+    // 10. Update gaze cursor (viewport coords)
+    updateGazeCursor(vp.x, vp.y);
+    
+    // 10b. Phase 3: theo dõi gaze để hủy xác nhận nếu rời mục tiêu
+    blinkProgress.updateGaze(vp.x, vp.y);
+    
+    // 11. Hit test for Casio (viewport coords)
+    if (state.currentTab === 'casio') {
+      const keyId = casioKeys.hitTest(vp.x, vp.y);
+      casioKeys.setGazeHover(keyId);
+      fusion.lastGazeTarget = keyId;
     }
-  }
 
-  // 10. Update gaze cursor (viewport coords)
-  updateGazeCursor(vp.x, vp.y);
-  
-  // 10b. Phase 3: theo dõi gaze để hủy xác nhận nếu rời mục tiêu
-  blinkProgress.updateGaze(vp.x, vp.y);
-  
-  // 11. Hit test for Casio (viewport coords)
-  if (state.currentTab === 'casio') {
-    const keyId = casioKeys.hitTest(vp.x, vp.y);
-    casioKeys.setGazeHover(keyId);
-    fusion.lastGazeTarget = keyId;
-  }
+    // 11b. Hit test for Hand Module
+    if (state.currentTab === 'hand') {
+      const handTarget = handModule.updateGazeHover(vp.x, vp.y, now);
+      fusion.lastGazeTarget = handTarget ? 'hand_element' : null;
+    }
 
-  // 11b. Hit test for Hand Module
-  if (state.currentTab === 'hand') {
-    const handTarget = handModule.updateGazeHover(vp.x, vp.y, now);
-    fusion.lastGazeTarget = handTarget ? 'hand_element' : null;
-  }
-
-  // 11c. Nút UI chung (tabs, mic, hiệu chỉnh...) — học sinh không dùng tay
-  //      phải bấm được MỌI nút bằng mắt. Nếu gaze nằm trên một nút UI thì
-  //      nó thắng (bỏ qua phím trong #casio-app vì đã có đường casioKeys riêng)
-  const uiEl = hitTestUIElement(vp.x, vp.y);
-  updateUIHover(uiEl);
-  if (uiEl) {
-    fusion.lastGazeTarget = uiEl;
-  } else if (state.currentTab !== 'casio' && state.currentTab !== 'hand') {
+    // 11c. Nút UI chung (tabs, mic, hiệu chỉnh...) — học sinh không dùng tay
+    //      phải bấm được MỌI nút bằng mắt. Nếu gaze nằm trên một nút UI thì
+    //      nó thắng (bỏ qua phím trong #casio-app vì đã có đường casioKeys riêng)
+    const uiEl = hitTestUIElement(vp.x, vp.y);
+    updateUIHover(uiEl);
+    if (uiEl) {
+      fusion.lastGazeTarget = uiEl;
+    } else if (state.currentTab !== 'casio' && state.currentTab !== 'hand') {
+      fusion.lastGazeTarget = null;
+    }
+  } else {
+    // Khi con trỏ chuột tắt: dọn dẹp toàn bộ hover và ẩn con trỏ
+    if (casioKeys) casioKeys.setGazeHover(null);
+    if (handModule && handModule.updateGazeHover) handModule.updateGazeHover(-1000, -1000, now);
+    updateUIHover(null);
     fusion.lastGazeTarget = null;
+    if (dom.gazeCursor) {
+      dom.gazeCursor.classList.remove('visible');
+      dom.gazeCursor.style.display = 'none';
+    }
   }
   
   // 12. Update gaze status
@@ -643,6 +769,14 @@ function startGazeLoop() {
 // ============ MOUSE FALLBACK (for testing without webcam) ============
 function enableMouseFallback() {
   document.addEventListener('mousemove', (e) => {
+    if (!state.gazeCursorEnabled) {
+      if (dom.gazeCursor) {
+        dom.gazeCursor.classList.remove('visible');
+        dom.gazeCursor.style.display = 'none';
+      }
+      return;
+    }
+
     state.gazePosition = { x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight };
     let mx = e.clientX, my = e.clientY;
     
@@ -672,6 +806,7 @@ function enableMouseFallback() {
   });
   
   document.addEventListener('click', (e) => {
+    if (!state.gazeCursorEnabled) return;
     if (e.target.closest('#casio-app')) return; // Nút Casio đã tự xử lý sự kiện riêng
     if (isInside3DViewportCanvas(e.clientX, e.clientY)) return;
     blinkProgress.start(e.clientX, e.clientY, {
@@ -683,6 +818,7 @@ function enableMouseFallback() {
   
   document.addEventListener('contextmenu', (e) => {
     e.preventDefault();
+    if (!state.gazeCursorEnabled) return;
     if (isInside3DViewportCanvas(e.clientX, e.clientY)) return;
     blinkProgress.start(e.clientX, e.clientY, {
       subtype: 'long',
@@ -696,7 +832,14 @@ function enableMouseFallback() {
 function updateGazeCursor(vpX, vpY) {
   const cursor = dom.gazeCursor;
   if (!cursor) return;
-  
+
+  if (!state.gazeCursorEnabled) {
+    cursor.classList.remove('visible');
+    cursor.style.display = 'none';
+    return;
+  }
+  cursor.style.display = '';
+
   if (state.currentTab === 'casio') {
     const appEl = document.getElementById('casio-app');
     if (appEl) {
@@ -749,6 +892,7 @@ blinkDetector.on('onClassified', (classification) => {
 // Nháy chủ đích → realtime dwell ring đã xử lý phần lớn trường hợp (nhắm đủ lâu).
 // Handler này chỉ còn cho double-blink upgrade hoặc nháy ngắn không kịp chạy onCloseFrame.
 blinkDetector.on('onIntentional', (blinkData) => {
+  if (!state.gazeCursorEnabled) return;
   // Nếu chu kỳ nháy này đã được kích hoạt click xong (từ onCloseFrame dwell) → BỎ QUA, không bấm lặp!
   if (blinkHandledThisCycle || dwellLocked) {
     return;
@@ -783,6 +927,7 @@ blinkDetector.on('onIntentional', (blinkData) => {
 });
 
 blinkDetector.on('onWink', (side, duration) => {
+  if (!state.gazeCursorEnabled) return;
   if (blinkHandledThisCycle || dwellLocked) return;
 
   let cx = 0, cy = 0;

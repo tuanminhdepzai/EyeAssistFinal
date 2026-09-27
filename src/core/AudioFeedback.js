@@ -194,4 +194,48 @@ export class AudioFeedback {
       osc.stop(ctx.currentTime + 0.08);
     } catch (e) { /* ignore */ }
   }
+
+  /**
+   * Âm báo khi bật con trỏ chuột mắt (3 nốt thăng dần)
+   */
+  playCursorOn() {
+    try {
+      const ctx = this._ensureContext();
+      [523.25, 659.25, 783.99].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.08);
+        gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.08);
+        gain.gain.linearRampToValueAtTime(this.volume * 0.8, ctx.currentTime + i * 0.08 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.08 + 0.12);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + i * 0.08);
+        osc.stop(ctx.currentTime + i * 0.08 + 0.12);
+      });
+    } catch (e) { /* ignore */ }
+  }
+
+  /**
+   * Âm báo khi tạm tắt con trỏ chuột mắt (3 nốt trầm dần)
+   */
+  playCursorOff() {
+    try {
+      const ctx = this._ensureContext();
+      [783.99, 659.25, 440].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.08);
+        gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.08);
+        gain.gain.linearRampToValueAtTime(this.volume * 0.8, ctx.currentTime + i * 0.08 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.08 + 0.12);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + i * 0.08);
+        osc.stop(ctx.currentTime + i * 0.08 + 0.12);
+      });
+    } catch (e) { /* ignore */ }
+  }
 }
