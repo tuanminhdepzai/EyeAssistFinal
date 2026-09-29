@@ -67,8 +67,8 @@ export default class VoiceGridCasioController {
     }
     this._onKeySelect  = onKeySelect;
     this._lang         = options.lang        ?? 'vi-VN';
-    this._debounceMs   = options.debounceMs  ?? 600;
-    this._okFlashMs    = options.okFlashMs   ?? 300;
+    this._debounceMs   = options.debounceMs  ?? 250;
+    this._okFlashMs    = options.okFlashMs   ?? 250;
     this._autoRestart  = options.autoRestart ?? true;
 
     // Trạng thái con trỏ lưới
@@ -105,7 +105,7 @@ export default class VoiceGridCasioController {
 
     rec.onresult = (e) => this._onResult(e);
     rec.onerror  = (e) => {
-      if (e.error !== 'no-speech') {
+      if (e.error !== 'no-speech' && e.error !== 'aborted') {
         console.warn('[VoiceGridCasio] Lỗi:', e.error);
       }
     };
@@ -115,7 +115,7 @@ export default class VoiceGridCasioController {
           if (this._active) {
             try { this._recognition.start(); } catch (_) {}
           }
-        }, 200);
+        }, 30);
       }
     };
 

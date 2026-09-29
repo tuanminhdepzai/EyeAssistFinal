@@ -1248,8 +1248,10 @@ const VOICE_GRID = [
 const vgState = { row: 0, col: 0 };
 let _vgExecutedTokensCount = 0;
 let _vgLastInterimText = '';
+let _vgCommandQueue = [];
+let _vgQueueTimer = null;
 let _vgLastActionTime = 0;
-const VG_MIN_INTERVAL = 250; // ms tối thiểu giữa 2 lần di chuyển
+const VG_STEP_INTERVAL = 130; // ms giữa các bước khi chạy queue (mượt, tức thì)
 
 /** Tìm button DOM theo data-key trong #casio-app */
 function vgFindBtn(key) {
@@ -1273,60 +1275,119 @@ function vgFlash(key) {
   const btn = vgFindBtn(key);
   if (!btn) return;
   btn.classList.add('voice-active');
-  setTimeout(() => btn.classList.remove('voice-active'), 320);
+  setTimeout(() => btn.classList.remove('voice-active'), 280);
 }
 
 /**
- * Trích xuất các khẩu lệnh đơn từ text.
- * CHỈ chấp nhận đúng 5 lệnh: 'up', 'down', 'left', 'right', 'ok'
- * Không kết hợp lệnh, không nhận số bước.
+ * Trích xuất các khẩu lệnh đơn từ text (nhận diện linh hoạt tiếng Việt):
+ * Nhận diện: 'up', 'down', 'left', 'right', 'ok'
  */
 function vgExtractTokens(text) {
   if (!text) return [];
-  const t = text.toLowerCase().trim().replace(/[.,!?;:]/g, ' ');
+  const t = text.toLowerCase().trim().replace(/[.,!?;:(){}\[\]"'`]/g, ' ');
   const words = t.split(/\s+/).filter(Boolean);
   const tokens = [];
 
   for (let i = 0; i < words.length; i++) {
     const w = words[i];
-    // Nhận diện 'ô kê'
-    if (w === 'ô' && words[i + 1] === 'kê') {
+    const nextW = words[i + 1] || '';
+
+    // Cụm 2 từ: "ô kê", "đồng ý", "qua trái", "sang trái", "qua phải", "sang phải", "đi lên", "đi xuống", "lên trên", "xuống dưới"
+    if ((w === 'ô' && nextW === 'kê') || (w === 'đồng' && nextW === 'ý')) {
       tokens.push('ok');
       i++;
       continue;
     }
-    // 1. Lên
-    if (w === 'lên' || w === 'len') {
+    if ((w === 'qua' || w === 'sang' || w === 'bên' || w === 'về' || w === 'rẽ') && (nextW === 'trái' || nextW === 'trai')) {
+      tokens.push('left');
+      i++;
+      continue;
+    }
+    if ((w === 'qua' || w === 'sang' || w === 'bên' || w === 'về' || w === 'rẽ') && (nextW === 'phải' || nextW === 'phai')) {
+      tokens.push('right');
+      i++;
+      continue;
+    }
+    if ((w === 'đi' || w === 'hướng' || w === 'nhích' || w === 'kéo') && (nextW === 'lên' || nextW === 'len')) {
+      tokens.push('up');
+      i++;
+      continue;
+    }
+    if ((w === 'đi' || w === 'hướng' || w === 'nhích' || w === 'kéo') && (nextW === 'xuống' || nextW === 'xuong' || nextW === 'suống' || nextW === 'uống')) {
+      tokens.push('down');
+      i++;
+      continue;
+    }
+
+    // Từ đơn: 1. Lên
+    if (w === 'lên' || w === 'len' || w === 'nên') {
       tokens.push('up');
       continue;
     }
-    // 2. Xuống (bao gồm các biến thể phát âm và lỗi ASR thường gặp: xuong, suống, suong, uống, xuồng, xuổng)
+
+    // 2. Xuống (bao gồm tất cả lỗi ASR / nuốt âm / phương ngữ thường gặp)
     if (
       w === 'xuống' || w === 'xuong' ||
       w === 'suống' || w === 'suong' ||
       w === 'uống'  || w === 'xuồng' ||
-      w === 'xuổng'
+      w === 'xuổng' || w === 'chuống'
     ) {
       tokens.push('down');
       continue;
     }
+
     // 3. Trái
-    if (w === 'trái' || w === 'trai') {
+    if (w === 'trái' || w === 'trai' || w === 'chái') {
       tokens.push('left');
       continue;
     }
+
     // 4. Phải
     if (w === 'phải' || w === 'phai') {
       tokens.push('right');
       continue;
     }
-    // 5. OK / Chọn
-    if (w === 'ok' || w === 'oke' || w === 'okay' || w === 'chọn' || w === 'kê') {
+
+    // 5. OK / Chọn / Bấm / Ấn
+    if (
+      w === 'ok' || w === 'oke' || w === 'okay' ||
+      w === 'chọn' || w === 'bấm' || w === 'ấn' ||
+      w === 'nhập' || w === 'enter' || w === 'kê'
+    ) {
       tokens.push('ok');
       continue;
     }
   }
   return tokens;
+}
+
+let _vgFeedbackTimer = null;
+let _vgResetTimer = null;
+const VG_RESET_DELAY = 360; // ms sau khi dứt lệnh để giải phóng buffer Google STT ngay tức thì
+
+/** Tự động ẩn phản hồi trên giao diện, không bị giữ text cũ */
+function vgHideFeedback() {
+  if (!dom.voiceFeedback) return;
+  dom.voiceFeedback.classList.remove('listening');
+  clearTimeout(_vgFeedbackTimer);
+  _vgFeedbackTimer = setTimeout(() => {
+    if (Date.now() - _vgLastActionTime >= 400) {
+      dom.voiceFeedback?.classList.remove('visible');
+    }
+  }, 250);
+}
+
+/** Lên lịch reset phiên mic để đọc lệnh kế tiếp ngay lập tức mà không phải chờ 2-3s */
+function vgScheduleQuickReset() {
+  clearTimeout(_vgResetTimer);
+  _vgResetTimer = setTimeout(() => {
+    vgHideFeedback();
+    _vgExecutedTokensCount = 0;
+    _vgLastInterimText = '';
+    if (voice && voice.isListening) {
+      voice.quickReset();
+    }
+  }, VG_RESET_DELAY);
 }
 
 /**
@@ -1352,7 +1413,7 @@ function vgExecuteToken(token) {
       if (dom.voiceFeedback) {
         dom.voiceFeedback.textContent = `🎤 "OK → Phím [${key}]"`;
         dom.voiceFeedback.classList.add('visible', 'listening');
-        setTimeout(() => dom.voiceFeedback?.classList.remove('listening'), 1200);
+        vgHideFeedback();
       }
     }
     return;
@@ -1367,13 +1428,50 @@ function vgExecuteToken(token) {
   if (dom.voiceFeedback) {
     dom.voiceFeedback.textContent = `🎤 "${dirNames[token] || token} → [${key}] (${vgState.row},${vgState.col})"`;
     dom.voiceFeedback.classList.add('visible', 'listening');
-    setTimeout(() => dom.voiceFeedback?.classList.remove('listening'), 1000);
+    vgHideFeedback();
+  }
+}
+
+/**
+ * Xử lý hàng đợi lệnh mượt mà (FIFO Queue)
+ * Giúp không bao giờ nuốt lệnh khi người dùng nói nhanh hoặc ASR trả về nhiều từ
+ */
+function vgProcessQueue() {
+  if (_vgCommandQueue.length === 0) {
+    _vgQueueTimer = null;
+    vgScheduleQuickReset();
+    return;
+  }
+
+  const now = Date.now();
+  const elapsed = now - _vgLastActionTime;
+  if (elapsed < VG_STEP_INTERVAL) {
+    if (!_vgQueueTimer) {
+      _vgQueueTimer = setTimeout(() => {
+        _vgQueueTimer = null;
+        vgProcessQueue();
+      }, VG_STEP_INTERVAL - elapsed);
+    }
+    return;
+  }
+
+  const nextToken = _vgCommandQueue.shift();
+  _vgLastActionTime = now;
+  vgExecuteToken(nextToken);
+
+  if (_vgCommandQueue.length > 0) {
+    _vgQueueTimer = setTimeout(() => {
+      _vgQueueTimer = null;
+      vgProcessQueue();
+    }, VG_STEP_INTERVAL);
+  } else {
+    _vgQueueTimer = null;
+    vgScheduleQuickReset();
   }
 }
 
 /**
  * Xử lý giọng nói tức thì (cả interim lẫn final)
- * Token-based: mỗi từ khẩu lệnh nói ra chỉ chạy đúng 1 lần, phản hồi tức thì <150ms
  */
 function vgProcess(text, isFinal = false) {
   if (!text || state.currentTab !== 'casio') return false;
@@ -1381,28 +1479,30 @@ function vgProcess(text, isFinal = false) {
   const tokens = vgExtractTokens(text);
   if (tokens.length === 0) return false;
 
-  // Nếu text câu mới bắt đầu hoặc ngắn hơn đáng kể
-  if (text.length < _vgLastInterimText.length * 0.6 || tokens.length < _vgExecutedTokensCount) {
+  // Hủy hẹn giờ reset vì đang có âm thanh lệnh mới tới
+  clearTimeout(_vgResetTimer);
+
+  // Nếu text câu mới bắt đầu hoặc ngắn hơn đáng kể so với câu trước
+  if (text.length < _vgLastInterimText.length * 0.5 || tokens.length < _vgExecutedTokensCount) {
     _vgExecutedTokensCount = 0;
   }
   _vgLastInterimText = text;
 
-  const now = Date.now();
-  // Thực thi các token mới chưa chạy
+  // Đưa tất cả các token mới phát hiện vào hàng đợi
   while (_vgExecutedTokensCount < tokens.length) {
-    if (_vgExecutedTokensCount > 0 && (now - _vgLastActionTime < VG_MIN_INTERVAL)) {
-      break;
-    }
-    const tokenToRun = tokens[_vgExecutedTokensCount];
+    const tokenToQueue = tokens[_vgExecutedTokensCount];
     _vgExecutedTokensCount++;
-    _vgLastActionTime = now;
-    vgExecuteToken(tokenToRun);
+    _vgCommandQueue.push(tokenToQueue);
   }
 
-  // Reset khi có kết quả hoàn tất (final) để sẵn sàng cho câu nói tiếp theo
+  // Khởi động chạy queue nếu đang rảnh
+  vgProcessQueue();
+
+  // Reset đếm khi kết thúc câu (isFinal) để sẵn sàng cho câu tiếp theo
   if (isFinal) {
     _vgExecutedTokensCount = 0;
     _vgLastInterimText = '';
+    vgScheduleQuickReset();
   }
 
   return true;
@@ -1435,19 +1535,17 @@ function vgProcess(text, isFinal = false) {
 document.addEventListener('DOMContentLoaded', () => vgUpdateCursor(), { once: true });
 if (document.readyState !== 'loading') setTimeout(vgUpdateCursor, 600);
 
-// ── MIC WATCHDOG: tự khởi động lại nếu VoiceHandler bị noise-pause ──
-// VoiceHandler sẽ dừng mic sau ~5 lệnh không nhận dạng được (noise guard).
-// Watchdog gọi voice.start() định kỳ — nếu mic đang chạy thì là no-op.
+// ── MIC WATCHDOG: tự khởi động lại nếu mic bị ngắt ──
 setInterval(() => {
-  if (!voice.isListening) {
+  if (voice && !voice.isListening && voice._shouldRestart) {
     voice.start();
-    console.info('[VoiceGrid watchdog] Khởi động lại mic.');
   }
-}, 18000); // kiểm tra mỗi 18 giây
+}, 2000); // kiểm tra mỗi 2 giây thay vì 18 giây
 
 
 let _lastVoiceCmdKey = '';
 let _lastVoiceCmdTime = 0;
+let _voiceCmdResetTimer = null;
 
 function executeVoiceCommand(match) {
   if (!match) return;
@@ -1455,19 +1553,23 @@ function executeVoiceCommand(match) {
   const now = Date.now();
   const cmdKey = `${match.type}:${match.target || match.action}`;
 
-  // Cooldown 1.2s cho cùng 1 lệnh để tránh thực thi lặp liên tục trong cùng 1 câu nói
-  if (cmdKey === _lastVoiceCmdKey && (now - _lastVoiceCmdTime) < 1200) {
+  // Cooldown ngắn (350ms thay vì 1200ms) để chống gọi lặp trong cùng 1 phát âm
+  if (cmdKey === _lastVoiceCmdKey && (now - _lastVoiceCmdTime) < 350) {
     return;
   }
 
   _lastVoiceCmdKey = cmdKey;
   _lastVoiceCmdTime = now;
 
-  // Hiển thị feedback UI lập tức
+  // Hiển thị feedback UI lập tức và tự ẩn nhanh sau 500ms (không bị treo 2.2s)
   if (dom.voiceFeedback) {
     dom.voiceFeedback.textContent = `🎤 "${match.display}"`;
     dom.voiceFeedback.classList.add('visible', 'listening');
-    setTimeout(() => dom.voiceFeedback?.classList.remove('listening'), 2200);
+    clearTimeout(dom._feedbackTimer);
+    dom._feedbackTimer = setTimeout(() => {
+      dom.voiceFeedback?.classList.remove('listening');
+      setTimeout(() => dom.voiceFeedback?.classList.remove('visible'), 250);
+    }, 500);
   }
 
   // Thực thi lệnh ngay tức thì (Instant Execution < 150ms)
@@ -1491,6 +1593,15 @@ function executeVoiceCommand(match) {
       }
     }, 50);
   }
+
+  // Lên lịch reset session mic sau 400ms để người dùng đọc tiếp lệnh mới tức thì
+  clearTimeout(_voiceCmdResetTimer);
+  _voiceCmdResetTimer = setTimeout(() => {
+    _lastVoiceCmdKey = '';
+    if (voice && voice.isListening) {
+      voice.quickReset();
+    }
+  }, 400);
 }
 
 voice.on('onResult', (command, raw) => {
@@ -1519,7 +1630,15 @@ voice.on('onInterim', (text) => {
 voice.on('onEnd', () => {
   _vgExecutedTokensCount = 0;
   _vgLastInterimText = '';
-  if (dom.voiceFeedback) dom.voiceFeedback.classList.remove('visible', 'listening');
+  clearTimeout(_vgResetTimer);
+  if (dom.voiceFeedback) {
+    dom.voiceFeedback.classList.remove('listening');
+    setTimeout(() => {
+      if (Date.now() - _vgLastActionTime >= 400) {
+        dom.voiceFeedback?.classList.remove('visible');
+      }
+    }, 200);
+  }
 });
 
 voice.on('onError', (err) => {

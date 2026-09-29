@@ -41,13 +41,6 @@ export class VoiceHandler {
     }
     if (this.isListening) return;
 
-    // Phase 3.2: respect noise pause
-    if (Date.now() < this._noisePauseUntil) {
-      const remaining = this._noisePauseUntil - Date.now();
-      setTimeout(() => this.start(), remaining);
-      return;
-    }
-
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     this.recognition = new SpeechRecognition();
     this.recognition.continuous = true;
@@ -62,11 +55,21 @@ export class VoiceHandler {
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
+        let chosenTranscript = result[0]?.transcript || '';
+        // Ưu tiên alternative có chứa từ khóa điều khiển để tăng độ nhạy và chính xác
+        for (let a = 0; a < result.length; a++) {
+          const t = result[a]?.transcript || '';
+          if (/\b(lên|len|nên|xuống|xuong|suống|suong|uống|xuồng|xuổng|trái|trai|phải|phai|ok|oke|ô kê|chọn|bấm|ấn)\b/i.test(t)) {
+            chosenTranscript = t;
+            break;
+          }
+        }
+
         if (result.isFinal) {
-          final += result[0].transcript;
-          bestConfidence = Math.max(bestConfidence, result[0].confidence || 0);
+          final += chosenTranscript;
+          bestConfidence = Math.max(bestConfidence, result[0]?.confidence || 0);
         } else {
-          interim += result[0].transcript;
+          interim += chosenTranscript;
         }
       }
 
@@ -81,7 +84,6 @@ export class VoiceHandler {
           return; // ignore noisy result
         }
 
-        // Phase 3.2: track unknown commands for noise detection
         if (command.type === 'unknown') {
           this._trackUnknown();
         } else {
@@ -99,6 +101,7 @@ export class VoiceHandler {
     };
 
     this.recognition.onerror = (event) => {
+      if (event.error === 'no-speech' || event.error === 'aborted') return; // Silence and intentional quick-reset are normal
       console.warn('Speech error:', event.error);
       this.callbacks.onError(event.error);
       if (event.error === 'not-allowed') {
@@ -110,15 +113,13 @@ export class VoiceHandler {
     this.recognition.onend = () => {
       this.isListening = false;
       this.callbacks.onEnd();
-      // Phase 3.1: Auto-restart with exponential backoff
+      // Tự động khởi động lại ngay sau 25ms khi dứt câu/reset để mic luôn sẵn sàng tức thì, không bị trễ
       if (this._shouldRestart) {
-        const now = Date.now();
-        if (now - this._restartCooldown > this._backoffMs) {
-          this._restartCooldown = now;
-          setTimeout(() => this.start(), this._backoffMs);
-          // Increase backoff for next retry
-          this._backoffMs = Math.min(this._backoffMs * 2, this._maxBackoffMs);
-        }
+        setTimeout(() => {
+          if (this._shouldRestart && !this.isListening) {
+            this.start();
+          }
+        }, 25);
       }
     };
 
@@ -130,6 +131,17 @@ export class VoiceHandler {
     } catch (e) {
       console.warn('Speech start error:', e);
     }
+  }
+
+  /**
+   * Reset phiên nhận diện tức thì để giải phóng buffer của Google STT.
+   * Giúp người dùng đọc lệnh tiếp theo ngay lập tức (<300ms) mà không phải chờ 2-3s im lặng.
+   */
+  quickReset() {
+    if (!this.recognition || !this.isListening) return;
+    try {
+      this.recognition.abort();
+    } catch (_) {}
   }
 
   stop() {
@@ -199,12 +211,7 @@ export class VoiceHandler {
       this._consecutiveUnknown = 0;
     }
     this._consecutiveUnknown++;
-    // If >5 unknowns in 10s → pause 3s
-    if (this._consecutiveUnknown > 5) {
-      this._noisePauseUntil = now + 3000;
-      this._consecutiveUnknown = 0;
-      console.warn('[VoiceHandler] Too many unknown commands, pausing 3s');
-    }
+    // Không tạm dừng mic khi có từ không xác định để đảm bảo mic luôn phản hồi liên tục
   }
 
   /** Phase 3.3: Add command to history ring buffer */
