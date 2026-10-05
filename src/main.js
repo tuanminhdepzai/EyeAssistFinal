@@ -33,14 +33,6 @@ import { EARCalculator } from './engine/EARCalculator.js';
 import { BlinkProgressBar } from './modules/BlinkProgressBar.js';
 import { HandModule3D } from './modules/HandModule3D.js';
 import { GazeSelect } from './modules/GazeSelect.js';
-import {
-  loginWithEmail,
-  registerWithEmail,
-  loginWithGoogle,
-  logoutUser,
-  resetPassword,
-  onAuthChange
-} from './auth/auth.js';
 
 // ============ GLOBAL STATE ============
 const state = {
@@ -315,7 +307,7 @@ const dom = {
 // ============ APP INIT ============
 let _sensorsStarted = false;
 
-async function startSensorsAfterLogin() {
+async function startSensors() {
   if (_sensorsStarted) return;
   _sensorsStarted = true;
 
@@ -346,12 +338,13 @@ async function init() {
     
     updateLoading(100, 'Hoàn tất...');
     
-    // Show the app
+    // Show the app & start sensors
     setTimeout(() => {
       if (dom.loading) dom.loading.classList.add('hidden');
       if (dom.app) dom.app.style.display = 'grid';
       moveNavPill(false); // snap pill vào tab active ngay khi app hiện
       scaleCalculator();
+      startSensors();
     }, 400);
   } catch (err) {
     console.error('Init error:', err);
@@ -556,9 +549,6 @@ function initModules() {
   // Scale Casio calculator to fill viewport
   scaleCalculator();
   window.addEventListener('resize', scaleCalculator);
-
-  // Initialize Firebase Auth UI
-  initAuthUI();
   
   // Debug: press F to toggle flipX (mirror mode)
   document.addEventListener('keydown', (e) => {
@@ -2131,265 +2121,6 @@ function scaleCalculator() {
   if (availW <= 0 || availH <= 0) return;
 
   const scale = Math.min(1, availH / naturalH, availW / naturalW);
-  casioApp.style.transform = `scale(${scale.toFixed(4)})`;
-}
-
-// ============ AUTH UI INTEGRATION ============
-function initAuthUI() {
-  const modal = document.getElementById('auth-modal');
-  const btnOpenLogin = document.getElementById('btn-open-login');
-  const btnClose = document.getElementById('btn-auth-close');
-  const userProfile = document.getElementById('nav-user-profile');
-  const userName = document.getElementById('nav-user-name');
-  const userAvatar = document.getElementById('nav-user-avatar');
-  const btnLogout = document.getElementById('btn-user-logout');
-
-  const tabGroup = document.getElementById('auth-tab-group');
-  const formLogin = document.getElementById('form-login');
-  const formRegister = document.getElementById('form-register');
-  const formForgot = document.getElementById('form-forgot');
-  const feedback = document.getElementById('auth-feedback');
-
-  const linkForgot = document.getElementById('link-forgot-password');
-  const linkBackToLogin = document.getElementById('link-back-to-login');
-  const btnGoogle = document.getElementById('btn-google-login');
-
-  let isAuthed = false;
-
-  if (!modal) return;
-
-  function showFeedback(msg, type = 'error') {
-    if (!feedback) return;
-    feedback.textContent = msg;
-    feedback.className = `auth-feedback-msg ${type}`;
-  }
-
-  function clearFeedback() {
-    if (!feedback) return;
-    feedback.textContent = '';
-    feedback.className = 'auth-feedback-msg';
-  }
-
-  function openModal(initialTab = 'login', mandatory = false) {
-    clearFeedback();
-    switchAuthTab(initialTab);
-    if (mandatory) {
-      modal.classList.add('mandatory');
-    } else {
-      modal.classList.remove('mandatory');
-    }
-    modal.classList.add('active');
-  }
-
-  function closeModal() {
-    // Không cho phép tắt modal nếu chưa đăng nhập
-    if (!isAuthed) return;
-    modal.classList.remove('active', 'mandatory');
-    clearFeedback();
-  }
-
-  function switchAuthTab(tabName) {
-    clearFeedback();
-    const tabBtns = tabGroup ? tabGroup.querySelectorAll('.auth-tab-btn') : [];
-    tabBtns.forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.tab === tabName);
-    });
-
-    if (tabGroup) {
-      tabGroup.style.display = (tabName === 'forgot') ? 'none' : 'flex';
-    }
-
-    if (formLogin) formLogin.style.display = (tabName === 'login') ? 'flex' : 'none';
-    if (formRegister) formRegister.style.display = (tabName === 'register') ? 'flex' : 'none';
-    if (formForgot) formForgot.style.display = (tabName === 'forgot') ? 'flex' : 'none';
-
-    const modalTitle = document.getElementById('auth-modal-title');
-    const modalDesc = document.getElementById('auth-modal-desc');
-    if (modalTitle && modalDesc) {
-      if (tabName === 'login') {
-        modalTitle.textContent = 'Đăng Nhập EyeAssist';
-        modalDesc.textContent = 'Vui lòng đăng nhập để bắt đầu sử dụng ứng dụng';
-      } else if (tabName === 'register') {
-        modalTitle.textContent = 'Tạo Tài Khoản Mới';
-        modalDesc.textContent = 'Đăng ký tài khoản để trải nghiệm toàn bộ tính năng';
-      } else if (tabName === 'forgot') {
-        modalTitle.textContent = 'Khôi Phục Mật Khẩu';
-        modalDesc.textContent = 'Nhập email để nhận liên kết đặt lại mật khẩu';
-      }
-    }
-  }
-
-  // Open / Close events
-  if (btnOpenLogin) btnOpenLogin.addEventListener('click', () => openModal('login', !isAuthed));
-  if (btnClose) btnClose.addEventListener('click', () => {
-    if (isAuthed) closeModal();
-  });
-
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal && isAuthed) {
-      closeModal();
-    }
-  });
-
-  // Tab switcher
-  if (tabGroup) {
-    tabGroup.addEventListener('click', (e) => {
-      const btn = e.target.closest('.auth-tab-btn');
-      if (btn && btn.dataset.tab) {
-        switchAuthTab(btn.dataset.tab);
-      }
-    });
-  }
-
-  if (linkForgot) linkForgot.addEventListener('click', () => switchAuthTab('forgot'));
-  if (linkBackToLogin) linkBackToLogin.addEventListener('click', () => switchAuthTab('login'));
-
-  // Form: Login
-  if (formLogin) {
-    formLogin.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      clearFeedback();
-      const email = document.getElementById('login-email').value;
-      const password = document.getElementById('login-password').value;
-      const submitBtn = document.getElementById('btn-submit-login');
-
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Đang đăng nhập...';
-      }
-
-      const res = await loginWithEmail(email, password);
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Đăng Nhập';
-      }
-
-      if (res.success) {
-        showFeedback('Đăng nhập thành công!', 'success');
-        isAuthed = true;
-        setTimeout(() => closeModal(), 500);
-      } else {
-        showFeedback(res.error, 'error');
-      }
-    });
-  }
-
-  // Form: Register
-  if (formRegister) {
-    formRegister.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      clearFeedback();
-      const name = document.getElementById('register-name').value;
-      const email = document.getElementById('register-email').value;
-      const password = document.getElementById('register-password').value;
-      const submitBtn = document.getElementById('btn-submit-register');
-
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Đang tạo tài khoản...';
-      }
-
-      const res = await registerWithEmail(email, password, name);
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Tạo Tài Khoản';
-      }
-
-      if (res.success) {
-        showFeedback('Tạo tài khoản thành công!', 'success');
-        isAuthed = true;
-        setTimeout(() => closeModal(), 500);
-      } else {
-        showFeedback(res.error, 'error');
-      }
-    });
-  }
-
-  // Form: Forgot Password
-  if (formForgot) {
-    formForgot.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      clearFeedback();
-      const email = document.getElementById('forgot-email').value;
-      const submitBtn = document.getElementById('btn-submit-forgot');
-
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Đang gửi yêu cầu...';
-      }
-
-      const res = await resetPassword(email);
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Gửi Liên Kết Khôi Phục';
-      }
-
-      if (res.success) {
-        showFeedback(res.message, 'success');
-      } else {
-        showFeedback(res.error, 'error');
-      }
-    });
-  }
-
-  // Google Login
-  if (btnGoogle) {
-    btnGoogle.addEventListener('click', async () => {
-      clearFeedback();
-      const res = await loginWithGoogle();
-      if (res.success) {
-        showFeedback('Đăng nhập Google thành công!', 'success');
-        isAuthed = true;
-        setTimeout(() => closeModal(), 500);
-      } else if (res.code !== 'auth/popup-closed-by-user') {
-        showFeedback(res.error, 'error');
-      }
-    });
-  }
-
-  // Logout
-  if (btnLogout) {
-    btnLogout.addEventListener('click', async () => {
-      await logoutUser();
-    });
-  }
-
-  // Realtime Auth State Listener
-  onAuthChange((user) => {
-    if (user) {
-      isAuthed = true;
-      if (btnOpenLogin) btnOpenLogin.style.display = 'none';
-      if (userProfile) userProfile.style.display = 'flex';
-
-      const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'Người dùng');
-      if (userName) userName.textContent = displayName;
-
-      if (userAvatar) {
-        const initial = (displayName.charAt(0) || 'U').toUpperCase();
-        if (user.photoURL) {
-          userAvatar.innerHTML = `
-            <img src="${user.photoURL}" alt="${displayName}" referrerpolicy="no-referrer" crossorigin="anonymous" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-            <span class="auth-fallback-initial" style="display:none;">${initial}</span>
-          `;
-        } else {
-          const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=e8b84b&color=1a1608&bold=true&size=128`;
-          userAvatar.innerHTML = `
-            <img src="${avatarUrl}" alt="${displayName}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-            <span class="auth-fallback-initial" style="display:none;">${initial}</span>
-          `;
-        }
-      }
-      closeModal();
-      // Kích hoạt Camera và Micro sau khi đăng nhập thành công
-      startSensorsAfterLogin();
-    } else {
-      isAuthed = false;
-      if (btnOpenLogin) btnOpenLogin.style.display = 'flex';
-      if (userProfile) userProfile.style.display = 'none';
-      // Bắt buộc đăng nhập: mở modal khóa toàn màn hình
-      openModal('login', true);
-    }
-  });
 }
 
 // ============ UTILITIES ============
