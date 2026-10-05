@@ -496,11 +496,16 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
 .casio-guide-col {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   width: 279px;
   flex-shrink: 0;
   overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   max-height: 100%;
+}
+.casio-guide-col::-webkit-scrollbar {
+  display: none;
 }
 
 .casio-guide-card {
@@ -508,8 +513,8 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
-  border-radius: 10px;
-  padding: 8px 11px;
+  border-radius: 9px;
+  padding: 6px 9px;
   box-shadow: var(--shadow-glass);
   transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition);
 }
@@ -522,16 +527,16 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
 .guide-card-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-  padding-bottom: 5px;
+  gap: 7px;
+  margin-bottom: 4px;
+  padding-bottom: 3px;
   border-bottom: 1px solid rgba(241, 234, 217, 0.08);
 }
 
 .guide-icon-badge {
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -539,8 +544,8 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
 }
 
 .guide-icon-badge svg {
-  width: 17px;
-  height: 17px;
+  width: 14px;
+  height: 14px;
 }
 
 .guide-icon-badge.amber {
@@ -562,37 +567,46 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
 }
 
 .guide-card-title {
-  font-size: 14.5px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 1px;
-  letter-spacing: 0.15px;
+  margin-bottom: 0px;
+  line-height: 1.2;
 }
 
 .guide-card-sub {
-  font-size: 12.5px;
+  font-size: 10.5px;
   color: var(--text-muted);
   font-family: var(--font-mono);
+  display: block;
 }
 
 .guide-card-body {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  font-size: 13.5px;
-  line-height: 1.4;
+  gap: 3px;
+  font-size: 12px;
+  line-height: 1.3;
   color: var(--text-secondary);
 }
 
-.guide-step-item {
+.guide-step-compact {
   display: flex;
-  gap: 8px;
-  align-items: flex-start;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.25;
+}
+
+.guide-step-compact strong {
+  color: var(--text-primary);
+  font-weight: 700;
 }
 
 .guide-bullet {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: rgba(232, 184, 75, 0.15);
   color: var(--accent-amber-hi);
@@ -600,106 +614,69 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 800;
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.guide-step-item strong {
-  color: var(--text-primary);
-  font-size: 13.5px;
-  display: block;
-  margin-bottom: 1px;
-}
-
-.guide-step-item p {
-  font-size: 12.5px;
-  color: var(--text-secondary);
-  margin: 0;
-  line-height: 1.35;
-}
-
-.guide-tip-box {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(232, 184, 75, 0.08);
-  border: 1px solid rgba(232, 184, 75, 0.2);
-  border-radius: var(--radius-sm);
-  padding: 5px 8px;
-  font-size: 12.5px;
-  color: var(--text-primary);
-  margin-top: 2px;
-  line-height: 1.35;
-}
-
-.guide-tip-box svg {
-  color: var(--accent-amber-hi);
-  width: 15px;
-  height: 15px;
   flex-shrink: 0;
 }
 
 .guide-desc-text {
-  font-size: 12.5px;
+  font-size: 11px;
   color: var(--text-muted);
   margin-bottom: 2px;
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
-.guide-voice-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 3px;
-}
-
-.voice-group-title {
+.voice-section-header {
   font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.35px;
-  color: var(--accent-amber-hi);
-  margin-top: 5px;
-  margin-bottom: 1px;
+  font-weight: 800;
+  color: #e5b94c;
+  letter-spacing: 0.2px;
+  margin-top: 4px;
+  margin-bottom: 2px;
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.voice-group-title:first-of-type {
-  margin-top: 1px;
+.guide-voice-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5px;
 }
 
 .voice-cmd-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(241, 234, 217, 0.07);
-  border-radius: 5px;
-  padding: 3px 6px;
-  font-size: 12.5px;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.voice-cmd-row:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(232, 184, 75, 0.2);
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(241, 234, 217, 0.08);
+  border-radius: 4px;
+  padding: 2.5px 6px;
+  font-size: 11px;
+  gap: 4px;
 }
 
 .voice-tag {
-  color: var(--text-primary);
+  color: #f1ead9;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 1.25;
 }
 
 .voice-action {
-  color: var(--accent-green-hi);
+  color: #6ee7b7;
   font-family: var(--font-mono);
   font-weight: 700;
-  font-size: 11.5px;
+  font-size: 11px;
   white-space: nowrap;
+}
+
+.voice-badge-blue {
+  background: #0047bb;
+  color: #ffffff !important;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 700;
 }
 
 .guide-feature-row {
