@@ -16,6 +16,7 @@ import { FusionEngine } from './fusion/FusionEngine.js';
 import { VoiceHandler } from './fusion/VoiceHandler.js';
 import { CommandParser } from './fusion/CommandParser.js';
 import { CasioKeyMatrix } from './modules/CasioKeyMatrix.js';
+import VoiceMathController from './modules/VoiceMathController.js';
 
 import { PhysicsController } from './modules/PhysicsController.js';
 import { CalibrationFlow } from './calibration/CalibrationFlow.js';
@@ -64,6 +65,7 @@ const fusion = new FusionEngine();
 const voice = new VoiceHandler();
 const cmdParser = new CommandParser();
 const casioKeys = new CasioKeyMatrix();
+const voiceMath = new VoiceMathController(voice);
 
 const physics = new PhysicsController();
 const calibration = new CalibrationFlow();
