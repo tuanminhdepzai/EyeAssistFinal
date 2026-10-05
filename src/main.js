@@ -1542,6 +1542,11 @@ function vgProcessQueue() {
 function vgProcess(text, isFinal = false) {
   if (!text || state.currentTab !== 'casio') return false;
 
+  // Nếu là lệnh nhập số hoặc phép tính toán học → nhường cho VoiceMathController xử lý trực tiếp
+  if (VoiceMathController.isMathCommand(text)) {
+    return false;
+  }
+
   const tokens = vgExtractTokens(text);
   if (tokens.length === 0) return false;
 
@@ -1671,18 +1676,28 @@ function executeVoiceCommand(match) {
 }
 
 voice.on('onResult', (command, raw) => {
-  // Voice Grid: xử lý với isFinal = true (nếu đã chạy từ interim thì chỉ reset đếm)
+  // 1. Phép tính & số cho Casio: nhường quyền cho VoiceMathController xử lý
+  if (state.currentTab === 'casio' && VoiceMathController.isMathCommand(raw)) {
+    return;
+  }
+
+  // 2. Voice Grid: điều hướng phím Casio
   if (state.currentTab === 'casio' && vgProcess(raw, true)) return;
 
+  // 3. Khẩu lệnh hệ thống (chuyển tab, điều khiển 3D...)
   const match = parseAllowedVoiceCommand(raw);
   if (match) {
     executeVoiceCommand(match);
-  } else if (dom.voiceFeedback) {
+  } else if (dom.voiceFeedback && !dom.voiceFeedback.textContent.includes('🔢')) {
     dom.voiceFeedback.classList.remove('visible', 'listening');
   }
 });
 
 voice.on('onInterim', (text) => {
+  if (state.currentTab === 'casio' && VoiceMathController.isMathCommand(text)) {
+    return;
+  }
+
   // Voice Grid: thực thi tức thì ngay trên interim để đạt tốc độ phản hồi cực nhanh (<150ms)
   if (state.currentTab === 'casio' && vgProcess(text, false)) return;
 
@@ -1699,10 +1714,10 @@ voice.on('onEnd', () => {
   _vgExecutedTokensCount = 0;
   _vgLastInterimText = '';
   clearTimeout(_vgResetTimer);
-  if (dom.voiceFeedback) {
+  if (dom.voiceFeedback && !dom.voiceFeedback.textContent.includes('🔢')) {
     dom.voiceFeedback.classList.remove('listening');
     setTimeout(() => {
-      if (Date.now() - _vgLastActionTime >= 400) {
+      if (Date.now() - _vgLastActionTime >= 400 && !dom.voiceFeedback?.textContent.includes('🔢')) {
         dom.voiceFeedback?.classList.remove('visible');
       }
     }, 200);

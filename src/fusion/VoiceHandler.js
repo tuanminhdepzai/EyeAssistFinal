@@ -71,12 +71,15 @@ export class VoiceHandler {
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         let chosenTranscript = result[0]?.transcript || '';
-        // Ưu tiên alternative có chứa từ khóa điều khiển để tăng độ nhạy và chính xác
-        for (let a = 0; a < result.length; a++) {
-          const t = result[a]?.transcript || '';
-          if (/\b(lên|len|xuống|xuong|suống|suong|xuồng|xuổng|trái|trai|phải|phai|ok|oke|ô kê|chọn|bấm|ấn)\b/i.test(t)) {
-            chosenTranscript = t;
-            break;
+        // Chỉ tìm alternative điều hướng nếu transcript gốc không phải là số hoặc phép toán
+        const isMathOrNumber = /[0-9]|không|một|mốt|hai|ba|bốn|tư|năm|lăm|sáu|bảy|bẩy|tám|chín|mười|chục|trăm|nghìn|ngàn|cộng|trừ|nhân|chia|bằng|xóa/i.test(chosenTranscript);
+        if (!isMathOrNumber) {
+          for (let a = 1; a < result.length; a++) {
+            const t = result[a]?.transcript || '';
+            if (/\b(lên|len|xuống|xuong|suống|suong|xuồng|xuổng|trái|trai|phải|phai|ok|oke|ô kê)\b/i.test(t)) {
+              chosenTranscript = t;
+              break;
+            }
           }
         }
 

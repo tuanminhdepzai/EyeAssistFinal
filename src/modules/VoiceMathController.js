@@ -150,8 +150,18 @@ export default class VoiceMathController {
 
     let raw = transcript.toLowerCase().trim();
 
-    // ── Dọn dẹp dấu câu thừa, thay bằng khoảng trắng ──
-    let t = ' ' + raw.replace(/[!?;:…""''`~@#$%^&_\\|/]/g, ' ').replace(/\s+/g, ' ') + ' ';
+    // ── Bước 0: Chuẩn hóa số thập phân và dọn sạch dấu câu ──
+    // 1. Chuyển dấu phẩy/chấm giữa các chữ số thành dấu chấm thập phân tạm thời
+    raw = raw.replace(/(\d+)\s*[.,]\s*(\d+)/g, ' $1 DECIMALPOINT $2 ');
+
+    // 2. Chuyển chữ "phẩy", "chấm" thành dấu chấm thập phân tạm thời
+    raw = raw.replace(/(?<=\s)(phẩy|chấm)(?=\s)/gi, ' DECIMALPOINT ');
+
+    // 3. Bây giờ xóa an toàn mọi dấu câu ngữ pháp (bao gồm dấu chấm cuối câu từ ASR, dấu phẩy ngắt câu, v.v.)
+    let t = ' ' + raw.replace(/[.,!?;:…""''`~@#$%^&_\\|/]/g, ' ').replace(/\s+/g, ' ') + ' ';
+
+    // 4. Khôi phục lại dấu chấm thập phân chuẩn
+    t = t.replace(/DECIMALPOINT/g, ' . ');
 
     // Bỏ tiền tố "số", "phím", "nút"
     t = t.replace(/(?<=\s)số\s+(?=[0-9]|không|một|mốt|hai|ba|bốn|tư|năm|lăm|sáu|bảy|bẩy|tám|chín|mười|pi)/gi, '');
@@ -171,7 +181,6 @@ export default class VoiceMathController {
     t = t.replace(/(?<=\s)(nhân\s*với|nhân|nhơn|nhẩn|\*|x)(?=\s)/gi, ' × ');
     t = t.replace(/(?<=\s)(chia\s*cho|chia|chía)(?=\s)/gi, ' ÷ ');
     t = t.replace(/(?<=\s)(bằng\s*mấy|bằng|kết\s*quả|ra|=)(?=\s)/gi, ' = ');
-    t = t.replace(/(?<=\s)(chấm|phẩy)(?=\s)/gi, ' . ');
     t = t.replace(/(?<=\s)(mở\s*ngoặc)(?=\s)/gi, ' ( ');
     t = t.replace(/(?<=\s)(đóng\s*ngoặc)(?=\s)/gi, ' ) ');
 
@@ -407,7 +416,7 @@ export default class VoiceMathController {
    * @returns {boolean} True nếu nhận diện và thực thi thành công
    */
   processTranscript(raw) {
-    if (!raw || this._processing) return false;
+    if (!raw) return false;
 
     const mathExpr = VoiceMathController.normalizeVietnameseToMath(raw);
     if (!mathExpr) return false;
@@ -417,7 +426,11 @@ export default class VoiceMathController {
 
     console.info(`[VoiceMath] 🎙️ "${raw}" → ${mathExpr} → [${keystrokes.join(', ')}]`);
     this._showUI(`🔢 "${raw}" → ${mathExpr}`);
-    this._executeKeystrokes(keystrokes);
+
+    // Hàng đợi phím bấm để không bỏ sót lệnh khi người dùng đọc liên tục
+    if (!this._queue) this._queue = [];
+    this._queue.push(keystrokes);
+    this._drainQueue();
     return true;
   }
 
@@ -439,30 +452,39 @@ export default class VoiceMathController {
   }
 
   /**
-   * Bấm từng phím một với khoảng cách delay giữa mỗi lần bấm.
-   * @param {string[]} keystrokes
+   * Xử lý hàng đợi phím một cách an toàn và tuần tự
    */
-  async _executeKeystrokes(keystrokes) {
+  async _drainQueue() {
+    if (this._processing || !this._queue || this._queue.length === 0) return;
     this._processing = true;
 
-    for (let i = 0; i < keystrokes.length; i++) {
-      const key = keystrokes[i];
+    try {
+      while (this._queue.length > 0) {
+        const keystrokes = this._queue.shift();
+        for (let i = 0; i < keystrokes.length; i++) {
+          const key = keystrokes[i];
 
-      if (window.handleKey) {
-        window.handleKey(key);
-        if (window.saveState) {
-          window.saveState();
+          try {
+            if (typeof window !== 'undefined' && window.handleKey) {
+              window.handleKey(key);
+              if (window.saveState) {
+                window.saveState();
+              }
+            }
+          } catch (err) {
+            console.error(`[VoiceMath] Lỗi khi thực thi phím ${key}:`, err);
+          }
+
+          this._flashButton(key);
+
+          if (i < keystrokes.length - 1 || this._queue.length > 0) {
+            await this._delay(this._keystrokeDelay);
+          }
         }
       }
-
-      this._flashButton(key);
-
-      if (i < keystrokes.length - 1) {
-        await this._delay(this._keystrokeDelay);
-      }
+    } finally {
+      this._processing = false;
     }
-
-    this._processing = false;
   }
 
   _delay(ms) {
@@ -497,7 +519,7 @@ export default class VoiceMathController {
     this._uiTimer = setTimeout(() => {
       el.classList.remove('listening');
       setTimeout(() => el.classList.remove('visible'), 250);
-    }, 1200);
+    }, 1800);
   }
 
   // ==========================================================
