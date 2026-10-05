@@ -1126,10 +1126,6 @@ fusion.on('onGazeHover', (gazeData) => {
 function parseAllowedVoiceCommand(rawText) {
   if (!rawText) return null;
   const t = rawText.toLowerCase().trim().replace(/[.,?!;:…""''`]/g, ' ').replace(/\s+/g, ' ');
-  const words = t.split(' ').filter(Boolean);
-
-  // Khẩu lệnh điều khiển hệ thống luôn ngắn gọn (1 đến 5 từ)
-  if (words.length === 0 || words.length > 5) return null;
 
   // Lọc bỏ câu đàm thoại hoặc chứa từ không liên quan
   if (
@@ -1137,13 +1133,10 @@ function parseAllowedVoiceCommand(rawText) {
     t.includes('phải không') ||
     t.includes('chẳng phải') ||
     t.includes('chả phải') ||
-    t.includes('tôi') ||
-    t.includes('bạn') ||
-    t.includes('nước') ||
-    t.includes('cơm') ||
-    t.includes('chào') ||
-    t.includes('thế nào') ||
-    t.includes('làm sao')
+    t.includes('uống nước') ||
+    t.includes('ăn cơm') ||
+    t.includes('chào bạn') ||
+    t.includes('xin chào')
   ) {
     return null;
   }
@@ -1151,26 +1144,33 @@ function parseAllowedVoiceCommand(rawText) {
   // 1. Reset góc nhìn camera
   if (
     t === 'reset' ||
-    t === 'reset camera' ||
-    t === 'reset góc nhìn' ||
-    t === 'đặt lại góc nhìn' ||
-    t === 'đặt lại camera' ||
     t === 'về gốc' ||
-    t === 'về vị trí gốc' ||
-    t === 'góc nhìn gốc'
+    t === 'đặt lại' ||
+    t.includes('reset camera') ||
+    t.includes('reset góc nhìn') ||
+    t.includes('đặt lại góc nhìn') ||
+    t.includes('đặt lại camera') ||
+    t.includes('về vị trí gốc') ||
+    t.includes('góc nhìn gốc') ||
+    t.includes('quay về gốc')
   ) {
     return { type: 'hand_control', action: 'reset_cam', display: 'Reset góc nhìn' };
   }
 
   // 2. Dừng / Tắt xoay mô hình
   if (
+    t === 'dừng' ||
     t === 'dừng xoay' ||
     t === 'tắt xoay' ||
     t === 'ngừng xoay' ||
     t === 'thôi xoay' ||
     t === 'dừng quay' ||
     t === 'tắt quay' ||
-    t === 'dừng xoay bàn tay'
+    t.includes('dừng xoay') ||
+    t.includes('tắt xoay') ||
+    t.includes('ngừng xoay') ||
+    t.includes('thôi xoay') ||
+    t.includes('dừng quay')
   ) {
     return { type: 'hand_control', action: 'stop_rotate', display: 'Dừng xoay bàn tay' };
   }
@@ -1178,14 +1178,15 @@ function parseAllowedVoiceCommand(rawText) {
   // 3. Lệnh Bật / Toggle Xoay 3D
   if (
     t === 'xoay' ||
-    t === 'xoay bàn tay' ||
-    t === 'quay bàn tay' ||
-    t === 'quay mô hình' ||
-    t === 'xoay mô hình' ||
-    t === 'bật xoay' ||
-    t === 'tự động xoay' ||
-    t === 'xoay 3d' ||
-    t === 'xoay ba đê'
+    t === 'quay' ||
+    t.includes('xoay bàn tay') ||
+    t.includes('quay bàn tay') ||
+    t.includes('bật xoay') ||
+    t.includes('tự động xoay') ||
+    t.includes('xoay mô hình') ||
+    t.includes('quay mô hình') ||
+    t.includes('xoay 3d') ||
+    t.includes('xoay ba đê')
   ) {
     return { type: 'hand_control', action: 'rotate', display: 'Xoay bàn tay' };
   }
@@ -1193,16 +1194,13 @@ function parseAllowedVoiceCommand(rawText) {
   // 4. Bật/tắt Mũi tên Vectơ
   if (
     t === 'mũi tên' ||
-    t === 'mũi tên vectơ' ||
-    t === 'mũi tên vector' ||
-    t === 'mũi tên 3d' ||
     t === 'vectơ' ||
     t === 'vecto' ||
     t === 'vector' ||
-    t === 'bật vectơ' ||
-    t === 'tắt vectơ' ||
-    t === 'bật mũi tên' ||
-    t === 'tắt mũi tên'
+    t.includes('mũi tên') ||
+    t.includes('vectơ') ||
+    t.includes('vecto') ||
+    t.includes('vector')
   ) {
     return { type: 'hand_control', action: 'toggle_arrows', display: 'Mũi tên Vectơ' };
   }
@@ -1211,18 +1209,18 @@ function parseAllowedVoiceCommand(rawText) {
   // 5.1 Tab Casio
   if (
     t === 'casio' ||
-    t === 'ca si ô' ||
-    t === 'ca sio' ||
-    t === 'ca xi ô' ||
-    t === 'mở casio' ||
-    t === 'mở máy tính' ||
-    t === 'máy tính ảo' ||
-    t === 'chuyển casio' ||
-    t === 'chuyển sang casio' ||
-    t === 'chuyển qua casio' ||
-    t === 'chuyển máy tính' ||
-    t === 'tab casio' ||
-    t === 'tầng casio'
+    t === 'máy tính' ||
+    t.includes('mở casio') ||
+    t.includes('mở máy tính') ||
+    t.includes('chuyển casio') ||
+    t.includes('chuyển sang casio') ||
+    t.includes('chuyển qua casio') ||
+    t.includes('chuyển máy tính') ||
+    t.includes('sang casio') ||
+    t.includes('qua casio') ||
+    t.includes('máy tính ảo') ||
+    t.includes('tab casio') ||
+    t.includes('tầng casio')
   ) {
     return { type: 'switch_tab', target: 'casio', display: 'chuyển qua Casio ảo' };
   }
@@ -1231,19 +1229,19 @@ function parseAllowedVoiceCommand(rawText) {
   if (
     t === 'bàn tay' ||
     t === 'bàn tay 3d' ||
-    t === 'bàn tay ba đê' ||
-    t === 'mở bàn tay' ||
-    t === 'mở bàn tay 3d' ||
-    t === 'chuyển bàn tay' ||
-    t === 'chuyển qua bàn tay' ||
-    t === 'chuyển sang bàn tay' ||
-    t === 'sang bàn tay' ||
-    t === 'qua bàn tay' ||
-    t === 'mở tay 3d' ||
-    t === 'mở tay ba đê' ||
-    t === 'tab bàn tay' ||
-    t === 'tầng bàn tay' ||
-    t === 'tầng 3d'
+    t === 'tay 3d' ||
+    t.includes('mở bàn tay') ||
+    t.includes('chuyển bàn tay') ||
+    t.includes('chuyển qua bàn tay') ||
+    t.includes('chuyển sang bàn tay') ||
+    t.includes('sang bàn tay') ||
+    t.includes('qua bàn tay') ||
+    t.includes('mở tay 3d') ||
+    t.includes('bàn tay 3d') ||
+    t.includes('bàn tay ba đê') ||
+    t.includes('tab bàn tay') ||
+    t.includes('tầng bàn tay') ||
+    t.includes('tầng 3d')
   ) {
     return { type: 'switch_tab', target: 'hand', display: 'chuyển qua bàn tay 3D' };
   }
@@ -1253,11 +1251,9 @@ function parseAllowedVoiceCommand(rawText) {
     t === 'hiệu chỉnh' ||
     t === 'cân chỉnh' ||
     t === 'calib' ||
-    t === 'mở hiệu chỉnh' ||
-    t === 'chuyển sang hiệu chỉnh' ||
-    t === 'chuyển qua hiệu chỉnh' ||
-    t === 'tab hiệu chỉnh' ||
-    t === 'tầng hiệu chỉnh'
+    t.includes('hiệu chỉnh') ||
+    t.includes('cân chỉnh') ||
+    t.includes('calib')
   ) {
     return { type: 'switch_tab', target: 'calibration', display: 'chuyển sang hiệu chỉnh' };
   }
@@ -1312,7 +1308,7 @@ function vgFlash(key) {
   setTimeout(() => btn.classList.remove('voice-active'), 280);
 }
 
-// Bảng từ vựng Voice Grid hợp lệ (chỉ các từ liên quan đến điều hướng hoặc phím)
+// Bảng từ vựng Voice Grid hợp lệ
 const VG_VOCABULARY = new Set([
   'lên', 'len',
   'xuống', 'xuong', 'suống', 'suong', 'xuồng', 'xuổng',
@@ -1320,7 +1316,8 @@ const VG_VOCABULARY = new Set([
   'phải', 'phai',
   'ok', 'oke', 'okay', 'ô', 'kê', 'đồng', 'ý', 'chọn', 'bấm', 'ấn', 'nhập', 'enter',
   'đi', 'sang', 'qua', 'bên', 'về', 'rẽ', 'trên', 'dưới', 'hướng', 'nhích', 'kéo',
-  'một', 'hai', 'ba', 'bốn', 'năm', 'bước', 'lần', 'ô', 'nấc', 'phím'
+  'một', 'hai', 'ba', 'bốn', 'năm', 'bước', 'lần', 'ô', 'nấc', 'phím', 'nút',
+  'này', 'kia', 'đó', 'hộ', 'giúp', 'cho', 'vào'
 ]);
 
 /**
@@ -1340,7 +1337,10 @@ function vgExtractTokens(text) {
     raw.includes('chả phải') ||
     raw.includes('phải chăng') ||
     raw.includes('có nên') ||
-    raw.includes('cho nên')
+    raw.includes('cho nên') ||
+    raw.includes('uống nước') ||
+    raw.includes('ăn cơm') ||
+    raw.includes('chào bạn')
   ) {
     return [];
   }
@@ -1348,14 +1348,6 @@ function vgExtractTokens(text) {
   const t = raw.replace(/[.,!?;:(){}\[\]"'`]/g, ' ');
   const words = t.split(/\s+/).filter(Boolean);
   if (words.length === 0) return [];
-
-  // 2. Kiểm tra nghiêm ngặt: mọi từ phải nằm trong danh mục Voice Grid
-  for (const w of words) {
-    if (!VG_VOCABULARY.has(w)) {
-      // Có từ không liên quan -> Từ chối để không gây nhảy phím Casio bậy
-      return [];
-    }
-  }
 
   const tokens = [];
   for (let i = 0; i < words.length; i++) {
@@ -1389,7 +1381,7 @@ function vgExtractTokens(text) {
       continue;
     }
 
-    // Từ đơn: 1. Lên (chỉ chấp nhận lên / len)
+    // Từ đơn: 1. Lên
     if (w === 'lên' || w === 'len') {
       tokens.push('up');
       continue;
@@ -1411,13 +1403,18 @@ function vgExtractTokens(text) {
       continue;
     }
 
-    // 4. Phải
+    // 4. Phải (chống câu phủ định)
     if (w === 'phải' || w === 'phai') {
+      const prevW = words[i - 1] || '';
+      const nextWord = words[i + 1] || '';
+      if (['không', 'chẳng', 'chả', 'chưa'].includes(prevW) || ['không', 'đâu', 'chăng'].includes(nextWord)) {
+        continue;
+      }
       tokens.push('right');
       continue;
     }
 
-    // 5. OK / Chọn / Bấm / Ấn (loại bỏ hoàn toàn standalone 'kê')
+    // 5. OK / Chọn / Bấm / Ấn / Nhập
     if (
       w === 'ok' || w === 'oke' || w === 'okay' ||
       w === 'chọn' || w === 'bấm' || w === 'ấn' ||
@@ -1693,13 +1690,12 @@ voice.on('onInterim', (text) => {
   if (match && dom.voiceFeedback) {
     dom.voiceFeedback.textContent = `🎤 "${match.display}..."`;
     dom.voiceFeedback.classList.add('visible', 'listening');
-  } else if (!match && dom.voiceFeedback) {
-    // Không phải khẩu lệnh sẵn: Tuyệt đối không hiển thị lên giao diện
-    dom.voiceFeedback.classList.remove('visible', 'listening');
   }
 });
 
 voice.on('onEnd', () => {
+  if (dom.voiceStatus) dom.voiceStatus.classList.remove('active');
+  updateMicUI();
   _vgExecutedTokensCount = 0;
   _vgLastInterimText = '';
   clearTimeout(_vgResetTimer);

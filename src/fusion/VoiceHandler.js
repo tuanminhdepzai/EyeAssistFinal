@@ -25,13 +25,28 @@ export class VoiceHandler {
     this.commandHistory = [];       // Phase 3.3: last 20 commands
     this.maxHistory = 20;
     this.minConfidence = 0.2;       // Phase 3.2: ASR confidence threshold
-    this.callbacks = {
-      onResult: () => {},
-      onInterim: () => {},
-      onError: () => {},
-      onStart: () => {},
-      onEnd: () => {}
+    this._listeners = {
+      onResult: [],
+      onInterim: [],
+      onError: [],
+      onStart: [],
+      onEnd: []
     };
+    this.callbacks = {
+      onResult: (cmd, raw) => this._emit('onResult', cmd, raw),
+      onInterim: (txt) => this._emit('onInterim', txt),
+      onError: (err) => this._emit('onError', err),
+      onStart: () => this._emit('onStart'),
+      onEnd: () => this._emit('onEnd')
+    };
+  }
+
+  _emit(event, ...args) {
+    if (this._listeners[event]) {
+      for (const fn of this._listeners[event]) {
+        try { fn(...args); } catch (e) { console.error(`[VoiceHandler] Error in ${event}:`, e); }
+      }
+    }
   }
 
   start() {
@@ -78,11 +93,6 @@ export class VoiceHandler {
         const normalized = this.normalizer.normalize(final);
         this.lastResult = normalized;
         const command = this._parseCommand(normalized);
-
-        // Phase 3.2: filter low-confidence results only for unknown noise
-        if (command.type === 'unknown' && bestConfidence > 0 && bestConfidence < this.minConfidence) {
-          return; // ignore noisy result
-        }
 
         if (command.type === 'unknown') {
           this._trackUnknown();
@@ -168,7 +178,11 @@ export class VoiceHandler {
   }
 
   on(event, fn) {
-    if (this.callbacks[event]) this.callbacks[event] = fn;
+    if (this._listeners && this._listeners[event]) {
+      this._listeners[event].push(fn);
+    } else if (this.callbacks && this.callbacks[event]) {
+      this.callbacks[event] = fn;
+    }
   }
 
   /** Get command history for debugging/replay */

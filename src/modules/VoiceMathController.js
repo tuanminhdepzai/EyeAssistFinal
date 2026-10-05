@@ -58,7 +58,7 @@ export default class VoiceMathController {
 
     // Toán tử & phép tính cơ bản
     'cộng', 'cộn', 'trừ', 'thừ', 'nhân', 'nhơn', 'nhẩn', 'chia', 'chía',
-    'bằng', 'kết', 'quả', 'ra',
+    'bằng', 'kết', 'quả', 'ra', 'bao', 'nhiêu',
 
     // Dấu chấm, phẩy, ngoặc
     'chấm', 'phẩy', 'ngoặc', 'mở', 'đóng',
@@ -70,13 +70,14 @@ export default class VoiceMathController {
     // Hàm toán học
     'căn', 'bậc', 'bình', 'phương', 'mũ', 'lũy', 'thừa', 'đổi', 'dấu', 'âm',
 
-    // Từ đệm toán học được phép đi kèm
-    'số', 'phím', 'nút', 'với', 'cho', 'đi', 'mấy', 'của', 'tính', 'và'
+    // Từ hành động & đệm toán học được phép đi kèm
+    'số', 'phím', 'nút', 'với', 'cho', 'đi', 'mấy', 'của', 'tính', 'và',
+    'bấm', 'ấn', 'nhập', 'gõ', 'viết', 'phép', 'đặt'
   ]);
 
   /**
-   * Kiểm tra nghiêm ngặt: Toàn bộ các từ trong transcript phải thuộc từ vựng toán học.
-   * Nếu phát hiện bất kỳ từ nào không liên quan (chuyện phiếm, từ ngoài lề), từ chối ngay.
+   * Kiểm tra: Toàn bộ các từ trong transcript phải thuộc từ vựng toán học.
+   * Nếu phát hiện từ không liên quan (chuyện phiếm), từ chối ngay.
    */
   static isMathCommand(transcript) {
     if (!transcript || typeof transcript !== 'string') return false;
@@ -101,11 +102,9 @@ export default class VoiceMathController {
       raw.includes('hiệu chỉnh') ||
       raw.includes('chuyển tab') ||
       raw.includes('chuyển tầng') ||
-      raw.includes('chào') ||
-      raw.includes('nước') ||
-      raw.includes('cơm') ||
-      raw.includes('tôi') ||
-      raw.includes('bạn')
+      raw.includes('uống nước') ||
+      raw.includes('ăn cơm') ||
+      raw.includes('chào bạn')
     ) {
       return false;
     }
@@ -118,10 +117,8 @@ export default class VoiceMathController {
         continue;
       }
       if (!VoiceMathController.MATH_VOCABULARY.has(w)) {
-        // Có từ không liên quan -> Từ chối ngay lập tức để không ảnh hưởng thao tác
         return false;
       }
-      // Đánh dấu nếu có ít nhất 1 từ toán thực chất (chữ số, phép tính hoặc lệnh xóa)
       if (
         /^(không|một|mốt|hai|ba|bốn|tư|năm|lăm|sáu|bảy|bẩy|tám|chín|mười|chục|mươi|hăm|trăm|nghìn|ngàn|cộng|cộn|trừ|thừ|nhân|nhơn|nhẩn|chia|chía|bằng|kết|quả|xóa|ac|del|clear|căn|bình|mũ|âm|pi)$/.test(w)
       ) {
@@ -320,39 +317,24 @@ export default class VoiceMathController {
       return this.processTranscript(raw);
     };
 
-    // Bọc phương thức on của VoiceHandler để bắt sự kiện onResult và onInterim
-    const origOn = voiceInstance.on.bind(voiceInstance);
-    voiceInstance.on = (event, fn) => {
-      if (event === 'onResult') {
-        origOn('onResult', (command, raw) => {
-          if (handleSpeech(raw)) return;
-          if (fn) fn(command, raw);
-        });
-      } else if (event === 'onInterim') {
-        origOn('onInterim', (text) => {
-          const activeTab = document.querySelector('.nav-tab.active')?.dataset?.tab || 'casio';
-          if (activeTab === 'casio') {
-            const preview = VoiceMathController.normalizeVietnameseToMath(text);
-            if (preview) {
-              this._showPreview(text, preview);
-              return;
-            }
-          }
-          if (fn) fn(text);
-        });
-      } else {
-        origOn(event, fn);
+    voiceInstance.on('onResult', (command, raw) => {
+      const activeTab = document.querySelector('.nav-tab.active')?.dataset?.tab ||
+                        document.querySelector('.tab-content.active')?.id?.replace('tab-', '') ||
+                        'casio';
+      if (activeTab === 'casio') {
+        this.processTranscript(raw);
       }
-    };
+    });
 
-    // Nếu callback đã được gán trước đó trong callbacks object:
-    if (voiceInstance.callbacks) {
-      const origOnResult = voiceInstance.callbacks.onResult;
-      voiceInstance.callbacks.onResult = (command, raw) => {
-        if (handleSpeech(raw)) return;
-        if (origOnResult) origOnResult(command, raw);
-      };
-    }
+    voiceInstance.on('onInterim', (text) => {
+      const activeTab = document.querySelector('.nav-tab.active')?.dataset?.tab || 'casio';
+      if (activeTab === 'casio') {
+        const preview = VoiceMathController.normalizeVietnameseToMath(text);
+        if (preview) {
+          this._showPreview(text, preview);
+        }
+      }
+    });
 
     console.info('[VoiceMathController] 🔗 Đã kết nối thành công vào luồng VoiceHandler.');
   }
