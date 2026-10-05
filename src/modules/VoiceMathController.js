@@ -46,6 +46,93 @@ export default class VoiceMathController {
   }
 
   // ==========================================================
+  //  1.1 BẢNG TỪ VỰNG TOÁN HỌC HỢP LỆ (WHITELIST CHỐNG TỪ NGOẠI LAI)
+  // ==========================================================
+  static MATH_VOCABULARY = new Set([
+    // Chữ số & số đếm
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+    'không', 'một', 'mốt', 'hai', 'ba', 'bốn', 'tư', 'năm', 'lăm',
+    'sáu', 'bảy', 'bẩy', 'tám', 'chín',
+    'mười', 'chục', 'mươi', 'hăm', 'trăm', 'nghìn', 'ngàn',
+    'linh', 'lẻ', 'pi',
+
+    // Toán tử & phép tính cơ bản
+    'cộng', 'cộn', 'trừ', 'thừ', 'nhân', 'nhơn', 'nhẩn', 'chia', 'chía',
+    'bằng', 'kết', 'quả', 'ra',
+
+    // Dấu chấm, phẩy, ngoặc
+    'chấm', 'phẩy', 'ngoặc', 'mở', 'đóng',
+
+    // Lệnh xóa & chức năng
+    'xóa', 'hết', 'tất', 'cả', 'ac', 'del', 'clear', 'làm', 'mới',
+    'lùi', 'lại', 'backspace',
+
+    // Hàm toán học
+    'căn', 'bậc', 'bình', 'phương', 'mũ', 'lũy', 'thừa', 'đổi', 'dấu', 'âm',
+
+    // Từ đệm toán học được phép đi kèm
+    'số', 'phím', 'nút', 'với', 'cho', 'đi', 'mấy', 'của', 'tính', 'và'
+  ]);
+
+  /**
+   * Kiểm tra nghiêm ngặt: Toàn bộ các từ trong transcript phải thuộc từ vựng toán học.
+   * Nếu phát hiện bất kỳ từ nào không liên quan (chuyện phiếm, từ ngoài lề), từ chối ngay.
+   */
+  static isMathCommand(transcript) {
+    if (!transcript || typeof transcript !== 'string') return false;
+
+    // Dọn dẹp dấu câu thông thường
+    const cleaned = transcript.toLowerCase().trim().replace(/[!?;:…""''`~@#$%^&_\\|/,.]/g, ' ');
+    const words = cleaned.split(/\s+/).filter(Boolean);
+    if (words.length === 0) return false;
+
+    // 1. Loại bỏ các câu đàm thoại hoặc lệnh điều hướng hệ thống
+    const raw = transcript.toLowerCase();
+    if (
+      raw.includes('không phải') ||
+      raw.includes('phải không') ||
+      raw.includes('chẳng phải') ||
+      raw.includes('chả phải') ||
+      raw.includes('bàn tay') ||
+      raw.includes('xoay') ||
+      raw.includes('vectơ') ||
+      raw.includes('vecto') ||
+      raw.includes('mũi tên') ||
+      raw.includes('hiệu chỉnh') ||
+      raw.includes('chuyển tab') ||
+      raw.includes('chuyển tầng') ||
+      raw.includes('chào') ||
+      raw.includes('nước') ||
+      raw.includes('cơm') ||
+      raw.includes('tôi') ||
+      raw.includes('bạn')
+    ) {
+      return false;
+    }
+
+    // 2. Kiểm tra từng từ: phải nằm trong từ điển toán hoặc là chuỗi số/ký hiệu toán
+    let hasMathMeaningfulToken = false;
+    for (const w of words) {
+      if (/^[0-9+\-*xX/:.()=]+$/.test(w)) {
+        hasMathMeaningfulToken = true;
+        continue;
+      }
+      if (!VoiceMathController.MATH_VOCABULARY.has(w)) {
+        // Có từ không liên quan -> Từ chối ngay lập tức để không ảnh hưởng thao tác
+        return false;
+      }
+      // Đánh dấu nếu có ít nhất 1 từ toán thực chất (chữ số, phép tính hoặc lệnh xóa)
+      if (
+        /^(không|một|mốt|hai|ba|bốn|tư|năm|lăm|sáu|bảy|bẩy|tám|chín|mười|chục|mươi|hăm|trăm|nghìn|ngàn|cộng|cộn|trừ|thừ|nhân|nhơn|nhẩn|chia|chía|bằng|kết|quả|xóa|ac|del|clear|căn|bình|mũ|âm|pi)$/.test(w)
+      ) {
+        hasMathMeaningfulToken = true;
+      }
+    }
+
+    return hasMathMeaningfulToken;
+  }
+
+  // ==========================================================
   //  2. CHUẨN HÓA VĂN BẢN TIẾNG VIỆT → CHUỖI TOÁN HỌC
   // ==========================================================
   /**
@@ -54,34 +141,17 @@ export default class VoiceMathController {
    * ("mười hai", "hai mươi ba", "một trăm"), và số Ả Rập ("12 + 3").
    *
    * @param {string} transcript - Văn bản từ Web Speech API
-   * @returns {string} Chuỗi token toán học
+   * @returns {string} Chuỗi token toán học (rỗng nếu không phải lệnh toán hợp lệ)
    */
   static normalizeVietnameseToMath(transcript) {
     if (!transcript || typeof transcript !== 'string') return '';
 
+    // BẮT BUỘC: Kiểm tra danh sách từ hợp lệ trước. Nếu chứa từ không liên quan -> Bỏ qua ngay
+    if (!VoiceMathController.isMathCommand(transcript)) {
+      return '';
+    }
+
     let raw = transcript.toLowerCase().trim();
-
-    // ── Kiểm tra loại trừ: Nếu là khẩu lệnh điều hướng (Voice Grid / Hand 3D / Tab) thì KHÔNG xử lý ──
-    const isPureGrid = /^(lên|len|nên|xuống|xuong|suống|suong|uống|xuồng|xuổng|trái|trai|phải|phai|ok|oke|ô kê|chọn|bấm|ấn)$/i.test(raw);
-    const hasGridKeywords = /(?<!\S)(lên|len|xuống|xuong|trái|trai|phải|phai|ok|oke|ô kê)(?!\S)/i.test(raw);
-    const hasMathKeywords = /(?<!\S)(cộng|trừ|nhân|chia|bằng|kết quả|xóa|ac|del|[0-9]|không|một|hai|ba|bốn|năm|sáu|bảy|tám|chín|mười|trăm)(?!\S)/i.test(raw);
-
-    if (isPureGrid || (hasGridKeywords && !hasMathKeywords)) {
-      return '';
-    }
-
-    if (
-      raw.includes('bàn tay') ||
-      raw.includes('xoay') ||
-      raw.includes('mũi tên') ||
-      raw.includes('vectơ') ||
-      raw.includes('vecto') ||
-      raw.includes('hiệu chỉnh') ||
-      raw.includes('chuyển tab') ||
-      raw.includes('chuyển tầng')
-    ) {
-      return '';
-    }
 
     // ── Dọn dẹp dấu câu thừa, thay bằng khoảng trắng ──
     let t = ' ' + raw.replace(/[!?;:…""''`~@#$%^&_\\|/]/g, ' ').replace(/\s+/g, ' ') + ' ';
@@ -444,8 +514,8 @@ export default class VoiceMathController {
     clearTimeout(this._uiTimer);
     this._uiTimer = setTimeout(() => {
       el.classList.remove('listening');
-      setTimeout(() => el.classList.remove('visible'), 300);
-    }, 2500);
+      setTimeout(() => el.classList.remove('visible'), 250);
+    }, 1200);
   }
 
   // ==========================================================

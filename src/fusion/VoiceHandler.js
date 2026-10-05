@@ -59,7 +59,7 @@ export class VoiceHandler {
         // Ưu tiên alternative có chứa từ khóa điều khiển để tăng độ nhạy và chính xác
         for (let a = 0; a < result.length; a++) {
           const t = result[a]?.transcript || '';
-          if (/\b(lên|len|nên|xuống|xuong|suống|suong|uống|xuồng|xuổng|trái|trai|phải|phai|ok|oke|ô kê|chọn|bấm|ấn)\b/i.test(t)) {
+          if (/\b(lên|len|xuống|xuong|suống|suong|xuồng|xuổng|trái|trai|phải|phai|ok|oke|ô kê|chọn|bấm|ấn)\b/i.test(t)) {
             chosenTranscript = t;
             break;
           }
