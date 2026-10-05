@@ -649,54 +649,49 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
 }
 
 .guide-voice-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.voice-cmd-group {
-  display: flex;
-  flex-direction: column;
-  gap: 3.5px;
-  margin-top: 3px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3px;
 }
 
 .voice-group-title {
   font-size: 11px;
   font-weight: 700;
-  color: var(--accent-amber);
   text-transform: uppercase;
   letter-spacing: 0.35px;
-  margin-top: 2px;
+  color: var(--accent-amber-hi);
+  margin-top: 5px;
   margin-bottom: 1px;
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
+.voice-group-title:first-of-type {
+  margin-top: 1px;
+}
+
 .voice-cmd-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(241, 234, 217, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(241, 234, 217, 0.07);
   border-radius: 5px;
-  padding: 3.5px 7px;
-  font-size: 12px;
-  transition: background var(--transition), border-color var(--transition);
+  padding: 3px 6px;
+  font-size: 12.5px;
+  transition: background 0.15s, border-color 0.15s;
 }
 
 .voice-cmd-row:hover {
   background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(232, 184, 75, 0.25);
+  border-color: rgba(232, 184, 75, 0.2);
 }
 
 .voice-tag {
   color: var(--text-primary);
   font-weight: 600;
   font-size: 12px;
-  line-height: 1.3;
 }
 
 .voice-action {
@@ -705,7 +700,6 @@ button.gaze-hover, .method-card.gaze-hover, [role="button"].gaze-hover {
   font-weight: 700;
   font-size: 11.5px;
   white-space: nowrap;
-  flex-shrink: 0;
 }
 
 .guide-feature-row {
