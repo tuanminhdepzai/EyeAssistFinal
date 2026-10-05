@@ -1885,6 +1885,7 @@ function switchTab(tabId) {
   const cursor = dom.gazeCursor;
   if (cursor) {
     if (tabId === 'casio') {
+      scaleCalculator();
       const overlay = document.getElementById('gaze-overlay');
       if (overlay && cursor.parentElement !== overlay) {
         overlay.appendChild(cursor);
@@ -2121,6 +2122,7 @@ function scaleCalculator() {
   if (availW <= 0 || availH <= 0) return;
 
   const scale = Math.min(1, availH / naturalH, availW / naturalW);
+  casioApp.style.transform = `scale(${scale.toFixed(4)})`;
 }
 
 // ============ UTILITIES ============
