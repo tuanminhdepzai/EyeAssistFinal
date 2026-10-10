@@ -326,12 +326,19 @@ export default class VoiceMathController {
       return this.processTranscript(raw);
     };
 
+    let lastHandledRaw = '';
+    let interimCommitTimer = null;
+
     voiceInstance.on('onResult', (command, raw) => {
       const activeTab = document.querySelector('.nav-tab.active')?.dataset?.tab ||
                         document.querySelector('.tab-content.active')?.id?.replace('tab-', '') ||
                         'casio';
       if (activeTab === 'casio') {
-        this.processTranscript(raw);
+        clearTimeout(interimCommitTimer);
+        if (lastHandledRaw !== raw) {
+          lastHandledRaw = raw;
+          this.processTranscript(raw);
+        }
       }
     });
 
@@ -341,11 +348,20 @@ export default class VoiceMathController {
         const preview = VoiceMathController.normalizeVietnameseToMath(text);
         if (preview) {
           this._showPreview(text, preview);
+          // Fast-commit sau 500ms: Tự động gõ số ngay khi người dùng ngừng nói,
+          // không bắt người dùng phải chờ Google Cloud nhận diện khoảng lặng 2-3s (đặc biệt hữu ích trên máy có mic ồn hoặc mạng trễ)
+          clearTimeout(interimCommitTimer);
+          interimCommitTimer = setTimeout(() => {
+            if (lastHandledRaw !== text) {
+              lastHandledRaw = text;
+              this.processTranscript(text);
+            }
+          }, 500);
         }
       }
     });
 
-    console.info('[VoiceMathController] 🔗 Đã kết nối thành công vào luồng VoiceHandler.');
+    console.info('[VoiceMathController] 🔗 Đã kết nối thành công vào luồng VoiceHandler (kèm Fast-Commit 500ms).');
   }
 
   // ==========================================================

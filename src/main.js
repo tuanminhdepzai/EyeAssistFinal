@@ -311,6 +311,10 @@ async function startSensors() {
   if (_sensorsStarted) return;
   _sensorsStarted = true;
 
+  if (typeof window !== 'undefined' && window.isSecureContext === false && location.hostname !== 'localhost') {
+    console.warn('[EyeAssist] ⚠️ CẢNH BÁO BẢO MẬT: Trang web đang mở trên HTTP qua mạng LAN (' + location.hostname + '). Google Chrome sẽ chặn Web Speech API trên HTTP không an toàn. Hãy mở trang web qua HTTPS hoặc localhost.');
+  }
+
   try {
     // 1. Khởi động webcam (yêu cầu quyền Camera)
     await initWebcam();
@@ -1443,16 +1447,13 @@ function vgHideFeedback() {
   }, 250);
 }
 
-/** Lên lịch reset phiên mic để đọc lệnh kế tiếp ngay lập tức mà không phải chờ 2-3s */
+/** Lên lịch reset bộ đếm để đọc lệnh kế tiếp mượt mà */
 function vgScheduleQuickReset() {
   clearTimeout(_vgResetTimer);
   _vgResetTimer = setTimeout(() => {
     vgHideFeedback();
     _vgExecutedTokensCount = 0;
     _vgLastInterimText = '';
-    if (voice && voice.isListening) {
-      voice.quickReset();
-    }
   }, VG_RESET_DELAY);
 }
 
@@ -1665,13 +1666,10 @@ function executeVoiceCommand(match) {
     }, 50);
   }
 
-  // Lên lịch reset session mic sau 400ms để người dùng đọc tiếp lệnh mới tức thì
+  // Cho phép đọc tiếp lệnh mới sau 400ms mà không hủy kết nối mic
   clearTimeout(_voiceCmdResetTimer);
   _voiceCmdResetTimer = setTimeout(() => {
     _lastVoiceCmdKey = '';
-    if (voice && voice.isListening) {
-      voice.quickReset();
-    }
   }, 400);
 }
 
@@ -1727,7 +1725,13 @@ voice.on('onEnd', () => {
 voice.on('onError', (err) => {
   if (dom.voiceStatus) dom.voiceStatus.classList.add('error');
   if (dom.voiceFeedback) {
-    dom.voiceFeedback.textContent = `⚠️ Lỗi mic: ${err}`;
+    let msg = `⚠️ Lỗi mic: ${err}`;
+    if (err === 'not-allowed') {
+      msg = '⚠️ Quyền micro bị từ chối hoặc trang web cần chạy qua HTTPS/Google Chrome.';
+    } else if (err === 'network') {
+      msg = '⚠️ Lỗi mạng: Không thể kết nối máy chủ giọng nói Google (kiểm tra Wi-Fi/Firewall).';
+    }
+    dom.voiceFeedback.textContent = msg;
     dom.voiceFeedback.classList.add('visible');
   }
 });
